@@ -9,6 +9,8 @@ export default function Login() {
 
   async function submit(e: { preventDefault(): void }, mode: 'in' | 'up') {
     e.preventDefault()
+    if (!email.trim()) return setMsg('Type your email first.')
+    if (password.length < 6) return setMsg('The password needs at least 6 characters.')
     setBusy(true); setMsg(null)
     const { data, error } = mode === 'in'
       ? await supabase.auth.signInWithPassword({ email, password })
@@ -24,10 +26,10 @@ export default function Login() {
       <h1>Health Tracker</h1>
       <p className="muted">Your daily plan, weight and streaks.</p>
       <form className="card stack" onSubmit={(e) => submit(e, 'in')}>
-        <label>Email<input type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} /></label>
-        <label>Password<input type="password" autoComplete="current-password" required minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} /></label>
+        <label>Email<input type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} /></label>
+        <label>Password<input type="password" autoComplete="current-password" placeholder="at least 6 characters" value={password} onChange={(e) => setPassword(e.target.value)} /></label>
         <button className="primary" disabled={busy}>Sign in</button>
-        <button type="button" className="ghost" disabled={busy || !email || password.length < 6} onClick={(e) => submit(e, 'up')}>
+        <button type="button" className="ghost" disabled={busy} onClick={(e) => submit(e, 'up')}>
           First time? Create account
         </button>
         {msg && <p className="muted small">{msg}</p>}
