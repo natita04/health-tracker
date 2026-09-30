@@ -88,8 +88,15 @@ function TaskRow({ task, done, onToggle }: { task: Task; done: boolean; onToggle
         {task.steps?.length ? (
           <button className="tonal small" onClick={() => setOpen(!open)}>{open ? 'Hide' : 'Exercises'}</button>
         ) : null}
-        {task.link && <a className="tonal small" href={task.link} target="_blank" rel="noreferrer">▶ Video</a>}
       </div>
+      {task.videos?.length ? (
+        <div className="videos">
+          <span className="muted small">{task.videos.length > 1 ? 'Pick one:' : 'Video:'}</span>
+          {task.videos.map((v) => (
+            <a key={v.url} className="video" href={v.url} target="_blank" rel="noreferrer">▶ {v.title}</a>
+          ))}
+        </div>
+      ) : null}
       {open && task.steps && <Steps steps={task.steps} />}
     </div>
   )

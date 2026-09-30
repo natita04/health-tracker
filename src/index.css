@@ -207,3 +207,9 @@ input.invalid { border-color: var(--danger); }
 /* checkbox rows are labels too, but laid out side by side */
 .taskmain, .steps label { flex-direction: row; color: inherit; font-size: inherit; }
 .steps label { align-items: center; }
+
+.videos { display: flex; flex-direction: column; gap: 6px; margin: 8px 0 2px 36px; }
+.video {
+  display: block; padding: 8px 12px; border-radius: 12px; text-decoration: none; font-size: .9rem; font-weight: 600;
+  background: var(--surface); color: var(--text); border: 1px solid var(--line);
+}

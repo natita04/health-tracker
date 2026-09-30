@@ -1,4 +1,4 @@
-import { ALL_DAYS, type Category, type Task } from './types'
+import { ALL_DAYS, type Category, type Task, type Video } from './types'
 
 /**
  * The built-in plan, copied into your account the first time you sign in.
@@ -12,7 +12,7 @@ export const VERSION = 1
 // Monday = bit 0 ... Sunday = bit 6
 const MON = 1, WED = 4, THU = 8, FRI = 16, SAT = 32, SUN = 64
 
-const yt = (id: string) => `https://www.youtube.com/watch?v=${id}`
+const yt = (title: string, id: string): Video => ({ title, url: `https://www.youtube.com/watch?v=${id}` })
 const hm = (h: number, m = 0) => h * 60 + m
 
 export const BASIC_WORKOUT: string[] = [
@@ -26,7 +26,7 @@ export const BASIC_WORKOUT: string[] = [
   '10 reverse lunges per leg',
   '15 glute bridges',
   '10 push-ups (on your knees is fine)',
-  '30s plank',
+  '10 bird dogs per side',
   '10 dead bugs per side',
   '# Cool-down (1 min)',
   '20s hamstring stretch',
@@ -39,10 +39,10 @@ type Item = Omit<Task, 'sort_order' | 'archived'> & { since: number }
 let order = 0
 const t = (
   id: string, category: Category, title: string,
-  o: Partial<Pick<Task, 'details' | 'duration_min' | 'days_mask' | 'time_minutes' | 'link' | 'steps'>> = {},
+  o: Partial<Pick<Task, 'details' | 'duration_min' | 'days_mask' | 'time_minutes' | 'videos' | 'steps'>> = {},
 ): Item & { sort_order: number } => ({
   since: 1, id, category, title, details: '', duration_min: null, days_mask: ALL_DAYS,
-  time_minutes: null, link: null, steps: null, ...o, sort_order: order++,
+  time_minutes: null, videos: null, steps: null, ...o, sort_order: order++,
 })
 
 const ITEMS = [
@@ -60,11 +60,27 @@ const ITEMS = [
 
   t('basic_daily', 'WORKOUT', 'Basic daily workout', { details: '15 min · bodyweight, no equipment', duration_min: 15, steps: BASIC_WORKOUT }),
 
-  // 45 min: Sun lower, Mon upper, Wed lower, Fri full body (Heather Robertson)
-  t('full_sun_lower', 'WORKOUT', 'Lower Body Strength (Fierce Day 2)', { details: '45 min · Heather Robertson · dumbbells', duration_min: 45, days_mask: SUN, link: yt('C6MyDJMddYE') }),
-  t('full_mon_upper', 'WORKOUT', 'Arms & Shoulders Upper Body (Fierce Day 1)', { details: '49 min · Heather Robertson · dumbbells', duration_min: 45, days_mask: MON, link: yt('LF-fA0g9KNg') }),
-  t('full_wed_lower', 'WORKOUT', 'Killer Leg Day // Lower Body Strength', { details: '41 min · Heather Robertson · heavier dumbbells', duration_min: 45, days_mask: WED, link: yt('eemRXHKsGIc') }),
-  t('full_fri_full', 'WORKOUT', 'Total Body Strength & Cardio (Fierce Day 14)', { details: '43 min · Heather Robertson · dumbbells', duration_min: 45, days_mask: FRI, link: yt('HpKRKd3R8A0') }),
+  // 45 min: Sun lower, Mon upper, Wed lower, Fri full body. 3 Heather Robertson options each.
+  t('full_sun_lower', 'WORKOUT', 'Lower body strength', { details: '~45 min · Heather Robertson · dumbbells', duration_min: 45, days_mask: SUN, videos: [
+    yt('Fierce Day 2: Lower Body Strength (45 min)', 'C6MyDJMddYE'),
+    yt('Fierce 2.0 Day 2: Unilateral Leg Workout', '7QLEmnP9VyI'),
+    yt('Fierce 3.0 Day 2: Lower Body Strength', 'EexpjrAPvj4'),
+  ] }),
+  t('full_mon_upper', 'WORKOUT', 'Upper body strength', { details: '~45 min · Heather Robertson · dumbbells', duration_min: 45, days_mask: MON, videos: [
+    yt('Fierce Day 1: Arms & Shoulders (49 min)', 'LF-fA0g9KNg'),
+    yt('HR12WEEK 2.0: Upper Body Push (40 min)', 'sa8RJQy8kps'),
+    yt('HR12WEEK 2.0: Upper Body Pull (40 min)', 'R1HR5_KK5ac'),
+  ] }),
+  t('full_wed_lower', 'WORKOUT', 'Leg day', { details: '~45 min · Heather Robertson · dumbbells', duration_min: 45, days_mask: WED, videos: [
+    yt('Killer Leg Day // Lower Body Strength (41 min)', 'eemRXHKsGIc'),
+    yt('Fierce 2.0 Day 8: Powerful Lean Legs', 'BcnFHqyfVq4'),
+    yt('Fierce 2.0 Day 12: Booty & Thigh', 'PFxRdrY6KWQ'),
+  ] }),
+  t('full_fri_full', 'WORKOUT', 'Full body strength', { details: '~45 min · Heather Robertson · dumbbells', duration_min: 45, days_mask: FRI, videos: [
+    yt('Fierce Day 14: Total Body Strength & Cardio (43 min)', 'HpKRKd3R8A0'),
+    yt('Fierce 2.0 Day 14: Full Body MetCon', '0H7s_KF9a3A'),
+    yt('Fierce 3.0 Day 14: Full Body Strength & Power', '8Lre3HGIAjs'),
+  ] }),
 
   t('beauty_vibration', 'BEAUTY', 'Vibration plate', { details: '10 min', duration_min: 10 }),
   t('beauty_red_light', 'BEAUTY', 'Red light', { details: '10 min', duration_min: 10 }),

@@ -18,7 +18,7 @@ export default function Plan({ store }: { store: Store }) {
     isNew: true,
     task: {
       id: `custom_${crypto.randomUUID().slice(0, 8)}`, category: 'BEAUTY', title: '', details: '',
-      duration_min: null, days_mask: ALL_DAYS, time_minutes: null, link: null, steps: null,
+      duration_min: null, days_mask: ALL_DAYS, time_minutes: null, videos: null, steps: null,
       sort_order: Math.max(0, ...store.tasks.map((t) => t.sort_order)) + 1, archived: false,
     },
   })
@@ -42,7 +42,7 @@ export default function Plan({ store }: { store: Store }) {
                   <span className="title block">{t.title}</span>
                   <span className="muted small">
                     {[daysLabel(t.days_mask), t.time_minutes != null && formatTime(t.time_minutes),
-                      t.duration_min && `${t.duration_min} min`, t.link && '▶ video', t.steps?.length && 'exercise list']
+                      t.duration_min && `${t.duration_min} min`, t.videos?.length && `▶ ${t.videos.length} video${t.videos.length > 1 ? 's' : ''}`, t.steps?.length && 'exercise list']
                       .filter(Boolean).join(' · ')}
                   </span>
                 </span>
@@ -85,7 +85,7 @@ function EditDialog({ task, isNew, onClose, onSave, onRemove }: {
   const [days, setDays] = useState(task.days_mask)
   const [duration, setDuration] = useState(task.duration_min?.toString() ?? '')
   const [time, setTime] = useState(task.time_minutes != null ? formatTime(task.time_minutes) : '')
-  const [link, setLink] = useState(task.link ?? '')
+  const [videos, setVideos] = useState((task.videos ?? []).map((v) => `${v.title} | ${v.url}`).join('\n'))
   const [steps, setSteps] = useState((task.steps ?? []).join('\n'))
 
   const timeOk = !time.trim() || parseTime(time) != null
@@ -93,11 +93,15 @@ function EditDialog({ task, isNew, onClose, onSave, onRemove }: {
 
   const save = () => {
     const lines = steps.split('\n').map((s) => s.trim()).filter(Boolean)
+    const vids = videos.split('\n').map((l) => l.trim()).filter(Boolean).map((l, i) => {
+      const [a, b] = l.includes('|') ? l.split('|').map((s) => s.trim()) : ['', l]
+      return { title: a || `Option ${i + 1}`, url: b }
+    })
     onSave({
       ...task, title: title.trim(), details: details.trim(), category, days_mask: days,
       duration_min: duration ? Number(duration) : null,
       time_minutes: time.trim() ? parseTime(time) : null,
-      link: link.trim() || null,
+      videos: vids.length ? vids : null,
       steps: lines.length ? lines : null,
     })
   }
@@ -130,7 +134,9 @@ function EditDialog({ task, isNew, onClose, onSave, onRemove }: {
           <label className="grow">Minutes<input inputMode="numeric" value={duration} onChange={(e) => setDuration(e.target.value.replace(/\D/g, '').slice(0, 3))} /></label>
           <label className="grow">Time (HH:MM)<input value={time} onChange={(e) => setTime(e.target.value)} placeholder="optional" className={timeOk ? '' : 'invalid'} /></label>
         </div>
-        <label>Video link<input type="url" value={link} onChange={(e) => setLink(e.target.value)} placeholder="optional" /></label>
+        <label>Videos (one per line: Title | link)
+          <textarea rows={3} value={videos} onChange={(e) => setVideos(e.target.value)} placeholder="Leg day | https://youtube.com/..." />
+        </label>
         <span className="muted small">Ideas: <a href={MORE_WORKOUTS_URL} target="_blank" rel="noreferrer">Heather Robertson's videos</a></span>
         <label>Exercise list (one per line, "# " for a heading)
           <textarea rows={5} value={steps} onChange={(e) => setSteps(e.target.value)} placeholder="optional" />

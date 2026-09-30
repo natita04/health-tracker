@@ -20,12 +20,18 @@ export interface Task {
   days_mask: number
   /** minutes after midnight */
   time_minutes: number | null
-  link: string | null
+  /** Video options to pick from. */
+  videos: Video[] | null
   /** Exercise list; lines starting with "# " are section headings. */
   steps: string[] | null
   sort_order: number
   archived: boolean
   created_at?: string
+}
+
+export interface Video {
+  title: string
+  url: string
 }
 
 export interface Weight {

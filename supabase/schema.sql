@@ -13,7 +13,7 @@ create table if not exists public.tasks (
   duration_min int,
   days_mask    int  not null default 127,   -- bit 0 = Monday ... bit 6 = Sunday
   time_minutes int,                         -- minutes after midnight, optional
-  link         text,
+  videos       jsonb,                       -- video options, e.g. [{"title": "...", "url": "https://..."}]
   steps        jsonb,                       -- optional exercise list, e.g. ["15 squats", ...]
   sort_order   int  not null default 0,
   archived     boolean not null default false,
