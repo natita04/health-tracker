@@ -1,28 +1,47 @@
 # Health Tracker
 
-A personal Android app: a 05:00 morning plan notification, meds reminders with a "Taken" button,
-daily check-offs, weight log with a trend chart, and history/streaks.
+A mobile-friendly website for your daily health plan: check-offs, a basic daily workout,
+Heather Robertson workouts 4x a week, meds schedule, beauty routine, weight log with a trend
+chart, and history/streaks. Data lives in Supabase, the site is hosted on Vercel.
 
-## Install / update
+## One-time setup (~15 min)
 
-1. Open **Releases** on your phone: https://github.com/natita04/health-tracker/releases/latest
-2. Download the `.apk` and open it (allow "install unknown apps" for your browser the first time).
-3. To update, install the newer APK **over** the old one. Don't uninstall, that's what deletes data.
+### 1. Supabase (the database)
+1. Sign up at https://supabase.com and create a **New project** (any name, pick a region near you, save the DB password somewhere).
+2. Open **SQL Editor**, paste all of [`supabase/schema.sql`](supabase/schema.sql), click **Run**.
+3. Go to **Project Settings → API keys / Data API** and copy:
+   - the **Project URL** (`https://xxxx.supabase.co`)
+   - the **anon / publishable** key (NOT the `service_role` / secret key)
+4. Optional but easier: **Authentication → Sign In / Providers → Email** and turn off **Confirm email**.
 
-Every push builds a new APK via GitHub Actions (`.github/workflows/build.yml`).
+### 2. Vercel (the website)
+1. Sign in at https://vercel.com with GitHub, click **Add New → Project**, import `health-tracker`.
+2. Framework is detected as **Vite**. Under **Environment Variables** add:
+   - `VITE_SUPABASE_URL` = your Project URL
+   - `VITE_SUPABASE_ANON_KEY` = your anon/publishable key
+3. Click **Deploy**. Every push to the production branch redeploys automatically.
 
-## How your data survives updates
+### 3. On your phone
+1. Open the Vercel URL, tap **First time? Create account**, then sign in.
+2. Lock the door behind you: in Supabase, **Authentication → Sign In / Providers**, turn off **Allow new users to sign up**.
+3. In Chrome: **⋮ → Add to Home screen**, so it opens like an app.
 
-- **Same signing key every build** (`app/signing/release.keystore`), so Android accepts updates in place.
-- **Version code = build number**, so each APK is newer than the last.
-- **Stable task IDs**: check-offs point at an item's ID, so renaming or rescheduling keeps history.
-  Removing an item only archives it.
-- **Built-in plan is versioned** (`Defaults.kt`): new default items are added on update without
-  touching your edits.
-- **Room migrations**, never destructive (`AppDatabase.kt`).
-- **Backups**: Android auto-backup to Google, plus a manual JSON backup/restore in the Plan tab.
+## How your data stays safe when things change
+- Everything is saved in Supabase, so updating the website never touches your data.
+- Each plan item has a stable ID, and check-offs point at it: renaming or rescheduling keeps history,
+  and "Remove" only archives the item.
+- The built-in plan (`src/defaults.ts`) is versioned. New default items get added to your account
+  without overwriting your edits.
+- Row level security: you can only ever read or write your own rows.
+- **Plan → Download backup** saves everything as a JSON file.
 
 ## Changing the plan
+Most changes don't need code: use the **Plan** tab to add, edit or remove items
+(including the exercise list of the daily workout).
 
-Most changes need no new APK: use the Plan tab to add, edit or remove items.
-To change the built-in defaults, edit `app/src/main/java/com/natita/healthtracker/data/Defaults.kt`.
+## Local development
+```bash
+cp .env.example .env.local   # fill in your Supabase values
+npm install
+npm run dev
+```
