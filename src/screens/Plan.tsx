@@ -4,6 +4,7 @@ import { supabase } from '../supabase'
 import { fmt, formatTime, parseTime } from '../dates'
 import { MORE_WORKOUTS_URL } from '../defaults'
 import { ALL_DAYS, CATEGORIES, type Category, type Task } from '../types'
+import { Badge, CAT_STYLE, Icon } from '../icons'
 
 // Display order Sun..Sat, with their days_mask bit (Monday = bit 0).
 const WEEK: [string, number][] = [['Sun', 6], ['Mon', 0], ['Tue', 1], ['Wed', 2], ['Thu', 3], ['Fri', 4], ['Sat', 5]]
@@ -25,8 +26,10 @@ export default function Plan({ store }: { store: Store }) {
 
   return (
     <>
-      <h1>Plan</h1>
-      <p className="muted small">Tap an item to change it. Changes and history are saved to your account.</p>
+      <header>
+        <p className="muted">Tap an item to change it</p>
+        <h1 className="plain-title">Plan</h1>
+      </header>
 
       {CATEGORIES.map((c) => {
         const items = store.tasks
@@ -35,9 +38,9 @@ export default function Plan({ store }: { store: Store }) {
         if (!items.length) return null
         return (
           <section key={c.id}>
-            <h2>{c.emoji} {c.label}</h2>
+            <h2 className="cat-title"><Badge name={CAT_STYLE[c.id].icon} />{c.label}</h2>
             {items.map((t) => (
-              <button key={t.id} className="card row slim planrow" onClick={() => setEditing({ task: t, isNew: false })}>
+              <button key={t.id} className="list-card row planrow" onClick={() => setEditing({ task: t, isNew: false })}>
                 <span className="grow">
                   <span className="title block">{t.title}</span>
                   <span className="muted small">
@@ -48,22 +51,22 @@ export default function Plan({ store }: { store: Store }) {
                       .filter(Boolean).join(' · ')}
                   </span>
                 </span>
-                <span aria-hidden>✏️</span>
+                <Icon name="chevron-right" />
               </button>
             ))}
           </section>
         )
       })}
 
-      <section className="card stack">
+      <section className="list-card stack">
         <strong>Account</strong>
         <div className="row wrap">
-          <button className="ghost" onClick={() => void store.exportBackup()}>Download backup</button>
-          <button className="ghost" onClick={() => void supabase.auth.signOut()}>Sign out</button>
+          <button className="btn btn-muted" onClick={() => void store.exportBackup()}>Download backup</button>
+          <button className="btn btn-muted" onClick={() => void supabase.auth.signOut()}>Sign out</button>
         </div>
       </section>
 
-      <button className="fab" onClick={addNew}>＋ Add item</button>
+      <button className="fab" onClick={addNew}><Icon name="plus" />Add item</button>
 
       {editing && (
         <EditDialog
@@ -123,7 +126,7 @@ function EditDialog({ task, isNew, onClose, onSave, onRemove }: {
         <div className="chips">
           {CATEGORIES.map((c) => (
             <button type="button" key={c.id} className={category === c.id ? 'chip on' : 'chip'} onClick={() => setCategory(c.id)}>
-              {c.emoji} {c.label}
+              <Icon name={CAT_STYLE[c.id].icon} size={16} />{c.label}
             </button>
           ))}
         </div>
@@ -154,13 +157,13 @@ function EditDialog({ task, isNew, onClose, onSave, onRemove }: {
 
         <div className="row end">
           {!isNew && (
-            <button type="button" className="danger" onClick={() => { if (confirm(`Remove "${task.title}" from your plan? Its history is kept.`)) onRemove() }}>
+            <button type="button" className="btn btn-danger" onClick={() => { if (confirm(`Remove "${task.title}" from your plan? Its history is kept.`)) onRemove() }}>
               Remove
             </button>
           )}
           <span className="grow" />
-          <button type="button" className="ghost" onClick={onClose}>Cancel</button>
-          <button className="primary" disabled={!valid}>Save</button>
+          <button type="button" className="btn btn-muted" onClick={onClose}>Cancel</button>
+          <button className="btn btn-ink" disabled={!valid}>Save</button>
         </div>
       </form>
     </div>

@@ -48,6 +48,20 @@ create table if not exists public.user_settings (
 alter table public.tasks add column if not exists start_date date;
 alter table public.tasks add column if not exists end_date   date;
 
+-- Thank you thoughts: free-text entries per day.
+create table if not exists public.thoughts (
+  id         uuid primary key default gen_random_uuid(),
+  user_id    uuid not null default auth.uid() references auth.users on delete cascade,
+  date       date not null,
+  text       text not null check (char_length(text) between 1 and 500),
+  created_at timestamptz not null default now()
+);
+create index if not exists thoughts_user_date on public.thoughts (user_id, date);
+
+-- Optional weight goal.
+alter table public.user_settings add column if not exists goal_kg numeric(5, 2);
+
+alter table public.thoughts      enable row level security;
 alter table public.tasks         enable row level security;
 alter table public.completions   enable row level security;
 alter table public.weights       enable row level security;
@@ -56,7 +70,7 @@ alter table public.user_settings enable row level security;
 do $$
 declare t text;
 begin
-  foreach t in array array['tasks', 'completions', 'weights', 'user_settings'] loop
+  foreach t in array array['tasks', 'completions', 'weights', 'user_settings', 'thoughts'] loop
     execute format('drop policy if exists "own rows" on public.%I', t);
     execute format(
       'create policy "own rows" on public.%I for all to authenticated

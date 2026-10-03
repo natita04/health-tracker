@@ -41,6 +41,13 @@ async function seedDefaults(userId: string) {
   if (up.error) throw up.error
 }
 
+export interface Thought {
+  id: string
+  date: string
+  text: string
+  created_at: string
+}
+
 export type Store = ReturnType<typeof useStore>
 
 export function useStore(userId: string) {
@@ -49,6 +56,11 @@ export function useStore(userId: string) {
   const [done, setDone] = useState<Record<string, Set<string>>>({})
   const [weights, setWeights] = useState<Weight[]>([])
   const [loading, setLoading] = useState(true)
+  /** date -> thank you thoughts, oldest first */
+  const [thoughts, setThoughts] = useState<Record<string, Thought[]>>({})
+  /** false until the thoughts table exists (see supabase/schema.sql) */
+  const [thoughtsReady, setThoughtsReady] = useState(true)
+  const [goal, setGoalState] = useState<number | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   const fail = (e: unknown) => setError(e instanceof Error ? e.message : (e as { message?: string })?.message ?? String(e))
@@ -70,6 +82,19 @@ export function useStore(userId: string) {
       setDone(map)
       setWeights(w.map((x) => ({ date: x.date, kg: Number(x.kg) })).sort((a, b) => a.date.localeCompare(b.date)))
       setError(null)
+      // Newer features: don't let a missing table/column break the rest of the app.
+      try {
+        const th = await fetchAll<Thought>((a, b) =>
+          supabase.from('thoughts').select('id,date,text,created_at').gte('date', since).order('created_at').range(a, b))
+        const tm: Record<string, Thought[]> = {}
+        for (const r of th) (tm[r.date] ??= []).push(r)
+        setThoughts(tm)
+        setThoughtsReady(true)
+      } catch {
+        setThoughtsReady(false)
+      }
+      const g = await supabase.from('user_settings').select('goal_kg').maybeSingle()
+      setGoalState(!g.error && g.data?.goal_kg != null ? Number(g.data.goal_kg) : null)
     } catch (e) {
       fail(e)
     } finally {
@@ -119,6 +144,31 @@ export function useStore(userId: string) {
     if (r1.error || r2.error) { fail(r1.error ?? r2.error); void load() }
   }
 
+  async function addThought(date: string, text: string) {
+    const temp: Thought = { id: `temp-${Date.now()}`, date, text, created_at: new Date().toISOString() }
+    setThoughts((p) => ({ ...p, [date]: [...(p[date] ?? []), temp] }))
+    const { data, error } = await supabase.from('thoughts').insert({ user_id: userId, date, text }).select('id,date,text,created_at').single()
+    if (error) {
+      setThoughts((p) => ({ ...p, [date]: (p[date] ?? []).filter((t) => t.id !== temp.id) }))
+      return fail(error)
+    }
+    setThoughts((p) => ({ ...p, [date]: (p[date] ?? []).map((t) => (t.id === temp.id ? data : t)) }))
+  }
+
+  async function removeThought(date: string, id: string) {
+    const before = thoughts[date] ?? []
+    setThoughts((p) => ({ ...p, [date]: (p[date] ?? []).filter((t) => t.id !== id) }))
+    if (id.startsWith('temp-')) return
+    const { error } = await supabase.from('thoughts').delete().eq('id', id)
+    if (error) { setThoughts((p) => ({ ...p, [date]: before })); fail(error) }
+  }
+
+  async function setGoal(kg: number | null) {
+    const { error } = await supabase.from('user_settings').upsert({ user_id: userId, goal_kg: kg })
+    if (error) return fail(error)
+    setGoalState(kg)
+  }
+
   async function saveWeight(date: string, kg: number) {
     const res = await supabase.from('weights').upsert({ user_id: userId, date, kg })
     if (res.error) return fail(res.error)
@@ -158,8 +208,8 @@ export function useStore(userId: string) {
   }
 
   return {
-    tasks: active, done, weights, loading, error, clearError: () => setError(null), reload: load,
-    toggle, setWater, saveWeight, deleteWeight, saveTask, archiveTask, exportBackup,
+    tasks: active, done, weights, thoughts, thoughtsReady, goal, loading, error, clearError: () => setError(null), reload: load,
+    toggle, setWater, addThought, removeThought, setGoal, saveWeight, deleteWeight, saveTask, archiveTask, exportBackup,
   }
 }
 

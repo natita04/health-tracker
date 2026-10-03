@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { supabase } from '../supabase'
+import { Icon } from '../icons'
 
 export default function Login() {
   const [email, setEmail] = useState('')
@@ -22,14 +23,14 @@ export default function Login() {
 
   return (
     <main className="page login">
-      <div className="hero">💗</div>
-      <h1>Health Tracker</h1>
-      <p className="muted">Your daily plan, weight and streaks.</p>
-      <form className="card stack" onSubmit={(e) => submit(e, 'in')}>
+      <div className="hero-badge"><Icon name="heart" size={28} /></div>
+      <h1 className="plain-title center">Health Tracker</h1>
+      <p className="muted center">Your daily plan, weight and streaks.</p>
+      <form className="login-card" onSubmit={(e) => submit(e, 'in')}>
         <label>Email<input type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} /></label>
         <label>Password<input type="password" autoComplete="current-password" placeholder="at least 6 characters" value={password} onChange={(e) => setPassword(e.target.value)} /></label>
-        <button className="primary" disabled={busy}>Sign in</button>
-        <button type="button" className="ghost" disabled={busy} onClick={(e) => submit(e, 'up')}>
+        <button className="btn-primary" disabled={busy}>Sign in</button>
+        <button type="button" className="btn btn-muted" disabled={busy} onClick={(e) => submit(e, 'up')}>
           First time? Create account
         </button>
         {msg && <p className="muted small">{msg}</p>}

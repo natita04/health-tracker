@@ -1,6 +1,7 @@
 import { tasksFor, type Store } from '../store'
 import { addDays, fmt, todayIso } from '../dates'
 import { CATEGORIES, type Category } from '../types'
+import { CAT_STYLE, Icon } from '../icons'
 
 export default function History({ store, openDay }: { store: Store; openDay: (d: string) => void }) {
   const today = todayIso()
@@ -29,31 +30,33 @@ export default function History({ store, openDay }: { store: Store; openDay: (d:
       if (s.done === s.total) count++
       else if (day !== today) break
     }
-    return count ? `🔥${count}` : '-'
+    return count ? `${count} ${count === 1 ? 'day' : 'days'}` : '-'
   }
 
   const days = since(30).map((d) => stat(d))
 
   return (
     <>
-      <h1>History</h1>
-      <p className="muted small">Tap a day to see or fix it.</p>
-      <section className="card">
+      <header>
+        <p className="muted">Tap a day to see or fix it</p>
+        <h1 className="plain-title">History</h1>
+      </header>
+      <section className="list-card">
         <table className="stats-table">
           <thead><tr><th></th><th>7 days</th><th>30 days</th><th>Streak</th></tr></thead>
           <tbody>
             {CATEGORIES.filter((c) => store.tasks.some((t) => t.category === c.id)).map((c) => (
-              <tr key={c.id}><td>{c.emoji} {c.label}</td><td>{pct(7, c.id)}</td><td>{pct(30, c.id)}</td><td>{streak(c.id)}</td></tr>
+              <tr key={c.id}><td><span className="cat-cell"><Icon name={CAT_STYLE[c.id].icon} />{c.label}</span></td><td>{pct(7, c.id)}</td><td>{pct(30, c.id)}</td><td>{streak(c.id)}</td></tr>
             ))}
           </tbody>
         </table>
       </section>
-      <h2>Last 30 days</h2>
+      <h2 className="cat-title">Last 30 days</h2>
       {days.map((d) => (
-        <button key={d.date} className="card row slim dayrow" onClick={() => openDay(d.date)}>
+        <button key={d.date} className="list-card row dayrow" onClick={() => openDay(d.date)}>
           <span className="daylabel">{fmt(d.date, { weekday: 'short', day: 'numeric', month: 'short' })}</span>
           <span className="bar grow"><span style={{ width: `${d.total ? (d.done / d.total) * 100 : 0}%` }} /></span>
-          <span className="count">{d.total && d.done === d.total ? '✅' : `${d.done}/${d.total}`}</span>
+          <span className="count">{d.total && d.done === d.total ? <Icon name="check-circle" /> : `${d.done}/${d.total}`}</span>
         </button>
       ))}
     </>
