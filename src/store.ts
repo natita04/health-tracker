@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { supabase } from './supabase'
 import { newSince, UPGRADES, VERSION } from './defaults'
 import { addDays, isOn, todayIso } from './dates'
-import type { Task, Weight } from './types'
+import { WATER_PORTIONS, type Task, type Weight } from './types'
 
 const HISTORY_DAYS = 120
 
@@ -96,6 +96,29 @@ export function useStore(userId: string) {
     if (res.error) { setDoneLocal(date, task.id, !on); fail(res.error) }
   }
 
+  /** Water portions are stored as completions "<task id>#1".."#8"; the task itself is done at 8. */
+  async function setWater(date: string, task: Task, count: number) {
+    const part = (n: number) => `${task.id}#${n}`
+    const all = Array.from({ length: WATER_PORTIONS }, (_, i) => part(i + 1))
+    const want = new Set(all.slice(0, count))
+    if (count >= WATER_PORTIONS) want.add(task.id)
+    const before = new Set(done[date] ?? [])
+    setDone((prev) => {
+      const s = new Set(prev[date] ?? [])
+      for (const id of [...all, task.id]) { if (want.has(id)) s.add(id); else s.delete(id) }
+      return { ...prev, [date]: s }
+    })
+    const add = [...want].filter((id) => !before.has(id))
+    const remove = [...all, task.id].filter((id) => !want.has(id) && before.has(id))
+    const r1 = add.length
+      ? await supabase.from('completions').upsert(add.map((id) => ({ user_id: userId, date, task_id: id, title_snapshot: task.title })))
+      : { error: null }
+    const r2 = remove.length
+      ? await supabase.from('completions').delete().eq('date', date).in('task_id', remove)
+      : { error: null }
+    if (r1.error || r2.error) { fail(r1.error ?? r2.error); void load() }
+  }
+
   async function saveWeight(date: string, kg: number) {
     const res = await supabase.from('weights').upsert({ user_id: userId, date, kg })
     if (res.error) return fail(res.error)
@@ -136,7 +159,7 @@ export function useStore(userId: string) {
 
   return {
     tasks: active, done, weights, loading, error, clearError: () => setError(null), reload: load,
-    toggle, saveWeight, deleteWeight, saveTask, archiveTask, exportBackup,
+    toggle, setWater, saveWeight, deleteWeight, saveTask, archiveTask, exportBackup,
   }
 }
 

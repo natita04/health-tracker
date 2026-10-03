@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { tasksFor, type Store } from '../store'
 import { addDays, fmt, formatTime, todayIso } from '../dates'
 import { quoteFor } from '../quotes'
-import { CATEGORIES, type Task } from '../types'
+import { CATEGORIES, WATER_PORTIONS, WATER_PORTION_L, type Task } from '../types'
 import WeightDialog from './WeightDialog'
 
 export default function Today({ store, date, setDate }: { store: Store; date: string; setDate: (d: string) => void }) {
@@ -59,7 +59,9 @@ export default function Today({ store, date, setDate }: { store: Store; date: st
         return (
           <section key={c.id}>
             <h2>{c.emoji} {c.label}</h2>
-            {items.map((t) => (
+            {items.map((t) => t.category === 'WATER' ? (
+              <WaterRow key={t.id} task={t} done={done} onSet={(n) => store.setWater(date, t, n)} />
+            ) : (
               <TaskRow key={t.id} task={t} done={done.has(t.id)} onToggle={(on) => store.toggle(date, t, on)} />
             ))}
           </section>
@@ -102,6 +104,33 @@ function TaskRow({ task, done, onToggle }: { task: Task; done: boolean; onToggle
         </div>
       ) : null}
       {open && task.steps && <Steps steps={task.steps} />}
+    </div>
+  )
+}
+
+function WaterRow({ task, done, onSet }: { task: Task; done: Set<string>; onSet: (n: number) => void }) {
+  let count = 0
+  while (count < WATER_PORTIONS && done.has(`${task.id}#${count + 1}`)) count++
+  const full = count >= WATER_PORTIONS
+  return (
+    <div className={`task ${full ? 'done' : ''}`}>
+      <div className="row">
+        <span className="grow title">{task.title}</span>
+        <b className="water-total">{(count * WATER_PORTION_L).toFixed(1)} / {(WATER_PORTIONS * WATER_PORTION_L).toFixed(0)} L</b>
+      </div>
+      <div className="bottles">
+        {Array.from({ length: WATER_PORTIONS }, (_, i) => (
+          <button
+            key={i}
+            className={`bottle ${i < count ? 'full' : ''}`}
+            aria-label={`${((i + 1) * WATER_PORTION_L).toFixed(1)} L`}
+            onClick={() => onSet(i + 1 === count ? i : i + 1)}
+          >
+            <span />
+          </button>
+        ))}
+      </div>
+      <div className="muted small">{full ? 'Fully hydrated 🎉' : 'Tap a bottle each time you finish 0.5 L. Tap the last one again to undo.'}</div>
     </div>
   )
 }

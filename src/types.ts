@@ -1,14 +1,19 @@
-export type Category = 'WEIGH' | 'WALK' | 'WORKOUT' | 'MEDS' | 'BEAUTY'
+export type Category = 'WEIGH' | 'WALK' | 'WATER' | 'WORKOUT' | 'MEDS' | 'BEAUTY'
 
 export const CATEGORIES: { id: Category; label: string; emoji: string }[] = [
   { id: 'WEIGH', label: 'Weigh-in', emoji: '⚖️' },
   { id: 'WALK', label: 'Walk', emoji: '🚶' },
+  { id: 'WATER', label: 'Water', emoji: '💧' },
   { id: 'WORKOUT', label: 'Workout', emoji: '🏋️' },
   { id: 'MEDS', label: 'Meds & supplements', emoji: '💊' },
   { id: 'BEAUTY', label: 'Beauty', emoji: '💆' },
 ]
 
-export const catInfo = (c: string) => CATEGORIES.find((x) => x.id === c) ?? CATEGORIES[4]
+export const catInfo = (c: string) => CATEGORIES.find((x) => x.id === c) ?? CATEGORIES[CATEGORIES.length - 1]
+
+/** Water is tracked in 0.5 L portions; 8 portions = 4 L. */
+export const WATER_PORTIONS = 8
+export const WATER_PORTION_L = 0.5
 
 export interface Task {
   id: string

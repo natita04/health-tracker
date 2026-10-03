@@ -7,7 +7,7 @@ import { ALL_DAYS, type Category, type Task, type Video } from './types'
  * Only items newer than what your account already has get added, so your own edits,
  * removed items and history are never touched. (Or just add items in the Plan tab.)
  */
-export const VERSION = 2
+export const VERSION = 3
 
 // Monday = bit 0 ... Sunday = bit 6
 const MON = 1, WED = 4, THU = 8, FRI = 16, SAT = 32, SUN = 64
@@ -95,6 +95,9 @@ const ITEMS = [
   { ...t('walk_6500', 'WALK', 'Walk 6,500 steps', { details: 'Week 2 of building up.', start_date: '2026-10-15', end_date: '2026-10-21' }), since: 2 },
   { ...t('walk_8000', 'WALK', 'Walk 8,000 steps', { details: 'Week 3 of building up.', start_date: '2026-10-22', end_date: '2026-10-28' }), since: 2 },
   { ...t('med_lunch', 'MEDS', 'Multivitamin + Omega 3 + Moringa', { details: 'With lunch, fat in the meal helps absorption.', time_minutes: hm(13, 30), start_date: '2026-10-03' }), since: 2 },
+  // ---- version 3 ----
+  { ...t('water_4l', 'WATER', 'Drink 4 L of water', { details: '8 × 0.5 L, tap a bottle each time', start_date: '2026-10-03' }), since: 3 },
+
   { ...t('beauty_plate_light', 'BEAUTY', 'Vibration plate + red light', { details: '10 min', duration_min: 10, start_date: '2026-10-15' }), since: 2 },
 ]
 

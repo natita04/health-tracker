@@ -214,3 +214,14 @@ input.invalid { border-color: var(--danger); }
   background: var(--surface); color: var(--text); border: 1px solid var(--line);
 }
 .close { color: var(--muted); font-size: 1rem; width: 36px; height: 36px; border-radius: 50%; }
+
+/* water */
+.water-total { font-variant-numeric: tabular-nums; }
+.bottles { display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; margin: 10px 0 6px; }
+.bottle {
+  position: relative; height: 48px; border-radius: 10px 10px 8px 8px;
+  border: 2px solid color-mix(in srgb, #2b8fd6 55%, var(--line)); background: var(--surface); overflow: hidden; padding: 0;
+}
+.bottle > span { position: absolute; left: 0; right: 0; bottom: 0; height: 0; background: #4aa8ec; transition: height .25s; }
+.bottle.full > span { height: 100%; }
+.task.done .bottle { border-color: var(--done-text); }
