@@ -238,7 +238,7 @@ function Thoughts({ store, date }: { store: Store; date: string }) {
   return (
     <Section tone="butter" icon="heart" title="Thank you thoughts" sub={`Aim for ${THANKS_TARGET} a day`} counter={`${items.length}/${THANKS_TARGET}`}>
       {!store.thoughtsReady ? (
-        <p className="empty-line">Almost ready: run the latest database update to start saving these.</p>
+        <p className="empty-line">Thoughts can't be saved yet: the database needs its one-time update (the SQL from setup).</p>
       ) : items.length === 0 ? (
         <p className="empty-line">Nothing yet today. What made you smile?</p>
       ) : (
@@ -263,8 +263,8 @@ function Thoughts({ store, date }: { store: Store; date: string }) {
       >
         <label className="sr-only" htmlFor="thought-input">Something you're thankful for</label>
         <input id="thought-input" ref={input} value={text} onChange={(e) => setText(e.target.value)}
-          placeholder="Today I'm thankful for..." maxLength={500} enterKeyHint="done" autoComplete="off" />
-        <button className="add-btn" aria-label="Add thank you thought"><Icon name="plus" /></button>
+          placeholder="Today I'm thankful for..." maxLength={500} disabled={!store.thoughtsReady} enterKeyHint="done" autoComplete="off" />
+        <button className="add-btn" aria-label="Add thank you thought" disabled={!store.thoughtsReady}><Icon name="plus" /></button>
       </form>
     </Section>
   )

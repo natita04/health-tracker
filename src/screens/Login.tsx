@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { supabase } from '../supabase'
 import { Icon } from '../icons'
 
-export default function Login() {
+export default function Login({ onGuest }: { onGuest: () => void }) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [msg, setMsg] = useState<string | null>(null)
@@ -35,6 +35,8 @@ export default function Login() {
         </button>
         {msg && <p className="muted small">{msg}</p>}
       </form>
+      <button className="btn btn-white guest-btn" onClick={onGuest}>View as guest</button>
+      <p className="muted small center">See how it works with sample data. Nothing you do is saved.</p>
     </main>
   )
 }

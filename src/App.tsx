@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { configured, supabase } from './supabase'
-import { useStore } from './store'
+import { useStore, type Store } from './store'
+import { useDemoStore } from './demo'
 import { todayIso } from './dates'
 import Login from './screens/Login'
 import Today from './screens/Today'
@@ -21,6 +22,7 @@ const TABS: { id: Tab; label: string; icon: IconName }[] = [
 export default function App() {
   const [session, setSession] = useState<Session | null>(null)
   const [ready, setReady] = useState(false)
+  const [guest, setGuest] = useState(false)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => { setSession(data.session); setReady(true) })
@@ -28,6 +30,7 @@ export default function App() {
     return () => data.subscription.unsubscribe()
   }, [])
 
+  if (guest) return <Guest onExit={() => setGuest(false)} />
   if (!configured) {
     return (
       <main className="page">
@@ -37,12 +40,19 @@ export default function App() {
     )
   }
   if (!ready) return <main className="page center muted">Loading…</main>
-  if (!session) return <Login />
+  if (!session) return <Login onGuest={() => setGuest(true)} />
   return <Signed userId={session.user.id} />
 }
 
 function Signed({ userId }: { userId: string }) {
-  const store = useStore(userId)
+  return <Shell store={useStore(userId)} />
+}
+
+function Guest({ onExit }: { onExit: () => void }) {
+  return <Shell store={useDemoStore(onExit)} />
+}
+
+function Shell({ store }: { store: Store }) {
   const [tab, setTab] = useState<Tab>('today')
   const [date, setDate] = useState(todayIso())
 
@@ -56,6 +66,12 @@ function Signed({ userId }: { userId: string }) {
   return (
     <>
       <main className="page">
+        {store.isGuest && (
+          <div className="guest-bar row" role="status">
+            <span className="grow">Guest preview · sample data, nothing is saved</span>
+            <button className="text-btn" onClick={() => void store.signOut()}>Exit</button>
+          </div>
+        )}
         {store.error && (
           <div className="banner row" role="alert">
             <span className="grow">Something went wrong: {store.error}</span>

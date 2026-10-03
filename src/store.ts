@@ -208,6 +208,7 @@ export function useStore(userId: string) {
   }
 
   return {
+    isGuest: false, signOut: async (): Promise<void> => { await supabase.auth.signOut() },
     tasks: active, done, weights, thoughts, thoughtsReady, goal, loading, error, clearError: () => setError(null), reload: load,
     toggle, setWater, addThought, removeThought, setGoal, saveWeight, deleteWeight, saveTask, archiveTask, exportBackup,
   }

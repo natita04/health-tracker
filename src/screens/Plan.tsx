@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import type { Store } from '../store'
-import { supabase } from '../supabase'
 import { fmt, formatTime, parseTime } from '../dates'
 import { MORE_WORKOUTS_URL } from '../defaults'
 import { ALL_DAYS, CATEGORIES, type Category, type Task } from '../types'
@@ -62,7 +61,7 @@ export default function Plan({ store }: { store: Store }) {
         <strong>Account</strong>
         <div className="row wrap">
           <button className="btn btn-muted" onClick={() => void store.exportBackup()}>Download backup</button>
-          <button className="btn btn-muted" onClick={() => void supabase.auth.signOut()}>Sign out</button>
+          <button className="btn btn-muted" onClick={() => void store.signOut()}>{store.isGuest ? 'Exit guest view' : 'Sign out'}</button>
         </div>
       </section>
 

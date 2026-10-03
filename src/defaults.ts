@@ -7,7 +7,7 @@ import { ALL_DAYS, type Category, type Task, type Video } from './types'
  * Only items newer than what your account already has get added, so your own edits,
  * removed items and history are never touched. (Or just add items in the Plan tab.)
  */
-export const VERSION = 3
+export const VERSION = 4
 
 // Monday = bit 0 ... Sunday = bit 6
 const MON = 1, WED = 4, THU = 8, FRI = 16, SAT = 32, SUN = 64
@@ -114,6 +114,11 @@ export const UPGRADES: Record<number, { archive?: string[]; update?: { id: strin
     // Multivitamin + Omega 3 merged into med_lunch, vibration plate + red light into beauty_plate_light.
     archive: ['weigh_in', 'med_multivitamin', 'med_omega3', 'beauty_vibration', 'beauty_red_light'],
     update: [{ id: 'walk_10k', set: { start_date: '2026-10-29', details: 'Every day from here on.' } }],
+  },
+  4: {
+    // Workouts (daily + 45 min) start on Oct 15.
+    update: ['basic_daily', 'full_sun_lower', 'full_mon_upper', 'full_wed_lower', 'full_fri_full']
+      .map((id) => ({ id, set: { start_date: '2026-10-15' } })),
   },
 }
 
