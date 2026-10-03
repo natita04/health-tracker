@@ -15,6 +15,8 @@ create table if not exists public.tasks (
   time_minutes int,                         -- minutes after midnight, optional
   videos       jsonb,                       -- video options, e.g. [{"title": "...", "url": "https://..."}]
   steps        jsonb,                       -- optional exercise list, e.g. ["15 squats", ...]
+  start_date   date,                        -- optional: only show from this day
+  end_date     date,                        -- optional: only show until this day
   sort_order   int  not null default 0,
   archived     boolean not null default false,
   created_at   timestamptz not null default now(),
@@ -41,6 +43,10 @@ create table if not exists public.user_settings (
   user_id          uuid primary key default auth.uid() references auth.users on delete cascade,
   defaults_version int not null default 0   -- which version of the built-in plan was added already
 );
+
+-- Added later; harmless if the columns already exist.
+alter table public.tasks add column if not exists start_date date;
+alter table public.tasks add column if not exists end_date   date;
 
 alter table public.tasks         enable row level security;
 alter table public.completions   enable row level security;

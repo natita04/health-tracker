@@ -7,7 +7,7 @@ import { ALL_DAYS, type Category, type Task, type Video } from './types'
  * Only items newer than what your account already has get added, so your own edits,
  * removed items and history are never touched. (Or just add items in the Plan tab.)
  */
-export const VERSION = 1
+export const VERSION = 2
 
 // Monday = bit 0 ... Sunday = bit 6
 const MON = 1, WED = 4, THU = 8, FRI = 16, SAT = 32, SUN = 64
@@ -39,10 +39,10 @@ type Item = Omit<Task, 'sort_order' | 'archived'> & { since: number }
 let order = 0
 const t = (
   id: string, category: Category, title: string,
-  o: Partial<Pick<Task, 'details' | 'duration_min' | 'days_mask' | 'time_minutes' | 'videos' | 'steps'>> = {},
+  o: Partial<Pick<Task, 'details' | 'duration_min' | 'days_mask' | 'time_minutes' | 'videos' | 'steps' | 'start_date' | 'end_date'>> = {},
 ): Item & { sort_order: number } => ({
   since: 1, id, category, title, details: '', duration_min: null, days_mask: ALL_DAYS,
-  time_minutes: null, videos: null, steps: null, ...o, sort_order: order++,
+  time_minutes: null, videos: null, steps: null, start_date: null, end_date: null, ...o, sort_order: order++,
 })
 
 const ITEMS = [
@@ -88,9 +88,30 @@ const ITEMS = [
   t('beauty_dry_brush', 'BEAUTY', 'Dry brushing', { details: '10 min', duration_min: 10 }),
   t('beauty_face', 'BEAUTY', 'Face therapy', { details: 'Weekly', days_mask: FRI }),
   t('beauty_hair', 'BEAUTY', 'Hair therapy', { details: 'Weekly', days_mask: SAT }),
+
+  // ---- version 2 ----
+  // Steps build up week by week; walk_10k (above) takes over from Oct 29.
+  { ...t('walk_5000', 'WALK', 'Walk 5,000 steps', { details: 'Week 1 of building up.', start_date: '2026-10-08', end_date: '2026-10-14' }), since: 2 },
+  { ...t('walk_6500', 'WALK', 'Walk 6,500 steps', { details: 'Week 2 of building up.', start_date: '2026-10-15', end_date: '2026-10-21' }), since: 2 },
+  { ...t('walk_8000', 'WALK', 'Walk 8,000 steps', { details: 'Week 3 of building up.', start_date: '2026-10-22', end_date: '2026-10-28' }), since: 2 },
+  { ...t('med_lunch', 'MEDS', 'Multivitamin + Omega 3 + Moringa', { details: 'With lunch, fat in the meal helps absorption.', time_minutes: hm(13, 30), start_date: '2026-10-03' }), since: 2 },
+  { ...t('beauty_plate_light', 'BEAUTY', 'Vibration plate + red light', { details: '10 min', duration_min: 10, start_date: '2026-10-15' }), since: 2 },
 ]
 
 export const newSince = (version: number): Omit<Task, 'archived'>[] =>
   ITEMS.filter((i) => i.since > version).map(({ since: _since, ...task }) => task)
+
+/**
+ * Changes to items that are already in your account, applied once per version
+ * (after that version's new items are added). Archiving keeps all history.
+ */
+export const UPGRADES: Record<number, { archive?: string[]; update?: { id: string; set: Partial<Task> }[] }> = {
+  2: {
+    // Weigh-in is now a daily card on Today you can dismiss, not a checklist item.
+    // Multivitamin + Omega 3 merged into med_lunch, vibration plate + red light into beauty_plate_light.
+    archive: ['weigh_in', 'med_multivitamin', 'med_omega3', 'beauty_vibration', 'beauty_red_light'],
+    update: [{ id: 'walk_10k', set: { start_date: '2026-10-29', details: 'Every day from here on.' } }],
+  },
+}
 
 export const MORE_WORKOUTS_URL = 'https://www.youtube.com/@Heatherrobertsoncom/videos'

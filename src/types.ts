@@ -24,6 +24,9 @@ export interface Task {
   videos: Video[] | null
   /** Exercise list; lines starting with "# " are section headings. */
   steps: string[] | null
+  /** Only show from / until these days (YYYY-MM-DD), both optional. */
+  start_date: string | null
+  end_date: string | null
   sort_order: number
   archived: boolean
   created_at?: string

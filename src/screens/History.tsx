@@ -42,7 +42,7 @@ export default function History({ store, openDay }: { store: Store; openDay: (d:
         <table className="stats-table">
           <thead><tr><th></th><th>7 days</th><th>30 days</th><th>Streak</th></tr></thead>
           <tbody>
-            {CATEGORIES.map((c) => (
+            {CATEGORIES.filter((c) => store.tasks.some((t) => t.category === c.id)).map((c) => (
               <tr key={c.id}><td>{c.emoji} {c.label}</td><td>{pct(7, c.id)}</td><td>{pct(30, c.id)}</td><td>{streak(c.id)}</td></tr>
             ))}
           </tbody>

@@ -17,7 +17,7 @@ export default function WeightScreen({ store }: { store: Store }) {
   return (
     <>
       <h1>Weight</h1>
-      <p className="muted small">Thursday is weigh-in day, but you can log any day.</p>
+      <p className="muted small">Log whenever you weigh in. The Today screen reminds you daily.</p>
       <button className="primary wide" onClick={() => setOpen(true)}>{todayEntry ? "Edit today's weight" : "Log today's weight"}</button>
 
       {latest ? (

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import type { Store } from '../store'
 import { supabase } from '../supabase'
-import { formatTime, parseTime } from '../dates'
+import { fmt, formatTime, parseTime } from '../dates'
 import { MORE_WORKOUTS_URL } from '../defaults'
 import { ALL_DAYS, CATEGORIES, type Category, type Task } from '../types'
 
@@ -18,7 +18,7 @@ export default function Plan({ store }: { store: Store }) {
     isNew: true,
     task: {
       id: `custom_${crypto.randomUUID().slice(0, 8)}`, category: 'BEAUTY', title: '', details: '',
-      duration_min: null, days_mask: ALL_DAYS, time_minutes: null, videos: null, steps: null,
+      duration_min: null, days_mask: ALL_DAYS, time_minutes: null, videos: null, steps: null, start_date: null, end_date: null,
       sort_order: Math.max(0, ...store.tasks.map((t) => t.sort_order)) + 1, archived: false,
     },
   })
@@ -42,7 +42,9 @@ export default function Plan({ store }: { store: Store }) {
                   <span className="title block">{t.title}</span>
                   <span className="muted small">
                     {[daysLabel(t.days_mask), t.time_minutes != null && formatTime(t.time_minutes),
-                      t.duration_min && `${t.duration_min} min`, t.videos?.length && `▶ ${t.videos.length} video${t.videos.length > 1 ? 's' : ''}`, t.steps?.length && 'exercise list']
+                      t.duration_min && `${t.duration_min} min`,
+                      t.start_date && `from ${fmt(t.start_date, { day: 'numeric', month: 'short' })}`,
+                      t.end_date && `until ${fmt(t.end_date, { day: 'numeric', month: 'short' })}`, t.videos?.length && `▶ ${t.videos.length} video${t.videos.length > 1 ? 's' : ''}`, t.steps?.length && 'exercise list']
                       .filter(Boolean).join(' · ')}
                   </span>
                 </span>
@@ -86,10 +88,12 @@ function EditDialog({ task, isNew, onClose, onSave, onRemove }: {
   const [duration, setDuration] = useState(task.duration_min?.toString() ?? '')
   const [time, setTime] = useState(task.time_minutes != null ? formatTime(task.time_minutes) : '')
   const [videos, setVideos] = useState((task.videos ?? []).map((v) => `${v.title} | ${v.url}`).join('\n'))
+  const [start, setStart] = useState(task.start_date ?? '')
+  const [end, setEnd] = useState(task.end_date ?? '')
   const [steps, setSteps] = useState((task.steps ?? []).join('\n'))
 
   const timeOk = !time.trim() || parseTime(time) != null
-  const valid = title.trim() !== '' && timeOk && days !== 0
+  const valid = title.trim() !== '' && timeOk && days !== 0 && (!start || !end || start <= end)
 
   const save = () => {
     const lines = steps.split('\n').map((s) => s.trim()).filter(Boolean)
@@ -102,6 +106,8 @@ function EditDialog({ task, isNew, onClose, onSave, onRemove }: {
       duration_min: duration ? Number(duration) : null,
       time_minutes: time.trim() ? parseTime(time) : null,
       videos: vids.length ? vids : null,
+      start_date: start || null,
+      end_date: end || null,
       steps: lines.length ? lines : null,
     })
   }
@@ -133,6 +139,10 @@ function EditDialog({ task, isNew, onClose, onSave, onRemove }: {
         <div className="row gap">
           <label className="grow">Minutes<input inputMode="numeric" value={duration} onChange={(e) => setDuration(e.target.value.replace(/\D/g, '').slice(0, 3))} /></label>
           <label className="grow">Time (HH:MM)<input value={time} onChange={(e) => setTime(e.target.value)} placeholder="optional" className={timeOk ? '' : 'invalid'} /></label>
+        </div>
+        <div className="row gap">
+          <label className="grow">Starts<input type="date" value={start} onChange={(e) => setStart(e.target.value)} /></label>
+          <label className="grow">Ends<input type="date" value={end} onChange={(e) => setEnd(e.target.value)} /></label>
         </div>
         <label>Videos (one per line: Title | link)
           <textarea rows={3} value={videos} onChange={(e) => setVideos(e.target.value)} placeholder="Leg day | https://youtube.com/..." />

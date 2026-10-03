@@ -7,11 +7,11 @@ import WeightDialog from './WeightDialog'
 
 export default function Today({ store, date, setDate }: { store: Store; date: string; setDate: (d: string) => void }) {
   const [weighing, setWeighing] = useState(false)
+  const [, rerender] = useState(0)
   const today = todayIso()
   const list = tasksFor(store.tasks, date)
   const done = store.done[date] ?? new Set<string>()
   const count = list.filter((t) => done.has(t.id)).length
-  const weighDay = list.some((t) => t.category === 'WEIGH')
   const weight = store.weights.find((w) => w.date === date)
   const q = quoteFor(date)
 
@@ -39,15 +39,19 @@ export default function Today({ store, date, setDate }: { store: Store; date: st
         <p className="small">- {q.author}</p>
       </section>
 
-      <section className="card row">
-        <div className="grow">
-          <strong>{weighDay ? '⚖️ Weigh-in day!' : '⚖️ Weight'}</strong>
-          <div className="muted small">
-            {weight ? `${weight.kg.toFixed(1)} kg logged` : weighDay ? 'Morning, before eating' : 'Log anytime you like'}
+      {(weight || !isDismissed(date)) && (
+        <section className="card row">
+          <div className="grow">
+            <strong>⚖️ {weight ? 'Weighed in ✓' : 'Weigh in'}</strong>
+            <div className="muted small">{weight ? `${weight.kg.toFixed(1)} kg` : 'Morning, after the bathroom, before eating'}</div>
           </div>
-        </div>
-        <button className="tonal" onClick={() => setWeighing(true)}>{weight ? 'Edit' : 'Log'}</button>
-      </section>
+          <button className="tonal" onClick={() => setWeighing(true)}>{weight ? 'Edit' : 'Log'}</button>
+          {!weight && (
+            <button className="icon close" aria-label="Not today" title="Not today"
+              onClick={() => { dismiss(date); rerender((n) => n + 1) }}>✕</button>
+          )}
+        </section>
+      )}
 
       {CATEGORIES.filter((c) => c.id !== 'WEIGH').map((c) => {
         const items = list.filter((t) => t.category === c.id)
@@ -124,4 +128,13 @@ function Steps({ steps }: { steps: string[] }) {
       )}
     </ul>
   )
+}
+
+// Skipping the weigh-in is remembered per day on this device.
+const key = (date: string) => `weigh-dismissed-${date}`
+function isDismissed(date: string) {
+  try { return localStorage.getItem(key(date)) === '1' } catch { return false }
+}
+function dismiss(date: string) {
+  try { localStorage.setItem(key(date), '1') } catch { /* private mode: just shows again */ }
 }

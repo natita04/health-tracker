@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { supabase } from './supabase'
-import { newSince, VERSION } from './defaults'
+import { newSince, UPGRADES, VERSION } from './defaults'
 import { addDays, isOn, todayIso } from './dates'
 import type { Task, Weight } from './types'
 
@@ -25,6 +25,18 @@ async function seedDefaults(userId: string) {
   const rows = newSince(have).map((t) => ({ ...t, user_id: userId }))
   const ins = await supabase.from('tasks').upsert(rows, { onConflict: 'user_id,id', ignoreDuplicates: true })
   if (ins.error) throw ins.error
+  for (let v = have + 1; v <= VERSION; v++) {
+    const u = UPGRADES[v]
+    if (!u) continue
+    if (u.archive?.length) {
+      const r = await supabase.from('tasks').update({ archived: true }).in('id', u.archive)
+      if (r.error) throw r.error
+    }
+    for (const { id, set } of u.update ?? []) {
+      const r = await supabase.from('tasks').update(set).eq('id', id)
+      if (r.error) throw r.error
+    }
+  }
   const up = await supabase.from('user_settings').upsert({ user_id: userId, defaults_version: VERSION })
   if (up.error) throw up.error
 }
@@ -130,5 +142,5 @@ export function useStore(userId: string) {
 
 export const tasksFor = (tasks: Task[], date: string) =>
   tasks
-    .filter((t) => isOn(t.days_mask, date))
+    .filter((t) => isOn(t.days_mask, date) && (!t.start_date || date >= t.start_date) && (!t.end_date || date <= t.end_date))
     .sort((a, b) => (a.time_minutes ?? -1) - (b.time_minutes ?? -1) || a.sort_order - b.sort_order)
