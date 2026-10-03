@@ -84,21 +84,9 @@ async function summary(userId: string, date: string, weekday: number) {
   if (error) throw error
   const today = (data as Task[]).filter((t) =>
     (t.days_mask & (1 << weekday)) !== 0 && (!t.start_date || date >= t.start_date) && (!t.end_date || date <= t.end_date))
-  const of = (c: string) => today.filter((t) => t.category === c).sort((a, b) => (a.time_minutes ?? -1) - (b.time_minutes ?? -1))
-  const lines: string[] = []
-  const workouts = of('WORKOUT')
-  if (workouts.length) lines.push(`Workout: ${workouts.map((t) => t.title).join(' + ')}`)
-  of('WALK').forEach((t) => lines.push(t.title))
-  if (of('WATER').length) lines.push(of('WATER')[0].title)
-  const meds = of('MEDS')
-  if (meds.length) lines.push(`Meds: ${meds.map((t) => (t.time_minutes != null ? `${hhmm(t.time_minutes)} ` : '') + t.title).join(' · ')}`)
-  const beauty = of('BEAUTY')
-  if (beauty.length) lines.push(`Beauty: ${beauty.map((t) => t.title).join(', ')}`)
-  lines.push('Weigh in before breakfast, and 3 thank you thoughts')
-  lines.push(quoteFor(date))
   return {
     title: `Good morning! ${today.length} things on today's plan`,
-    body: lines.join('\n'),
+    body: quoteFor(date),
     url: '/',
     tag: `morning-${date}`,
   }
