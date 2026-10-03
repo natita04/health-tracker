@@ -1,64 +1,92 @@
-import { tasksFor, type Store } from '../store'
-import { addDays, fmt, todayIso } from '../dates'
-import { CATEGORIES, type Category } from '../types'
-import { CAT_STYLE, Icon } from '../icons'
+import { useState } from 'react'
+import type { Store } from '../store'
+import { dayIndex, fmt, pad, todayIso } from '../dates'
+import { CATEGORIES } from '../types'
+import { Badge, CAT_STYLE, Icon } from '../icons'
+import { dayStat, insights, startDate, streaks } from '../stats'
+
+const WEEKDAYS = ['M', 'T', 'W', 'T', 'F', 'S', 'S']
+
+/** 0 = nothing, 4 = everything done. */
+const level = (done: number, total: number) =>
+  !total || !done ? 0 : done === total ? 4 : done / total > 2 / 3 ? 3 : done / total > 1 / 3 ? 2 : 1
 
 export default function History({ store, openDay }: { store: Store; openDay: (d: string) => void }) {
   const today = todayIso()
-  // Don't count days from before you started as misses.
-  const start = store.tasks.reduce((m, t) => (t.created_at && t.created_at.slice(0, 10) < m ? t.created_at.slice(0, 10) : m), today)
-  const since = (n: number) => Array.from({ length: n }, (_, i) => addDays(today, -i)).filter((d) => d >= start)
+  const [month, setMonth] = useState(today.slice(0, 7)) // YYYY-MM
+  const start = startDate(store)
+  const cats = CATEGORIES.filter((c) => store.tasks.some((t) => t.category === c.id))
+  const tips = insights(store)
 
-  const stat = (date: string, cat?: Category) => {
-    const scheduled = tasksFor(store.tasks, date).filter((t) => !cat || t.category === cat)
-    const done = store.done[date] ?? new Set<string>()
-    return { date, done: scheduled.filter((t) => done.has(t.id)).length, total: scheduled.length }
-  }
-
-  const pct = (n: number, cat: Category) => {
-    let d = 0, t = 0
-    for (const day of since(n)) { const s = stat(day, cat); d += s.done; t += s.total }
-    return t ? `${Math.round((d * 100) / t)}%` : '-'
-  }
-
-  /** Days in a row with everything in this category done. Today counts once it's complete. */
-  const streak = (cat: Category) => {
-    let count = 0
-    for (const day of since(120)) {
-      const s = stat(day, cat)
-      if (!s.total) continue
-      if (s.done === s.total) count++
-      else if (day !== today) break
-    }
-    return count ? `${count} ${count === 1 ? 'day' : 'days'}` : '-'
-  }
-
-  const days = since(30).map((d) => stat(d))
+  const [y, m] = month.split('-').map(Number)
+  const daysInMonth = new Date(y, m, 0).getDate()
+  const lead = dayIndex(`${month}-01`)
+  const shift = (n: number) => { const d = new Date(y, m - 1 + n, 1); setMonth(`${d.getFullYear()}-${pad(d.getMonth() + 1)}`) }
 
   return (
     <>
-      <header>
-        <p className="muted">Tap a day to see or fix it</p>
-        <h1 className="plain-title">History</h1>
+      <header className="screen-head">
+        <div>
+          <div className="eyebrow">Your patterns</div>
+          <h1>History</h1>
+        </div>
       </header>
-      <section className="list-card">
-        <table className="stats-table">
-          <thead><tr><th></th><th>7 days</th><th>30 days</th><th>Streak</th></tr></thead>
-          <tbody>
-            {CATEGORIES.filter((c) => store.tasks.some((t) => t.category === c.id)).map((c) => (
-              <tr key={c.id}><td><span className="cat-cell"><Icon name={CAT_STYLE[c.id].icon} />{c.label}</span></td><td>{pct(7, c.id)}</td><td>{pct(30, c.id)}</td><td>{streak(c.id)}</td></tr>
+
+      <section className="card" aria-label="Insights">
+        <div className="card-head"><h2>Insights</h2></div>
+        {tips.length ? (
+          <ul className="insights">
+            {tips.map((t) => (
+              <li key={t.id} className={`insight tone-${t.tone}`}><Badge name={t.icon} /><span>{t.text}</span></li>
             ))}
-          </tbody>
-        </table>
+          </ul>
+        ) : (
+          <p className="muted">Insights show up after a few days of check-ins. Keep going!</p>
+        )}
       </section>
-      <h2 className="cat-title">Last 30 days</h2>
-      {days.map((d) => (
-        <button key={d.date} className="list-card row dayrow" onClick={() => openDay(d.date)}>
-          <span className="daylabel">{fmt(d.date, { weekday: 'short', day: 'numeric', month: 'short' })}</span>
-          <span className="bar grow"><span style={{ width: `${d.total ? (d.done / d.total) * 100 : 0}%` }} /></span>
-          <span className="count">{d.total && d.done === d.total ? <Icon name="check-circle" /> : `${d.done}/${d.total}`}</span>
-        </button>
-      ))}
+
+      <section className="card" aria-label="Calendar">
+        <div className="card-head month-head">
+          <button className="circle-btn muted-bg" aria-label="Previous month" onClick={() => shift(-1)}><Icon name="chevron-left" /></button>
+          <h2>{new Date(y, m - 1, 1).toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}</h2>
+          <button className="circle-btn muted-bg" aria-label="Next month" disabled={month >= today.slice(0, 7)} onClick={() => shift(1)}><Icon name="chevron-right" /></button>
+        </div>
+        <div className="heatmap">
+          {WEEKDAYS.map((w, i) => <span key={i} className="wd" aria-hidden="true">{w}</span>)}
+          {Array.from({ length: lead }, (_, i) => <span key={`b${i}`} />)}
+          {Array.from({ length: daysInMonth }, (_, i) => {
+            const date = `${month}-${pad(i + 1)}`
+            const future = date > today
+            const before = date < start
+            const s = dayStat(store, date)
+            const lv = future || before ? 0 : level(s.done, s.total)
+            const label = fmt(date, { weekday: 'short', day: 'numeric', month: 'short' }) +
+              (future ? ', upcoming' : before ? ', before you started' : `: ${s.done} of ${s.total} done`)
+            return (
+              <button key={date} className={`cell lv${lv} ${date === today ? 'is-today' : ''} ${future || before ? 'off' : ''}`}
+                aria-label={label} disabled={future} onClick={() => openDay(date)}>
+                {i + 1}
+              </button>
+            )
+          })}
+        </div>
+        <div className="legend" aria-hidden="true">
+          <span>Less</span>{[0, 1, 2, 3, 4].map((l) => <i key={l} className={`cell lv${l}`} />)}<span>More</span>
+        </div>
+      </section>
+
+      <div className="stats">
+        {cats.map((c) => {
+          const s = streaks(store, c.id)
+          return (
+            <div key={c.id} className={`stat streak tone-${CAT_STYLE[c.id].tone}`}>
+              <div className="row"><Badge name={CAT_STYLE[c.id].icon} /><span className="label">{c.label}</span></div>
+              <span className="value">{s.current}<small>{s.current === 1 ? 'day' : 'days'}</small></span>
+              <span className="label">Best: {s.best} {s.best === 1 ? 'day' : 'days'}</span>
+            </div>
+          )
+        })}
+      </div>
     </>
   )
 }
