@@ -377,3 +377,5 @@ section > .cat-title { margin-bottom: var(--gap-rows); }
 .guest-bar { background: var(--butter-tile); color: var(--butter-text); border-radius: var(--r-pill); padding: 4px 6px 4px 16px; font-size: 14px; }
 .guest-bar .text-btn { color: var(--ink); padding: 0 10px; }
 .guest-btn { width: 100%; min-height: 52px; }
+.tile-row { flex-direction: row; align-items: center; gap: 12px; padding: 12px 12px 12px 14px; }
+.tile-row h3 { font-size: 19px; }

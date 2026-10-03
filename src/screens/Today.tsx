@@ -40,7 +40,6 @@ export default function Today({ store, date, setDate }: { store: Store; date: st
   ].map((t) => ({ key: t.id, tone: CAT_STYLE[t.category].tone, done: done.has(t.id) }))
   ordered.push({ key: 'thanks', tone: CAT_STYLE.THANKS.tone, done: thoughts.length > 0 })
   const doneCount = ordered.filter((o) => o.done).length
-  const pct = Math.round((doneCount / ordered.length) * 100)
 
   const title = date === today ? 'Today'
     : date === addDays(today, -1) ? 'Yesterday'
@@ -67,7 +66,6 @@ export default function Today({ store, date, setDate }: { store: Store; date: st
         <section className="hero" aria-label="Progress">
           <div className="hero-top">
             <div><span className="hero-num">{doneCount}</span><span className="hero-suffix">/ {ordered.length} done</span></div>
-            <span className="hero-pct">{pct}%</span>
           </div>
           <div className="segments" role="progressbar" aria-valuemin={0} aria-valuemax={ordered.length} aria-valuenow={doneCount}>
             {ordered.map((o) => <span key={o.key} className={`tone-${o.tone} ${o.done ? 'seg-done' : ''}`} />)}
@@ -75,25 +73,23 @@ export default function Today({ store, date, setDate }: { store: Store; date: st
           <p className="quote"><em>“{q.text}”</em>- {q.author}</p>
         </section>
 
-        {(showWeigh || mainWorkout) && (
-          <div className="grid2">
-            {showWeigh && (
-              <section className={`tile tone-sky ${mainWorkout ? '' : 'solo'}`}>
-                <Badge name="scale" />
-                {!weight && (
-                  <button className="icon-btn dismiss" aria-label="Skip weigh-in today" onClick={() => { dismiss(date); rerender((n) => n + 1) }}>
-                    <Icon name="x" />
-                  </button>
-                )}
-                <h3>{weight ? 'Weighed in' : 'Weigh in'}</h3>
-                <p className="desc">{weight ? `${weight.kg.toFixed(1)} kg` : 'Morning, after the bathroom, before eating'}</p>
-                <div className="actions">
-                  <button className="btn btn-ink" onClick={() => setWeighing(true)}>{weight ? 'Edit' : 'Log'}</button>
-                </div>
-              </section>
+        {showWeigh && (
+          <section className="tile tile-row tone-sky">
+            <Badge name="scale" />
+            <h3 className="grow">{weight ? `Weighed in · ${weight.kg.toFixed(1)} kg` : 'Weigh in'}</h3>
+            <button className="btn btn-ink" onClick={() => setWeighing(true)}>{weight ? 'Edit' : 'Log'}</button>
+            {!weight && (
+              <button className="icon-btn" aria-label="Skip weigh-in today" onClick={() => { dismiss(date); rerender((n) => n + 1) }}>
+                <Icon name="x" />
+              </button>
             )}
+          </section>
+        )}
+
+        {mainWorkout && (
+          <div className="grid2">
             {mainWorkout && (
-              <section className={`tile tone-sage ${showWeigh ? '' : 'solo'} ${done.has(mainWorkout.id) ? 'is-done' : ''}`}>
+              <section className={`tile tone-sage solo ${done.has(mainWorkout.id) ? 'is-done' : ''}`}>
                 <Badge name="dumbbell" />
                 <h3>Workout</h3>
                 <p className="desc">{[mainWorkout.title, mainWorkout.details].filter(Boolean).join(' · ')}</p>
@@ -208,7 +204,6 @@ function TaskRow({ task, done, onToggle }: { task: Task; done: boolean; onToggle
 function WaterSection({ task, done, onSet }: { task: Task; done: Set<string>; onSet: (n: number) => void }) {
   let count = 0
   while (count < WATER_PORTIONS && done.has(`${task.id}#${count + 1}`)) count++
-  const full = count >= WATER_PORTIONS
   return (
     <Section tone="sky" icon="droplet" title="Water" sub={task.title}
       counter={`${(count * WATER_PORTION_L).toFixed(1)} / ${(WATER_PORTIONS * WATER_PORTION_L).toFixed(0)} L`}>
@@ -225,7 +220,6 @@ function WaterSection({ task, done, onSet }: { task: Task; done: Set<string>; on
           </button>
         ))}
       </div>
-      <p className="water-note">{full ? 'Fully hydrated, nice!' : 'Tap a bottle for each 0.5 L. Tap the last one again to undo.'}</p>
     </Section>
   )
 }
