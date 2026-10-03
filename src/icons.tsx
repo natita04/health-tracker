@@ -20,6 +20,7 @@ const PATHS = {
   droplet: <path d="M12 3.5s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11z" />,
   steps: <><path d="M8 3.5c1.7 0 2.5 1.8 2.5 4s-.8 4.5-2.5 4.5S5.5 9.7 5.5 7.5 6.3 3.5 8 3.5z" /><path d="M6 15h4.2v1.5a2.1 2.1 0 0 1-4.2 0z" /><path d="M16 8.5c1.7 0 2.5 1.8 2.5 4s-.8 4.5-2.5 4.5-2.5-2.3-2.5-4.5.8-4 2.5-4z" /><path d="M14 20h4.2v-.5" /></>,
   play: <path d="M8 5.5v13l10.5-6.5z" />,
+  bell: <><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z" /><path d="M10 20.5a2 2 0 0 0 4 0" /></>,
 } as const
 
 export type IconName = keyof typeof PATHS

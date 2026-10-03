@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { disablePush, enablePush, readPush, sendTestPush, setPushTime, type PushState } from '../push'
 import type { Store } from '../store'
 import { fmt, formatTime, parseTime } from '../dates'
 import { MORE_WORKOUTS_URL } from '../defaults'
@@ -29,6 +30,8 @@ export default function Plan({ store }: { store: Store }) {
         <p className="muted">Tap an item to change it</p>
         <h1 className="plain-title">Plan</h1>
       </header>
+
+      <MorningCard store={store} />
 
       {CATEGORIES.map((c) => {
         const items = store.tasks
@@ -77,6 +80,71 @@ export default function Plan({ store }: { store: Store }) {
         />
       )}
     </>
+  )
+}
+
+function MorningCard({ store }: { store: Store }) {
+  const [state, setState] = useState<PushState | null>(null)
+  const [time, setTime] = useState('05:00')
+  const [msg, setMsg] = useState<string | null>(null)
+  const [busy, setBusy] = useState(false)
+
+  useEffect(() => {
+    if (store.isGuest) return
+    readPush().then((s) => { setState(s); setTime(formatTime(s.minutes)) }).catch(() => setState({ status: 'off', minutes: 300 }))
+  }, [store.isGuest])
+
+  const run = async (fn: () => Promise<unknown>, ok?: string) => {
+    setBusy(true); setMsg(null)
+    try { await fn(); if (ok) setMsg(ok) } catch (e) { setMsg(`Something went wrong: ${(e as Error).message}`) }
+    setBusy(false)
+  }
+  const minutes = parseTime(time) ?? 300
+
+  return (
+    <section className="section tone-butter">
+      <div className="section-head">
+        <Badge name="bell" />
+        <div><h2>Morning notification</h2><div className="sub">Your plan for the day, every morning</div></div>
+      </div>
+      <div className="notify-body">
+        {store.isGuest ? (
+          <p className="empty-line">Notifications are off in the guest preview.</p>
+        ) : state === null ? (
+          <p className="empty-line">Checking this device…</p>
+        ) : state.status === 'unsupported' ? (
+          <p className="empty-line">This browser can't receive notifications. On iPhone, add the app to your home screen first and open it from there.</p>
+        ) : state.status === 'denied' ? (
+          <p className="empty-line">Notifications are blocked for this site. Allow them in your browser's site settings, then come back here.</p>
+        ) : (
+          <>
+            <label className="time-row">Time
+              <input type="time" value={time} disabled={busy}
+                onChange={(e) => {
+                  setTime(e.target.value)
+                  const m = parseTime(e.target.value)
+                  if (state.status === 'on' && m != null) void run(() => setPushTime(m), `Saved, see you at ${e.target.value}.`)
+                }} />
+            </label>
+            <div className="row wrap">
+              {state.status === 'on' ? (
+                <>
+                  <button className="btn btn-ink" disabled={busy} onClick={() => run(sendTestPush, 'Sent! It should pop up in a few seconds.')}>Send a test</button>
+                  <button className="btn btn-white" disabled={busy}
+                    onClick={() => run(async () => { await disablePush(); setState({ status: 'off', minutes }) }, 'Turned off on this device.')}>Turn off</button>
+                </>
+              ) : (
+                <button className="btn btn-ink" disabled={busy}
+                  onClick={() => run(async () => { const st = await enablePush(store.userId, minutes); setState({ status: st, minutes }) }, `On! First one tomorrow at ${time}.`)}>
+                  Turn on for this device
+                </button>
+              )}
+            </div>
+          </>
+        )}
+        {msg && <p className="empty-line" role="status">{msg}</p>}
+      </div>
+    </section>
   )
 }
 

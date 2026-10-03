@@ -45,3 +45,10 @@ cp .env.example .env.local   # fill in your Supabase values
 npm install
 npm run dev
 ```
+
+## Morning notification (web push)
+- `public/sw.js` shows the notification; `src/push.ts` subscribes the device (Plan tab).
+- `supabase/functions/morning-push/index.ts` builds each device's plan for the day and sends it.
+  Secrets: `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` (the public one is also in `src/push.ts`).
+  JWT verification is off for this function; it only ever sends a device its own once-a-day summary.
+- `supabase/push.sql`: the `push_subscriptions` table (part 1) and the every-5-minutes cron job (part 2).

@@ -403,3 +403,6 @@ section > .cat-title { margin-bottom: var(--gap-rows); }
 .legend span { margin: 0 4px; }
 .streak .row { gap: 8px; }
 .streak .value { margin-top: 6px; }
+.notify-body { display: flex; flex-direction: column; gap: 10px; padding: 0 6px 6px; }
+.time-row { flex-direction: row; align-items: center; gap: 12px; color: var(--butter-text); font-size: 15px; }
+.time-row input { width: auto; min-height: 44px; border: 0; border-radius: var(--r-pill); background: var(--surface); padding: 0 16px; font-size: 16px; color: var(--ink); }

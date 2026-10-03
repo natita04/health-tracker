@@ -74,7 +74,7 @@ export function useDemoStore(onExit: () => void): Store {
     })
 
   return {
-    isGuest: true,
+    userId: 'guest', isGuest: true,
     signOut: async () => onExit(),
     tasks: tasks.filter((t) => !t.archived), done, weights, thoughts, thoughtsReady: true, goal,
     loading: false, error: null, clearError: () => {}, reload: async () => {},
