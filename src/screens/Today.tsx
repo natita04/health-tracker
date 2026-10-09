@@ -170,7 +170,7 @@ function Section({ tone, icon, title, sub, counter, children }: {
 
 function TaskRow({ task, done, onToggle }: { task: Task; done: boolean; onToggle: () => void }) {
   const isBeauty = task.category === 'BEAUTY'
-  const pill = isBeauty ? (task.duration_min ? `${task.duration_min} min` : task.details) : null
+  const pill = isBeauty ? task.details : null
   const note = isBeauty ? null : task.details
   const row = (
     <button className={`task-row ${done ? 'is-done' : ''}`} aria-pressed={done} onClick={onToggle}>
