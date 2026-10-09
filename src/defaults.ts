@@ -98,7 +98,7 @@ const ITEMS = [
   // ---- version 3 ----
   { ...t('water_4l', 'WATER', 'Drink 4 L of water', { details: '8 × 0.5 L, tap a bottle each time', start_date: '2026-10-03' }), since: 3 },
 
-  { ...t('beauty_plate_light', 'BEAUTY', 'Vibration plate + red light', { details: 'Morning · 10 min', duration_min: 10, start_date: '2026-10-15' }), since: 2 },
+  { ...t('beauty_plate_light', 'BEAUTY', 'Vibration plate + red light', { details: 'Morning · 10 min', duration_min: 10, start_date: '2026-10-09' }), since: 2 },
   // ---- version 5 ----
   { ...t('beauty_castor_oil', 'BEAUTY', 'Castor oil', { details: 'Evening' }), since: 5 },
 ]
@@ -125,7 +125,7 @@ export const UPGRADES: Record<number, { archive?: string[]; update?: { id: strin
   5: {
     // Beauty routine: plate + red light in the morning, then dry brushing, castor oil and legs up the wall in the evening.
     update: [
-      { id: 'beauty_plate_light', set: { details: 'Morning · 10 min', days_mask: ALL_DAYS, sort_order: 12 } },
+      { id: 'beauty_plate_light', set: { details: 'Morning · 10 min', days_mask: ALL_DAYS, start_date: '2026-10-09', sort_order: 12 } },
       { id: 'beauty_dry_brush', set: { details: 'Evening · 10 min', duration_min: 10, days_mask: ALL_DAYS, sort_order: 13 } },
       { id: 'beauty_castor_oil', set: { details: 'Evening', days_mask: ALL_DAYS, sort_order: 14 } },
       { id: 'beauty_legs_wall', set: { details: 'Evening · 10 min', duration_min: 10, days_mask: ALL_DAYS, sort_order: 15 } },
