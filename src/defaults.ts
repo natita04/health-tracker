@@ -7,7 +7,7 @@ import { ALL_DAYS, type Category, type Task, type Video } from './types'
  * Only items newer than what your account already has get added, so your own edits,
  * removed items and history are never touched. (Or just add items in the Plan tab.)
  */
-export const VERSION = 4
+export const VERSION = 5
 
 // Monday = bit 0 ... Sunday = bit 6
 const MON = 1, WED = 4, THU = 8, FRI = 16, SAT = 32, SUN = 64
@@ -98,7 +98,9 @@ const ITEMS = [
   // ---- version 3 ----
   { ...t('water_4l', 'WATER', 'Drink 4 L of water', { details: '8 × 0.5 L, tap a bottle each time', start_date: '2026-10-03' }), since: 3 },
 
-  { ...t('beauty_plate_light', 'BEAUTY', 'Vibration plate + red light', { details: '10 min', duration_min: 10, start_date: '2026-10-15' }), since: 2 },
+  { ...t('beauty_plate_light', 'BEAUTY', 'Vibration plate + red light', { details: 'Morning · 10 min', duration_min: 10, start_date: '2026-10-15' }), since: 2 },
+  // ---- version 5 ----
+  { ...t('beauty_castor_oil', 'BEAUTY', 'Castor oil', { details: 'Evening' }), since: 5 },
 ]
 
 export const newSince = (version: number): Omit<Task, 'archived'>[] =>
@@ -119,6 +121,15 @@ export const UPGRADES: Record<number, { archive?: string[]; update?: { id: strin
     // Workouts (daily + 45 min) start on Oct 15.
     update: ['basic_daily', 'full_sun_lower', 'full_mon_upper', 'full_wed_lower', 'full_fri_full']
       .map((id) => ({ id, set: { start_date: '2026-10-15' } })),
+  },
+  5: {
+    // Beauty routine: plate + red light in the morning, then dry brushing, castor oil and legs up the wall in the evening.
+    update: [
+      { id: 'beauty_plate_light', set: { details: 'Morning · 10 min', days_mask: ALL_DAYS, sort_order: 12 } },
+      { id: 'beauty_dry_brush', set: { details: 'Evening · 10 min', duration_min: 10, days_mask: ALL_DAYS, sort_order: 13 } },
+      { id: 'beauty_castor_oil', set: { details: 'Evening', days_mask: ALL_DAYS, sort_order: 14 } },
+      { id: 'beauty_legs_wall', set: { details: 'Evening · 10 min', duration_min: 10, days_mask: ALL_DAYS, sort_order: 15 } },
+    ],
   },
 }
 
