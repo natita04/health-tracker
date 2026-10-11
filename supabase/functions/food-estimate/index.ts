@@ -26,7 +26,7 @@ const SYSTEM = `You estimate calories and protein for a food diary. The user wri
 - If the text isn't food at all, return an empty items list and zeros.`
 
 const ITEM = {
-  type: 'object',
+  type: 'object' as const,
   properties: {
     name: { type: 'string' },
     kcal: { type: 'integer' },
@@ -37,12 +37,12 @@ const ITEM = {
 }
 
 const SCHEMA = {
-  type: 'object',
+  type: 'object' as const,
   properties: {
     name: { type: 'string' },
     kcal: { type: 'integer' },
     protein: { type: 'number' },
-    items: { type: 'array', items: ITEM },
+    items: { type: 'array' as const, items: ITEM },
   },
   required: ['name', 'kcal', 'protein', 'items'],
   additionalProperties: false,
