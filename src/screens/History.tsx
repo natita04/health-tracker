@@ -4,6 +4,7 @@ import { dayIndex, fmt, pad, todayIso } from '../dates'
 import { CATEGORIES } from '../types'
 import { Badge, CAT_STYLE, Icon } from '../icons'
 import { dayStat, insights, startDate, streaks } from '../stats'
+import FoodHistory from './FoodHistory'
 
 const WEEKDAYS = ['M', 'T', 'W', 'T', 'F', 'S', 'S']
 
@@ -74,6 +75,8 @@ export default function History({ store, openDay }: { store: Store; openDay: (d:
           <span>Less</span>{[0, 1, 2, 3, 4].map((l) => <i key={l} className={`cell lv${l}`} />)}<span>More</span>
         </div>
       </section>
+
+      <FoodHistory store={store} />
 
       <div className="stats">
         {cats.map((c) => {

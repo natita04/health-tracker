@@ -446,3 +446,26 @@ section > .cat-title { margin-bottom: var(--gap-rows); }
 .food-picker { background: var(--tile); border-radius: var(--r-tile); padding: 12px; display: flex; flex-direction: column; gap: var(--gap-rows); }
 .food-picker .food-sub { padding-top: 2px; }
 .add-small.is-added { background: var(--sage-strong); }
+
+/* ---------- food history ---------- */
+:root {
+  --bar-kcal: #C8693C;    /* validated: >= 3:1 on the white card */
+  --bar-protein: #2E8A5C;
+}
+.food-readout { font-size: 14px; color: var(--ink-muted); min-height: 20px; }
+.food-readout strong { color: var(--ink); font-weight: 600; }
+.daybars { margin: 0; display: flex; flex-direction: column; gap: 4px; }
+.daybars figcaption { font-size: 15px; font-weight: 600; }
+.daybars svg { width: 100%; height: auto; display: block; overflow: visible; }
+.daybars .grid { stroke: var(--chart-grid); stroke-width: 1; }
+.daybars .goal { stroke: var(--ink-muted); stroke-width: 1.5; }
+.daybars .goal-text { fill: var(--ink-muted); font: 500 12px 'Outfit', sans-serif; }
+.daybars .axis-text { fill: var(--ink-muted); font: 400 12px 'Outfit', sans-serif; }
+.daybars .bar-kcal { fill: var(--bar-kcal); transition: opacity 150ms; }
+.daybars .bar-protein { fill: var(--bar-protein); transition: opacity 150ms; }
+.daybars .dim { opacity: .3; }
+.daybars .hit { fill: transparent; cursor: pointer; }
+.segmented.segmented-3 { grid-template-columns: repeat(3, 1fr); }
+.food-days .entry { font-size: 15px; gap: 6px; }
+.food-days .entry .kg { margin-left: 8px; }
+.card > .more { width: 100%; min-height: var(--touch); border-top: 1px solid var(--surface-muted); font-weight: 500; }
