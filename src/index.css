@@ -442,3 +442,7 @@ section > .cat-title { margin-bottom: var(--gap-rows); }
 .food-items li + li { border-top: 1px solid var(--surface); }
 .remember { display: flex; align-items: center; gap: 12px; min-height: var(--touch); font-size: 16px; text-align: left; }
 .remember .check.on { color: var(--on-ink); }
+.dialog .sheet-form input { border-radius: var(--r-pill); height: 52px; padding: 0 18px; }
+.food-picker { background: var(--tile); border-radius: var(--r-tile); padding: 12px; display: flex; flex-direction: column; gap: var(--gap-rows); }
+.food-picker .food-sub { padding-top: 2px; }
+.add-small.is-added { background: var(--sage-strong); }
