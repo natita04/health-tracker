@@ -259,7 +259,11 @@ export function useStore(userId: string) {
   /** Free text -> calories and protein, via the food-estimate edge function. Throws if it isn't set up. */
   async function estimateFood(text: string): Promise<FoodEstimate> {
     const { data, error } = await supabase.functions.invoke('food-estimate', { body: { text } })
-    if (error) throw error
+    if (error) {
+      // The function answers errors as { error: "..." }; surface that instead of a generic status.
+      const body = await (error as { context?: Response }).context?.json?.().catch(() => null)
+      throw new Error(body?.error ?? error.message)
+    }
     return data as FoodEstimate
   }
 

@@ -52,3 +52,10 @@ npm run dev
   Secrets: `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` (the public one is also in `src/push.ts`).
   JWT verification is off for this function; it only ever sends a device its own once-a-day summary.
 - `supabase/push.sql`: the `push_subscriptions` table (part 1) and the every-5-minutes cron job (part 2).
+
+## Food tab (calorie + protein estimates)
+- Run `supabase/schema.sql` again once: it adds the `food_entries` and `saved_foods` tables.
+- `supabase/functions/food-estimate/index.ts` sends what you typed to Claude Haiku and returns calories and protein.
+  Deploy it as a function named `food-estimate` with **JWT verification on** (only signed-in users can use it).
+  Secret: `ANTHROPIC_API_KEY` (create it at console.anthropic.com, it needs prepaid credit).
+- Without the function the tab still works: you just type the numbers in yourself.

@@ -123,8 +123,9 @@ function AddSheet({ store, date, onClose }: { store: Store; date: string; onClos
     try {
       const e = await store.estimateFood(v)
       setDraft({ name: e.name || v, kcal: String(Math.round(e.kcal)), protein: g1(e.protein), items: e.items })
-    } catch {
-      setDraft({ name: v, kcal: '', protein: '', note: "Couldn't estimate this right now, so fill in the numbers yourself." })
+    } catch (e) {
+      const why = e instanceof Error && e.message ? ` (${e.message})` : ''
+      setDraft({ name: v, kcal: '', protein: '', note: `Couldn't estimate this right now${why}, so fill in the numbers yourself.` })
     } finally {
       setBusy(false)
     }
