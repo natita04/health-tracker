@@ -67,10 +67,36 @@ alter table public.completions   enable row level security;
 alter table public.weights       enable row level security;
 alter table public.user_settings enable row level security;
 
+
+-- Food log: what you ate each day, plus meals remembered for one-tap reuse.
+create table if not exists public.food_entries (
+  id         uuid primary key default gen_random_uuid(),
+  user_id    uuid not null default auth.uid() references auth.users on delete cascade,
+  date       date not null,
+  name       text not null check (char_length(name) between 1 and 200),
+  kcal       int  not null check (kcal between 0 and 10000),
+  protein    numeric(5, 1) not null check (protein between 0 and 1000),
+  created_at timestamptz not null default now()
+);
+create index if not exists food_entries_user_date on public.food_entries (user_id, date);
+
+create table if not exists public.saved_foods (
+  id        uuid primary key default gen_random_uuid(),
+  user_id   uuid not null default auth.uid() references auth.users on delete cascade,
+  name      text not null check (char_length(name) between 1 and 200),
+  kcal      int  not null check (kcal between 0 and 10000),
+  protein   numeric(5, 1) not null check (protein between 0 and 1000),
+  last_used timestamptz not null default now(),
+  unique (user_id, name)
+);
+
+alter table public.food_entries enable row level security;
+alter table public.saved_foods  enable row level security;
+
 do $$
 declare t text;
 begin
-  foreach t in array array['tasks', 'completions', 'weights', 'user_settings', 'thoughts'] loop
+  foreach t in array array['tasks', 'completions', 'weights', 'user_settings', 'thoughts', 'food_entries', 'saved_foods'] loop
     execute format('drop policy if exists "own rows" on public.%I', t);
     execute format(
       'create policy "own rows" on public.%I for all to authenticated

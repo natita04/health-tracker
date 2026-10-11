@@ -48,3 +48,33 @@ export interface Weight {
 }
 
 export const ALL_DAYS = 0b1111111
+
+/** Daily food targets. */
+export const KCAL_GOAL = 1800
+export const PROTEIN_GOAL = 120
+
+export interface FoodEntry {
+  id: string
+  date: string
+  name: string
+  kcal: number
+  /** grams */
+  protein: number
+  created_at: string
+}
+
+/** A meal remembered for one-tap reuse. */
+export interface SavedFood {
+  id: string
+  name: string
+  kcal: number
+  protein: number
+  last_used: string
+}
+
+export type FoodInput = Pick<FoodEntry, 'name' | 'kcal' | 'protein'>
+
+/** What the estimate function returns for free text. */
+export interface FoodEstimate extends FoodInput {
+  items: FoodInput[]
+}

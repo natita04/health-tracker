@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { supabase } from './supabase'
 import { newSince, UPGRADES, VERSION } from './defaults'
 import { addDays, isOn, todayIso } from './dates'
-import { WATER_PORTIONS, type Task, type Weight } from './types'
+import { WATER_PORTIONS, type FoodEntry, type FoodEstimate, type FoodInput, type SavedFood, type Task, type Weight } from './types'
 
 const HISTORY_DAYS = 120
 
@@ -41,6 +41,12 @@ async function seedDefaults(userId: string) {
   if (up.error) throw up.error
 }
 
+const FOOD_COLS = 'id,date,name,kcal,protein,created_at'
+const SAVED_COLS = 'id,name,kcal,protein,last_used'
+// numeric columns can arrive as strings
+const toEntry = (r: FoodEntry): FoodEntry => ({ ...r, kcal: Number(r.kcal), protein: Number(r.protein) })
+const toSaved = (r: SavedFood): SavedFood => ({ ...r, kcal: Number(r.kcal), protein: Number(r.protein) })
+
 export interface Thought {
   id: string
   date: string
@@ -61,6 +67,10 @@ export function useStore(userId: string) {
   /** false until the thoughts table exists (see supabase/schema.sql) */
   const [thoughtsReady, setThoughtsReady] = useState(true)
   const [goal, setGoalState] = useState<number | null>(null)
+  const [food, setFood] = useState<FoodEntry[]>([])
+  const [savedFoods, setSavedFoods] = useState<SavedFood[]>([])
+  /** false until the food tables exist (see supabase/schema.sql) */
+  const [foodReady, setFoodReady] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   const fail = (e: unknown) => setError(e instanceof Error ? e.message : (e as { message?: string })?.message ?? String(e))
@@ -92,6 +102,19 @@ export function useStore(userId: string) {
         setThoughtsReady(true)
       } catch {
         setThoughtsReady(false)
+      }
+      try {
+        const [fe, sf] = await Promise.all([
+          fetchAll<FoodEntry>((a, b) =>
+            supabase.from('food_entries').select(FOOD_COLS).gte('date', addDays(todayIso(), -1)).order('created_at').range(a, b)),
+          fetchAll<SavedFood>((a, b) =>
+            supabase.from('saved_foods').select(SAVED_COLS).order('last_used', { ascending: false }).range(a, b)),
+        ])
+        setFood(fe.map(toEntry))
+        setSavedFoods(sf.map(toSaved))
+        setFoodReady(true)
+      } catch {
+        setFoodReady(false)
       }
       const g = await supabase.from('user_settings').select('goal_kg').maybeSingle()
       setGoalState(!g.error && g.data?.goal_kg != null ? Number(g.data.goal_kg) : null)
@@ -192,13 +215,73 @@ export function useStore(userId: string) {
   /** Removing only archives, so past history keeps its name. */
   const archiveTask = (task: Task) => saveTask({ ...task, archived: true })
 
+  /** Logs a meal; with `remember`, also keeps it in saved foods (newest first). */
+  async function addFood(date: string, f: FoodInput, remember: boolean) {
+    const temp: FoodEntry = { id: `temp-${Date.now()}`, date, ...f, created_at: new Date().toISOString() }
+    setFood((p) => [...p, temp])
+    const { data, error } = await supabase.from('food_entries').insert({ user_id: userId, date, ...f }).select(FOOD_COLS).single()
+    if (error) {
+      setFood((p) => p.filter((x) => x.id !== temp.id))
+      return fail(error)
+    }
+    setFood((p) => p.map((x) => (x.id === temp.id ? toEntry(data) : x)))
+    if (!remember) return
+    const r = await supabase.from('saved_foods')
+      .upsert({ user_id: userId, ...f, last_used: new Date().toISOString() }, { onConflict: 'user_id,name' })
+      .select(SAVED_COLS).single()
+    if (r.error) return fail(r.error)
+    setSavedFoods((p) => [toSaved(r.data), ...p.filter((x) => x.id !== r.data.id)])
+  }
+
+  async function updateFood(entry: FoodEntry) {
+    const before = food
+    setFood((p) => p.map((x) => (x.id === entry.id ? entry : x)))
+    const { name, kcal, protein } = entry
+    const { error } = await supabase.from('food_entries').update({ name, kcal, protein }).eq('id', entry.id)
+    if (error) { setFood(before); fail(error) }
+  }
+
+  async function removeFood(id: string) {
+    const before = food
+    setFood((p) => p.filter((x) => x.id !== id))
+    if (id.startsWith('temp-')) return
+    const { error } = await supabase.from('food_entries').delete().eq('id', id)
+    if (error) { setFood(before); fail(error) }
+  }
+
+  async function removeSavedFood(id: string) {
+    const before = savedFoods
+    setSavedFoods((p) => p.filter((x) => x.id !== id))
+    const { error } = await supabase.from('saved_foods').delete().eq('id', id)
+    if (error) { setSavedFoods(before); fail(error) }
+  }
+
+  /** Free text -> calories and protein, via the food-estimate edge function. Throws if it isn't set up. */
+  async function estimateFood(text: string): Promise<FoodEstimate> {
+    const { data, error } = await supabase.functions.invoke('food-estimate', { body: { text } })
+    if (error) {
+      // The function answers errors as { error: "..." }; surface that instead of a generic status.
+      const body = await (error as { context?: Response }).context?.json?.().catch(() => null)
+      throw new Error(body?.error ?? error.message)
+    }
+    return data as FoodEstimate
+  }
+
   async function exportBackup() {
     const [t, c, w] = await Promise.all([
       fetchAll((a, b) => supabase.from('tasks').select('*').range(a, b)),
       fetchAll((a, b) => supabase.from('completions').select('*').range(a, b)),
       fetchAll((a, b) => supabase.from('weights').select('*').range(a, b)),
     ])
-    const blob = new Blob([JSON.stringify({ exportedAt: new Date().toISOString(), tasks: t, completions: c, weights: w }, null, 2)],
+    const [fe, sf] = foodReady
+      ? await Promise.all([
+        fetchAll((a, b) => supabase.from('food_entries').select('*').range(a, b)),
+        fetchAll((a, b) => supabase.from('saved_foods').select('*').range(a, b)),
+      ])
+      : [[], []]
+    const blob = new Blob([JSON.stringify({
+      exportedAt: new Date().toISOString(), tasks: t, completions: c, weights: w, food_entries: fe, saved_foods: sf,
+    }, null, 2)],
       { type: 'application/json' })
     const a = document.createElement('a')
     a.href = URL.createObjectURL(blob)
@@ -209,8 +292,10 @@ export function useStore(userId: string) {
 
   return {
     userId, isGuest: false, signOut: async (): Promise<void> => { await supabase.auth.signOut() },
-    tasks: active, done, weights, thoughts, thoughtsReady, goal, loading, error, clearError: () => setError(null), reload: load,
+    tasks: active, done, weights, thoughts, thoughtsReady, goal, food, savedFoods, foodReady,
+    loading, error, clearError: () => setError(null), reload: load,
     toggle, setWater, addThought, removeThought, setGoal, saveWeight, deleteWeight, saveTask, archiveTask, exportBackup,
+    addFood, updateFood, removeFood, removeSavedFood, estimateFood,
   }
 }
 
