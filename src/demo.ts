@@ -66,6 +66,13 @@ function demoData(tasks: Task[]) {
   const food: FoodEntry[] = meals.slice(0, 3).map((m) => ({
     id: `demo-food-${m.n}`, date: today, name: m.name, kcal: m.kcal, protein: m.protein, created_at: `${today}T0${m.n + 7}:00:00Z`,
   }))
+  for (let i = 1; i <= 30; i++) {
+    const d = addDays(today, -i)
+    if (pseudo(i * 7) < 0.15) continue // some days not logged
+    const kcal = Math.round(1450 + pseudo(i * 13) * 650)
+    const protein = Math.round(85 + pseudo(i * 17) * 50)
+    food.push({ id: `demo-day-${i}`, date: d, name: 'Logged meals', kcal, protein, created_at: `${d}T12:00:00Z` })
+  }
   const savedFoods: SavedFood[] = meals.map((m) => ({
     id: `demo-saved-${m.n}`, name: m.name, kcal: m.kcal, protein: m.protein, last_used: `${today}T0${9 - m.n}:00:00Z`,
   }))

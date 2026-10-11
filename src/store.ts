@@ -106,7 +106,7 @@ export function useStore(userId: string) {
       try {
         const [fe, sf] = await Promise.all([
           fetchAll<FoodEntry>((a, b) =>
-            supabase.from('food_entries').select(FOOD_COLS).gte('date', addDays(todayIso(), -1)).order('created_at').range(a, b)),
+            supabase.from('food_entries').select(FOOD_COLS).gte('date', since).order('created_at').range(a, b)),
           fetchAll<SavedFood>((a, b) =>
             supabase.from('saved_foods').select(SAVED_COLS).order('last_used', { ascending: false }).range(a, b)),
         ])
