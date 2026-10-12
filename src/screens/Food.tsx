@@ -8,6 +8,7 @@ const SAVED_SHOWN = 5
 
 /** Protein to one decimal, without a trailing ".0". */
 const g1 = (n: number) => String(Math.round(n * 10) / 10)
+const num = (n: number) => Math.round(n).toLocaleString('en-US')
 const meta = (f: FoodInput) => `${Math.round(f.kcal)} kcal · ${g1(f.protein)} g protein`
 
 /** What the confirm sheet is editing: a new meal (from an estimate or typed in) or one already logged. */
@@ -18,6 +19,12 @@ interface Draft {
   protein: string
   items?: FoodInput[]
   note?: string
+}
+
+/** Text in a number field -> number, or null if it isn't one (commas count as decimal points). */
+const parseNum = (t: string, max: number) => {
+  const n = Number(t.replace(',', '.'))
+  return t.trim() !== '' && n >= 0 && n <= max ? n : null
 }
 
 export default function Food({ store }: { store: Store }) {
@@ -129,6 +136,23 @@ function AddSheet({ store, date, onClose }: { store: Store; date: string; onClos
     } finally {
       setBusy(false)
     }
+  }
+
+  if (draft?.items && draft.items.length > 1) {
+    return (
+      <Sheet label="Check the numbers" onClose={onClose}>
+        <ItemsForm
+          name={draft.name}
+          items={draft.items}
+          onBack={() => setDraft(null)}
+          onSave={(list, remember) => {
+            // One after another, so they show up in the order they were listed.
+            void (async () => { for (const f of list) await store.addFood(date, f, remember) })()
+            onClose()
+          }}
+        />
+      </Sheet>
+    )
   }
 
   if (draft) {
@@ -255,13 +279,6 @@ function FoodForm({ draft, onCancel, cancelLabel = 'Cancel', onSave, onRemove }:
       <label>What you ate
         <input dir="auto" value={name} onChange={(e) => setName(e.target.value)} maxLength={200} autoFocus={!name} />
       </label>
-      {draft.items && draft.items.length > 1 && (
-        <ul className="food-items" aria-label="Breakdown">
-          {draft.items.map((i, n) => (
-            <li key={n}><span dir="auto" className="grow">{i.name}</span><span className="muted">{meta(i)}</span></li>
-          ))}
-        </ul>
-      )}
       <div className="grid2">
         <label>Calories (kcal)
           <input inputMode="numeric" value={kcalText} onChange={(e) => setKcal(e.target.value)} placeholder="e.g. 350" autoFocus={Boolean(name) && !kcalText} />
@@ -281,6 +298,105 @@ function FoodForm({ draft, onCancel, cancelLabel = 'Cancel', onSave, onRemove }:
         <span className="grow" />
         <button type="button" className="btn btn-muted" onClick={onCancel}>{cancelLabel}</button>
         <button className="btn btn-ink" disabled={!valid}>{isNew ? 'Add' : 'Save'}</button>
+      </div>
+    </form>
+  )
+}
+
+interface ItemRow { key: number; name: string; kcal: string; protein: string }
+
+/** A meal estimated as several foods: fix any item, then log it as one meal or item by item. */
+function ItemsForm({ name: initialName, items, onBack, onSave }: {
+  name: string
+  items: FoodInput[]
+  onBack: () => void
+  onSave: (list: FoodInput[], remember: boolean) => void
+}) {
+  const [name, setName] = useState(initialName)
+  const [rows, setRows] = useState<ItemRow[]>(() =>
+    items.map((i, n) => ({ key: n, name: i.name, kcal: String(Math.round(i.kcal)), protein: g1(i.protein) })))
+  const [separate, setSeparate] = useState(false)
+  const [remember, setRemember] = useState(true)
+
+  const parsed = rows.map((r) => ({ name: r.name.trim(), kcal: parseNum(r.kcal, 10000), protein: parseNum(r.protein, 1000) }))
+  const rowValid = parsed.map((p) => p.name !== '' && p.kcal != null && p.protein != null)
+  const totalKcal = Math.round(parsed.reduce((s, p) => s + (p.kcal ?? 0), 0))
+  const totalProtein = Math.round(parsed.reduce((s, p) => s + (p.protein ?? 0), 0) * 10) / 10
+  const valid = rows.length > 0 && rowValid.every(Boolean) && (separate || name.trim() !== '')
+
+  const set = (key: number, patch: Partial<ItemRow>) => setRows((p) => p.map((r) => (r.key === key ? { ...r, ...patch } : r)))
+
+  function save() {
+    if (!valid) return
+    const list = parsed.map((p) => ({ name: p.name, kcal: Math.round(p.kcal!), protein: Math.round(p.protein! * 10) / 10 }))
+    onSave(separate ? list : [{ name: name.trim(), kcal: totalKcal, protein: totalProtein }], remember)
+  }
+
+  return (
+    <form className="stack" onSubmit={(e) => { e.preventDefault(); save() }}>
+      <h2>Check the numbers</h2>
+      <p className="muted small">An estimate, so fix any item that looks off.</p>
+
+      <div className="food-items-edit" aria-label="Items">
+        {rows.map((r, i) => (
+          <div key={r.key} className="item-edit">
+            <div className="row item-edit-top">
+              <label className="sr-only" htmlFor={`item-name-${r.key}`}>Item {i + 1}</label>
+              <input id={`item-name-${r.key}`} dir="auto" value={r.name} maxLength={200} placeholder="Food"
+                className={r.name.trim() ? '' : 'invalid'} onChange={(e) => set(r.key, { name: e.target.value })} />
+              <button type="button" className="icon-btn" aria-label={`Remove ${r.name || 'item'}`}
+                onClick={() => setRows((p) => p.filter((x) => x.key !== r.key))}>
+                <Icon name="x" />
+              </button>
+            </div>
+            <div className="item-edit-nums">
+              <label className="unit-field">
+                <span className="sr-only">Calories for {r.name}</span>
+                <input inputMode="numeric" value={r.kcal} placeholder="0" className={parsed[i].kcal == null ? 'invalid' : ''}
+                  onChange={(e) => set(r.key, { kcal: e.target.value })} />
+                <span aria-hidden="true">kcal</span>
+              </label>
+              <label className="unit-field">
+                <span className="sr-only">Protein for {r.name}</span>
+                <input inputMode="decimal" value={r.protein} placeholder="0" className={parsed[i].protein == null ? 'invalid' : ''}
+                  onChange={(e) => set(r.key, { protein: e.target.value })} />
+                <span aria-hidden="true">g protein</span>
+              </label>
+            </div>
+          </div>
+        ))}
+        <button type="button" className="text-btn add-item-btn"
+          onClick={() => setRows((p) => [...p, { key: Math.max(-1, ...p.map((x) => x.key)) + 1, name: '', kcal: '', protein: '' }])}>
+          + Add an item
+        </button>
+        <div className="items-total" aria-live="polite">
+          <span className="grow">Total</span>
+          <strong>{num(totalKcal)} kcal</strong>
+          <strong>{g1(totalProtein)} g protein</strong>
+        </div>
+      </div>
+
+      <div className="stack-tight">
+        <span className="label">Add as</span>
+        <div className="segmented segmented-2" role="group" aria-label="Add as">
+          <button type="button" aria-pressed={!separate} onClick={() => setSeparate(false)}>One meal</button>
+          <button type="button" aria-pressed={separate} onClick={() => setSeparate(true)}>Separate items</button>
+        </div>
+      </div>
+      {!separate && (
+        <label>Meal name
+          <input dir="auto" value={name} onChange={(e) => setName(e.target.value)} maxLength={200} />
+        </label>
+      )}
+
+      <button type="button" className="remember" aria-pressed={remember} onClick={() => setRemember(!remember)}>
+        <span className={`check ${remember ? 'on' : ''}`} aria-hidden="true">{remember && <Icon name="tick" size={16} strokeWidth={3} />}</span>
+        {separate ? `Save each item to My meals` : 'Save to My meals'}
+      </button>
+      <div className="row end">
+        <span className="grow" />
+        <button type="button" className="btn btn-muted" onClick={onBack}>Back</button>
+        <button className="btn btn-ink" disabled={!valid}>{separate ? `Add ${rows.length} items` : 'Add'}</button>
       </div>
     </form>
   )

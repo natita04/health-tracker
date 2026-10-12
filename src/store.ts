@@ -217,7 +217,7 @@ export function useStore(userId: string) {
 
   /** Logs a meal; with `remember`, also keeps it in saved foods (newest first). */
   async function addFood(date: string, f: FoodInput, remember: boolean) {
-    const temp: FoodEntry = { id: `temp-${Date.now()}`, date, ...f, created_at: new Date().toISOString() }
+    const temp: FoodEntry = { id: `temp-${crypto.randomUUID()}`, date, ...f, created_at: new Date().toISOString() }
     setFood((p) => [...p, temp])
     const { data, error } = await supabase.from('food_entries').insert({ user_id: userId, date, ...f }).select(FOOD_COLS).single()
     if (error) {
