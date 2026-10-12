@@ -119,8 +119,8 @@ export function useDemoStore(onExit: () => void): Store {
     exportBackup: async () => alert("Backups aren't available in the guest preview."),
     addFood: async (date, f, remember) => {
       const now = new Date().toISOString()
-      setFood((p) => [...p, { id: `g-${Date.now()}`, date, ...f, created_at: now }])
-      if (remember) setSavedFoods((p) => [{ id: `g-saved-${Date.now()}`, ...f, last_used: now }, ...p.filter((x) => x.name !== f.name)])
+      setFood((p) => [...p, { id: `g-${crypto.randomUUID()}`, date, ...f, created_at: now }])
+      if (remember) setSavedFoods((p) => [{ id: `g-saved-${crypto.randomUUID()}`, ...f, last_used: now }, ...p.filter((x) => x.name !== f.name)])
     },
     updateFood: async (entry) => setFood((p) => p.map((x) => (x.id === entry.id ? entry : x))),
     removeFood: async (id) => setFood((p) => p.filter((x) => x.id !== id)),
@@ -128,9 +128,10 @@ export function useDemoStore(onExit: () => void): Store {
     // Made-up numbers so the preview flow works without the real estimate function.
     estimateFood: async (text) => {
       await new Promise((r) => setTimeout(r, 700))
-      const kcal = 150 + Math.round(pseudo(text.length) * 45) * 10
-      const protein = Math.round(pseudo(text.length + 1) * 35)
-      return { name: text, kcal, protein, items: [] }
+      const items = text.split(/,|\+| עם | and /).map((x) => x.trim()).filter(Boolean).map((name) => ({
+        name, kcal: 60 + Math.round(pseudo(name.length) * 30) * 10, protein: Math.round(pseudo(name.length + 1) * 25),
+      }))
+      return { name: text, kcal: items.reduce((s, i) => s + i.kcal, 0), protein: items.reduce((s, i) => s + i.protein, 0), items }
     },
   }
 }
