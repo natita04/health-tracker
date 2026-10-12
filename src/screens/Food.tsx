@@ -118,9 +118,18 @@ function AddSheet({ store, date, onClose }: { store: Store; date: string; onClos
   /** names of saved meals added while the sheet is open, to show a tick */
   const [added, setAdded] = useState<Set<string>>(new Set())
 
-  // Typing narrows My meals down, so a meal you've had before is one tap away.
+  // Most eaten first: how many times each name was logged in the loaded history (last 120 days),
+  // then the most recently used. Typing narrows the list down.
+  // Counted once when the sheet opens, so a row doesn't jump while you tap +.
+  const [uses] = useState(() => {
+    const m = new Map<string, number>()
+    for (const f of store.food) m.set(f.name, (m.get(f.name) ?? 0) + 1)
+    return m
+  })
+  const ranked = [...store.savedFoods].sort((a, b) =>
+    (uses.get(b.name) ?? 0) - (uses.get(a.name) ?? 0) || b.last_used.localeCompare(a.last_used))
   const q = text.trim().toLowerCase()
-  const matches = q ? store.savedFoods.filter((s) => s.name.toLowerCase().includes(q)) : store.savedFoods
+  const matches = q ? ranked.filter((s) => s.name.toLowerCase().includes(q)) : ranked
   const shown = showAll ? matches : matches.slice(0, SAVED_SHOWN)
 
   async function estimate() {
