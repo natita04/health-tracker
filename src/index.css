@@ -432,8 +432,6 @@ section > .cat-title { margin-bottom: var(--gap-rows); }
 .daybars .dim { opacity: .3; }
 .daybars .hit { fill: transparent; cursor: pointer; }
 .segmented.segmented-3 { grid-template-columns: repeat(3, 1fr); }
-.food-days .entry { font-size: 15px; gap: 6px; }
-.food-days .entry .kg { margin-left: 8px; }
 .card > .more { width: 100%; min-height: var(--touch); border-top: 1px solid var(--surface-muted); font-weight: 500; }
 
 /* ---------- editable estimate items ---------- */
@@ -486,10 +484,6 @@ button.stat { width: 100%; }
 .detail-anchor { scroll-margin-top: 16px; } .detail-anchor:empty { display: none; }
 
 /* ---------- goals, ideas, time of day, photo ---------- */
-.ideas-strip { text-align: left; color: var(--ink); }
-.ideas-strip .grow { display: flex; flex-direction: column; gap: 2px; }
-.ideas-title { font-size: 17px; font-weight: 600; }
-.ideas-sub { font-size: 13px; color: var(--tile-text); }
 .part-icon { color: var(--tile-text); display: grid; place-items: center; flex: none; margin-right: 4px; }
 .add-btn-soft { background: var(--surface); color: var(--ink); box-shadow: inset 0 0 0 1.5px var(--ink); }
 .dialog .add-btn-soft { background: var(--surface-muted); box-shadow: none; }
@@ -533,3 +527,10 @@ button.stat { width: 100%; }
 .sheet-form { gap: 6px; }
 .sheet-form .add-btn { width: 48px; height: 48px; }
 .dialog .sheet-form input { height: 48px; min-height: 48px; padding: 0 14px; }
+
+/* "Get ideas" next to "N g to go" in the dark totals card */
+.meter-right { display: inline-flex; align-items: center; gap: 8px; }
+.ideas-chip {
+  display: inline-flex; align-items: center; gap: 4px; min-height: 30px; padding: 0 10px;
+  border-radius: var(--r-pill); background: var(--butter-tile); color: var(--ink); font-size: 13px; font-weight: 600;
+}

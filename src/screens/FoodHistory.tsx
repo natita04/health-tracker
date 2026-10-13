@@ -18,7 +18,6 @@ export default function FoodHistory({ store }: { store: Store }) {
   const { kcal: KCAL_GOAL, protein: PROTEIN_GOAL } = store.foodGoals
   const [range, setRange] = useState<Range>('1M')
   const [selected, setSelected] = useState<string | null>(null)
-  const [showDays, setShowDays] = useState(false)
 
   const totals: Record<string, { kcal: number; protein: number }> = {}
   for (const f of store.food) {
@@ -81,18 +80,6 @@ export default function FoodHistory({ store }: { store: Store }) {
         </div>
       </div>
 
-      <button className="more" onClick={() => setShowDays(!showDays)}>{showDays ? 'Hide days' : 'Show days'}</button>
-      {showDays && (
-        <div className="food-days">
-          {[...days].reverse().filter((d) => totals[d]).map((d) => (
-            <div key={d} className="entry">
-              <span className="grow">{d === today ? 'Today' : fmt(d, { weekday: 'short', day: 'numeric', month: 'short' })}</span>
-              <span className="kg">{num(totals[d].kcal)}</span><span className="muted small">kcal</span>
-              <span className="kg">{num(totals[d].protein)}</span><span className="muted small">g</span>
-            </div>
-          ))}
-        </div>
-      )}
     </section>
   )
 }
