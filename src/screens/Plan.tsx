@@ -206,9 +206,12 @@ function EditDialog({ task, isNew, onClose, onSave, onRemove }: {
   const timeOk = !time.trim() || parseTime(time) != null
   const valid = title.trim() !== '' && timeOk && days !== 0 && (!start || !end || start <= end)
 
+  // Videos and the exercise list only belong to workouts.
+  const isWorkout = category === 'WORKOUT'
+
   const save = () => {
-    const lines = steps.split('\n').map((s) => s.trim()).filter(Boolean)
-    const vids = videos.split('\n').map((l) => l.trim()).filter(Boolean).map((l, i) => {
+    const lines = isWorkout ? steps.split('\n').map((s) => s.trim()).filter(Boolean) : []
+    const vids = !isWorkout ? [] : videos.split('\n').map((l) => l.trim()).filter(Boolean).map((l, i) => {
       const [a, b] = l.includes('|') ? l.split('|').map((s) => s.trim()) : ['', l]
       return { title: a || `Option ${i + 1}`, url: b }
     })
@@ -255,13 +258,17 @@ function EditDialog({ task, isNew, onClose, onSave, onRemove }: {
           <label className="grow">Starts<input type="date" value={start} onChange={(e) => setStart(e.target.value)} /></label>
           <label className="grow">Ends<input type="date" value={end} onChange={(e) => setEnd(e.target.value)} /></label>
         </div>
-        <label>Videos (one per line: Title | link)
-          <textarea rows={3} value={videos} onChange={(e) => setVideos(e.target.value)} placeholder="Leg day | https://youtube.com/..." />
-        </label>
-        <span className="muted small">Ideas: <a href={MORE_WORKOUTS_URL} target="_blank" rel="noreferrer">Heather Robertson's videos</a></span>
-        <label>Exercise list (one per line, "# " for a heading)
-          <textarea rows={5} value={steps} onChange={(e) => setSteps(e.target.value)} placeholder="optional" />
-        </label>
+        {isWorkout && (
+          <>
+            <label>Videos (one per line: Title | link)
+              <textarea rows={3} value={videos} onChange={(e) => setVideos(e.target.value)} placeholder="Leg day | https://youtube.com/..." />
+            </label>
+            <span className="muted small">Ideas: <a href={MORE_WORKOUTS_URL} target="_blank" rel="noreferrer">Heather Robertson's videos</a></span>
+            <label>Exercise list (one per line, "# " for a heading)
+              <textarea rows={5} value={steps} onChange={(e) => setSteps(e.target.value)} placeholder="optional" />
+            </label>
+          </>
+        )}
 
         <div className="row end">
           {!isNew && (
