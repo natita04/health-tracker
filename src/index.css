@@ -510,6 +510,8 @@ button.stat { width: 100%; }
 .past-day + .past-day { border-top: 1px solid var(--surface-muted); }
 .past-date { font-size: 14px; font-weight: 600; color: var(--ink-muted); margin-bottom: 4px; }
 .past-day ul { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 2px; }
-.nudge-btn { align-self: flex-start; display: inline-flex; align-items: center; gap: 6px; margin: 2px 6px 0; font-size: 14px; }
+.nudge-btn { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; flex: none; }
 .earlier-btn { align-self: center; }
-.nudge-text { font-size: 16px; font-weight: 600; color: var(--butter-text); padding: 4px 6px 0; }
+.nudge-row { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 10px; row-gap: 2px; padding: 0 6px; }
+.nudge-text { font-size: 15px; font-weight: 600; color: var(--butter-text); }
+.eyebrow-rel { color: var(--ink); font-weight: 600; }

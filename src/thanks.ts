@@ -1,4 +1,4 @@
-// Prompts for days when nothing comes to mind. "Need a nudge?" shows a random one above the input.
+// Prompts for days when nothing comes to mind. "Need a nudge?" shows a random one next to the button.
 
 export const THANKS_TARGET = 3
 

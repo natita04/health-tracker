@@ -4,6 +4,7 @@ import { addDays, fmt, fromIso, todayIso } from '../dates'
 import { Icon } from '../icons'
 import type { Weight } from '../types'
 import WeightDialog from './WeightDialog'
+import DayHeader from './DayHeader'
 
 type Range = '1W' | '1M' | '3M' | '1Y' | 'All'
 const RANGES: { id: Range; days: number | null; title: string; since: string }[] = [
@@ -18,15 +19,16 @@ const kg1 = (n: number) => n.toFixed(1)
 const signed = (d: number) => `${d > 0 ? '+' : d < 0 ? '-' : ''}${Math.abs(d).toFixed(1)}`
 const dayNum = (s: string) => fromIso(s).getTime() / 86_400_000
 
-export default function WeightScreen({ store }: { store: Store }) {
+export default function WeightScreen({ store, date, setDate }: { store: Store; date: string; setDate: (d: string) => void }) {
   const [range, setRange] = useState<Range>('1M')
-  const [dialog, setDialog] = useState<null | 'today' | 'other' | 'goal'>(null)
+  const [dialog, setDialog] = useState<null | 'log' | 'goal'>(null)
   const [showAll, setShowAll] = useState(false)
   const today = todayIso()
   const all = store.weights
   const latest = all[all.length - 1]
   const first = all[0]
-  const todayEntry = all.find((w) => w.date === today)
+  const dayEntry = all.find((w) => w.date === date)
+  const dayLabel = date === today ? "today's" : `${fmt(date, { day: 'numeric', month: 'short' })}`
 
   const r = RANGES.find((x) => x.id === range)!
   const from = r.days ? addDays(today, -r.days) : (first?.date ?? today)
@@ -38,30 +40,12 @@ export default function WeightScreen({ store }: { store: Store }) {
 
   return (
     <>
-      <header className="screen-head">
-        <div>
-          <div className="eyebrow">{latest ? `Last weigh-in ${fmt(latest.date, { weekday: 'short', day: 'numeric', month: 'short' })}` : 'No weigh-ins yet'}</div>
-          <h1>Weight</h1>
-        </div>
-        <div className="head-actions">
-          <button className="circle-btn" aria-label="Log weight for another day" onClick={() => setDialog('other')}><Icon name="calendar" /></button>
-        </div>
-      </header>
+      <DayHeader title="Weight" date={date} setDate={setDate} />
 
       <section className="weight-hero">
         <span className="label">Current</span>
         <div><span className="value">{latest ? kg1(latest.kg) : '-'}</span><span className="unit">kg</span></div>
         {change != null && <span className="change-pill">{signed(change)} kg {r.since}</span>}
-      </section>
-
-      <section className="card">
-        <div className="card-head"><h2>{r.title}</h2><span className="unit">kg</span></div>
-        <Chart points={visible} from={from} to={today} title={r.title} />
-        <div className="segmented" role="group" aria-label="Chart range">
-          {RANGES.map((x) => (
-            <button key={x.id} aria-pressed={range === x.id} onClick={() => setRange(x.id)}>{x.id}</button>
-          ))}
-        </div>
       </section>
 
       <div className="stats">
@@ -76,6 +60,16 @@ export default function WeightScreen({ store }: { store: Store }) {
             : <span className="set-goal">Set goal</span>}
         </button>
       </div>
+
+      <section className="card">
+        <div className="card-head"><h2>{r.title}</h2><span className="unit">kg</span></div>
+        <Chart points={visible} from={from} to={today} title={r.title} />
+        <div className="segmented" role="group" aria-label="Chart range">
+          {RANGES.map((x) => (
+            <button key={x.id} aria-pressed={range === x.id} onClick={() => setRange(x.id)}>{x.id}</button>
+          ))}
+        </div>
+      </section>
 
       {recent.length > 0 && (
         <section className="entries" aria-label="Recent entries">
@@ -97,23 +91,22 @@ export default function WeightScreen({ store }: { store: Store }) {
               </div>
             )
           })}
-          {recent.length > 3 || showAll ? (
-            <button className="more" onClick={() => setShowAll(!showAll)}>{showAll ? 'Show less' : `Show all ${recent.length} (edit or delete)`}</button>
-          ) : null}
         </section>
       )}
+      {(recent.length > 3 || showAll) && (
+        <button className="btn btn-white earlier-btn" onClick={() => setShowAll(!showAll)}>
+          {showAll ? 'Hide previous weights' : 'Show previous weights'}
+        </button>
+      )}
 
-      <button className="btn-primary pinned-action" onClick={() => setDialog('today')}>
-        <Icon name="plus" />{todayEntry ? "Edit today's weight" : "Log today's weight"}
+      <button className="btn-primary pinned-action" onClick={() => setDialog('log')}>
+        <Icon name="plus" />{dayEntry ? `Edit ${dayLabel} weight` : `Log ${dayLabel} weight`}
       </button>
 
-      {dialog === 'today' && (
-        <WeightDialog initial={todayEntry?.kg} onClose={() => setDialog(null)}
-          onSave={(kg) => { if (kg != null) void store.saveWeight(today, kg); setDialog(null) }} />
-      )}
-      {dialog === 'other' && (
-        <WeightDialog pickDate title="Log weight for a day" onClose={() => setDialog(null)}
-          onSave={(kg, d) => { if (kg != null) void store.saveWeight(d, kg); setDialog(null) }} />
+      {dialog === 'log' && (
+        <WeightDialog initial={dayEntry?.kg} title={date === today ? 'Log weight' : `Weight for ${fmt(date, { weekday: 'short', day: 'numeric', month: 'short' })}`}
+          onClose={() => setDialog(null)}
+          onSave={(kg) => { if (kg != null) void store.saveWeight(date, kg); setDialog(null) }} />
       )}
       {dialog === 'goal' && (
         <WeightDialog title="Weight goal" label="Goal (kg)" initial={store.goal ?? undefined} allowClear onClose={() => setDialog(null)}

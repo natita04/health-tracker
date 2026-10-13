@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import type { Store } from '../store'
-import { fmt, todayIso } from '../dates'
+import { todayIso } from '../dates'
 import { Badge, Icon } from '../icons'
+import DayHeader from './DayHeader'
 import { partOfDay, type FoodEntry, type FoodIdea, type FoodInput, type FoodPhoto, type PartOfDay, type SavedFood } from '../types'
 import type { IconName } from '../icons'
 
@@ -56,32 +57,28 @@ const parseNum = (t: string, max: number) => {
   return t.trim() !== '' && n >= 0 && n <= max ? n : null
 }
 
-export default function Food({ store }: { store: Store }) {
-  const today = todayIso()
+export default function Food({ store, date, setDate }: { store: Store; date: string; setDate: (d: string) => void }) {
+  const isToday = date === todayIso()
   const [adding, setAdding] = useState(false)
   const [editing, setEditing] = useState<FoodEntry | null>(null)
   const [ideasOpen, setIdeasOpen] = useState(false)
   const goals = store.foodGoals
 
-  const entries = store.food.filter((f) => f.date === today)
+  const entries = store.food.filter((f) => f.date === date)
   const kcal = Math.round(entries.reduce((s, f) => s + f.kcal, 0))
   const protein = Math.round(entries.reduce((s, f) => s + f.protein, 0) * 10) / 10
 
   return (
     <>
-      <header className="screen-head">
-        <div>
-          <div className="eyebrow">{fmt(today, { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}</div>
-          <h1>Food</h1>
-        </div>
-      </header>
+      <DayHeader title="Food" date={date} setDate={setDate} />
 
-      <section className="hero food-hero" aria-label="Today's totals">
+      <section className="hero food-hero" aria-label="Totals for the day">
         <Meter label="Calories" value={kcal} goal={goals.kcal} unit="kcal" tone="peach" overIsBad />
         <Meter label="Protein" value={protein} goal={goals.protein} unit="g" tone="sage" />
       </section>
 
-      {store.foodReady && goals.protein - protein >= GAP_MIN && (
+      {/* Ideas are about the rest of today, so only on today. */}
+      {store.foodReady && isToday && goals.protein - protein >= GAP_MIN && (
         <button className="tile tile-row tone-sage ideas-strip" onClick={() => setIdeasOpen(true)}>
           <Badge name="sparkle" />
           <span className="grow">
@@ -101,13 +98,13 @@ export default function Food({ store }: { store: Store }) {
         <div className="section-head">
           <Badge name="apple" />
           <div>
-            <h2>Eaten today</h2>
+            <h2>{isToday ? 'Eaten today' : 'Eaten'}</h2>
             {entries.length > 0 && <div className="sub">Tap to fix the numbers</div>}
           </div>
           <span className="counter">{entries.length}</span>
         </div>
         {entries.length === 0 ? (
-          <p className="empty-line">Nothing logged yet today.</p>
+          <p className="empty-line">{isToday ? 'Nothing logged yet today.' : 'Nothing logged this day.'}</p>
         ) : (
           entries.map((f) => (
             <div key={f.id} className="food-row">
@@ -131,9 +128,9 @@ export default function Food({ store }: { store: Store }) {
         <Icon name="plus" />Add food
       </button>
 
-      {adding && <AddSheet store={store} date={today} onClose={() => setAdding(false)} />}
+      {adding && <AddSheet store={store} date={date} onClose={() => setAdding(false)} />}
       {ideasOpen && (
-        <IdeasSheet store={store} date={today} kcalLeft={Math.max(0, goals.kcal - kcal)}
+        <IdeasSheet store={store} date={date} kcalLeft={Math.max(0, goals.kcal - kcal)}
           proteinLeft={Math.max(0, goals.protein - protein)} onClose={() => setIdeasOpen(false)} />
       )}
       {editing && (

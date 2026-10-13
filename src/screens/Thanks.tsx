@@ -19,7 +19,7 @@ export default function Thanks({ store }: { store: Store }) {
   const items = store.thoughts[today] ?? []
   const pastDays = Object.keys(store.thoughts).filter((d) => d < today && store.thoughts[d].length).sort().reverse()
 
-  // A prompt to answer (in any language); shown in full above the input.
+  // A prompt to answer (in any language), shown next to the nudge button.
   function nudge() {
     setHint(randomPrompt(hint))
     input.current?.focus()
@@ -39,14 +39,12 @@ export default function Thanks({ store }: { store: Store }) {
           <Badge name="heart" />
           <div>
             <h2>Today</h2>
-            <div className="sub">Aim for {THANKS_TARGET} a day</div>
+            <div className="sub">What are you thankful for?</div>
           </div>
           <span className="counter">{items.length}/{THANKS_TARGET}</span>
         </div>
         {!store.thoughtsReady ? (
           <p className="empty-line">Thoughts can't be saved yet: the database needs its one-time update (the SQL from setup).</p>
-        ) : items.length === 0 ? (
-          <p className="empty-line">Nothing yet today. What made you smile?</p>
         ) : (
           items.map((t, i) => (
             <div key={t.id} className="thought">
@@ -56,7 +54,6 @@ export default function Thanks({ store }: { store: Store }) {
             </div>
           ))
         )}
-        {hint && <p className="nudge-text" aria-live="polite">{hint}</p>}
         <form
           className="add-form"
           onSubmit={(e) => {
@@ -74,9 +71,12 @@ export default function Thanks({ store }: { store: Store }) {
             placeholder="Today I'm thankful for..." maxLength={500} disabled={!store.thoughtsReady} enterKeyHint="done" autoComplete="off" />
           <button className="add-btn" aria-label="Add thank you thought" disabled={!store.thoughtsReady}><Icon name="plus" /></button>
         </form>
-        <button type="button" className="text-btn nudge-btn" disabled={!store.thoughtsReady} onClick={nudge}>
-          <Icon name="sparkle" size={16} />{hint ? 'Another nudge' : 'Need a nudge?'}
-        </button>
+        <div className="nudge-row">
+          <button type="button" className="text-btn nudge-btn" disabled={!store.thoughtsReady} onClick={nudge}>
+            <Icon name="sparkle" size={16} />{hint ? 'Another nudge' : 'Need a nudge?'}
+          </button>
+          {hint && <span className="nudge-text" aria-live="polite">{hint}</span>}
+        </div>
       </section>
 
       {pastDays.length > 0 && (
