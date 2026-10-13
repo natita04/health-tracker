@@ -158,28 +158,31 @@ function MorningCard({ store }: { store: Store }) {
           <p className="empty-line">Notifications are blocked for this site. Allow them in your browser's site settings, then come back here.</p>
         ) : (
           <>
-            <label className="time-row">Time
-              <input type="time" value={time} disabled={busy}
-                onChange={(e) => {
-                  setTime(e.target.value)
-                  const m = parseTime(e.target.value)
-                  if (state.status === 'on' && m != null) void run(() => setPushTime(m), `Saved, see you at ${e.target.value}.`)
-                }} />
-            </label>
-            <div className="row wrap">
+            {/* Time and the on / off switch on one line; the test button below once it's on. */}
+            <div className="row wrap time-line">
+              <label className="time-row"><span className="sr-only">Time</span>
+                <input type="time" value={time} disabled={busy}
+                  onChange={(e) => {
+                    setTime(e.target.value)
+                    const m = parseTime(e.target.value)
+                    if (state.status === 'on' && m != null) void run(() => setPushTime(m), `Saved, see you at ${e.target.value}.`)
+                  }} />
+              </label>
               {state.status === 'on' ? (
-                <>
-                  <button className="btn btn-ink" disabled={busy} onClick={() => run(sendTestPush, 'Sent! It should pop up in a few seconds.')}>Send a test</button>
-                  <button className="btn btn-white" disabled={busy}
-                    onClick={() => run(async () => { await disablePush(); setState({ status: 'off', minutes }) }, 'Turned off on this device.')}>Turn off</button>
-                </>
+                <button className="btn btn-white" disabled={busy}
+                  onClick={() => run(async () => { await disablePush(); setState({ status: 'off', minutes }) }, 'Turned off on this device.')}>Turn off</button>
               ) : (
-                <button className="btn btn-ink" disabled={busy}
+                <button className="btn btn-ink" disabled={busy} aria-label="Turn on for this device"
                   onClick={() => run(async () => { const st = await enablePush(store.userId, minutes); setState({ status: st, minutes }) }, `On! First one tomorrow at ${time}.`)}>
-                  Turn on for this device
+                  Turn on
                 </button>
               )}
             </div>
+            {state.status === 'on' && (
+              <div className="row wrap">
+                <button className="btn btn-ink" disabled={busy} onClick={() => run(sendTestPush, 'Sent! It should pop up in a few seconds.')}>Send a test</button>
+              </div>
+            )}
           </>
         )}
         {msg && <p className="empty-line" role="status">{msg}</p>}

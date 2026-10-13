@@ -35,8 +35,7 @@ export default function Thanks({ store, date, setDate }: { store: Store; date: s
         <div className="section-head">
           <Badge name="heart" />
           <div>
-            <h2>{date === today ? 'Today' : fmt(date, { weekday: 'long' })}</h2>
-            <div className="sub">What are you thankful for?</div>
+            <h2>Thoughts</h2>
           </div>
           <span className="counter">{items.length}/{THANKS_TARGET}</span>
         </div>
