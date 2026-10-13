@@ -155,42 +155,46 @@ function TaskRow({ task, done, onToggle }: { task: Task; done: boolean; onToggle
   )
 }
 
-/** Square walk tile: the day's goal and a check. */
+/** Walk tile: icon and check on top, then the step goal, big. */
 function WalkTile({ task, done, onToggle }: { task: Task; done: boolean; onToggle: () => void }) {
+  // "Walk 6,500 steps" -> big "6,500", small "steps"; any other title shows as is.
+  const m = /([\d,.]+)\s*(steps?)/i.exec(task.title)
   return (
-    <section className={`tile tone-sage square-tile ${done ? 'is-done' : ''}`}>
-      <Badge name="steps" />
-      <h3>Walk</h3>
-      <p className="desc">{task.title.replace(/^Walk\s+/i, '')}</p>
-      <div className="actions">
+    <section className={`tile tone-sage small-tile ${done ? 'is-done' : ''}`}>
+      <div className="tile-top">
+        <Badge name="steps" />
         <button className={`check check-round ${done ? 'on' : ''}`} aria-pressed={done} aria-label={`${task.title} done`} onClick={onToggle}>
           {done && <Icon name="tick" size={18} strokeWidth={3} />}
         </button>
       </div>
+      <h3>Walk</h3>
+      <p className="tile-amount">{m ? <><strong>{m[1]}</strong> {m[2]}</> : task.title}</p>
     </section>
   )
 }
 
-/** Square water tile: litres so far, minus / plus in 0.5 L steps. Done at the full amount. */
+/** Water tile: icon and -/+ (0.5 L steps) on top, then litres so far. Done at the full amount. */
 function WaterTile({ task, done, onSet }: { task: Task; done: Set<string>; onSet: (n: number) => void }) {
   let count = 0
   while (count < WATER_PORTIONS && done.has(`${task.id}#${count + 1}`)) count++
   const litres = (n: number) => (n * WATER_PORTION_L).toFixed(1)
   return (
-    <section className={`tile tone-sky square-tile ${count >= WATER_PORTIONS ? 'is-done' : ''}`}>
-      <Badge name="droplet" />
+    <section className={`tile tone-sky small-tile ${count >= WATER_PORTIONS ? 'is-done' : ''}`}>
+      <div className="tile-top">
+        <Badge name="droplet" />
+        <span className="tile-controls">
+          <button className="round-btn" aria-label={`Less water, ${WATER_PORTION_L} L`} disabled={count === 0} onClick={() => onSet(count - 1)}>
+            <Icon name="minus" />
+          </button>
+          <button className="round-btn round-ink" aria-label={`More water, ${WATER_PORTION_L} L`} disabled={count >= WATER_PORTIONS} onClick={() => onSet(count + 1)}>
+            <Icon name="plus" />
+          </button>
+        </span>
+      </div>
       <h3>Water</h3>
-      <p className="water-amount" aria-live="polite">
+      <p className="tile-amount" aria-live="polite">
         <strong>{litres(count)}</strong> / {(WATER_PORTIONS * WATER_PORTION_L).toFixed(0)} L
       </p>
-      <div className="actions water-actions">
-        <button className="round-btn" aria-label={`Less water, ${WATER_PORTION_L} L`} disabled={count === 0} onClick={() => onSet(count - 1)}>
-          <Icon name="minus" />
-        </button>
-        <button className="round-btn round-ink" aria-label={`More water, ${WATER_PORTION_L} L`} disabled={count >= WATER_PORTIONS} onClick={() => onSet(count + 1)}>
-          <Icon name="plus" />
-        </button>
-      </div>
     </section>
   )
 }
