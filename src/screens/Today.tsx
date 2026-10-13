@@ -1,45 +1,28 @@
 import { useRef, useState, type ReactNode } from 'react'
 import { tasksFor, type Store } from '../store'
 import { addDays, fmt, formatTime, todayIso } from '../dates'
-import { quoteFor } from '../quotes'
 import { Badge, CAT_STYLE, Icon } from '../icons'
 import { WATER_PORTIONS, WATER_PORTION_L, type Category, type Task } from '../types'
-import WeightDialog from './WeightDialog'
 
 const THANKS_TARGET = 3
-// Sections in page order (after the 2-up tiles).
+// Sections in page order (after the tiles). Walk and water are tiles of their own.
 const SECTIONS: { cat: Category; title: string }[] = [
-  { cat: 'WALK', title: 'Walk' },
-  { cat: 'WATER', title: 'Water' },
   { cat: 'MEDS', title: 'Meds & supplements' },
   { cat: 'BEAUTY', title: 'Beauty' },
 ]
 
 export default function Today({ store, date, setDate }: { store: Store; date: string; setDate: (d: string) => void }) {
-  const [weighing, setWeighing] = useState(false)
   const [exercisesFor, setExercisesFor] = useState<Task | null>(null)
-  const [, rerender] = useState(0)
   const today = todayIso()
   const list = tasksFor(store.tasks, date)
   const done = store.done[date] ?? new Set<string>()
-  const weight = store.weights.find((w) => w.date === date)
-  const thoughts = store.thoughts[date] ?? []
-  const q = quoteFor(date)
 
   // The daily workout goes in the 2-up tile; any other workouts (45 min days) get their own section.
   const workouts = list.filter((t) => t.category === 'WORKOUT')
   const mainWorkout = workouts.find((t) => t.steps?.length) ?? workouts[0]
   const strength = workouts.filter((t) => t !== mainWorkout)
-  const showWeigh = Boolean(weight) || !isDismissed(date)
-
-  // Progress: every task in display order, plus "thank you thoughts" as one more.
-  const ordered: { key: string; tone: string; done: boolean }[] = [
-    ...(mainWorkout ? [mainWorkout] : []),
-    ...strength,
-    ...SECTIONS.flatMap((s) => list.filter((t) => t.category === s.cat)),
-  ].map((t) => ({ key: t.id, tone: CAT_STYLE[t.category].tone, done: done.has(t.id) }))
-  ordered.push({ key: 'thanks', tone: CAT_STYLE.THANKS.tone, done: thoughts.length > 0 })
-  const doneCount = ordered.filter((o) => o.done).length
+  const walks = list.filter((t) => t.category === 'WALK')
+  const waters = list.filter((t) => t.category === 'WATER')
 
   const title = date === today ? 'Today'
     : date === addDays(today, -1) ? 'Yesterday'
@@ -63,31 +46,14 @@ export default function Today({ store, date, setDate }: { store: Store; date: st
       </header>
 
       <div key={date} className="stack-section fade">
-        <section className="hero" aria-label="Progress">
-          <div className="hero-top">
-            <div><span className="hero-num">{doneCount}</span><span className="hero-suffix">/ {ordered.length} done</span></div>
-          </div>
-          <div className="segments" role="progressbar" aria-valuemin={0} aria-valuemax={ordered.length} aria-valuenow={doneCount}>
-            {ordered.map((o) => <span key={o.key} className={`tone-${o.tone} ${o.done ? 'seg-done' : ''}`} />)}
-          </div>
-          <p className="quote"><em>“{q.text}”</em>- {q.author}</p>
-        </section>
-
-        {showWeigh && (
-          <section className="tile tile-row tone-sky">
-            <Badge name="scale" />
-            <h3 className="grow">{weight ? `Weighed in · ${weight.kg.toFixed(1)} kg` : 'Weigh in'}</h3>
-            <button className="btn btn-ink" onClick={() => setWeighing(true)}>{weight ? 'Edit' : 'Log'}</button>
-            {!weight && (
-              <button className="icon-btn" aria-label="Skip weigh-in today" onClick={() => { dismiss(date); rerender((n) => n + 1) }}>
-                <Icon name="x" />
-              </button>
-            )}
-          </section>
-        )}
-
-        {mainWorkout && (
+        {(mainWorkout || walks.length > 0 || waters.length > 0) && (
           <div className="grid2">
+            {walks.map((t) => (
+              <WalkTile key={t.id} task={t} done={done.has(t.id)} onToggle={() => store.toggle(date, t, !done.has(t.id))} />
+            ))}
+            {waters.map((t) => (
+              <WaterTile key={t.id} task={t} done={done} onSet={(n) => store.setWater(date, t, n)} />
+            ))}
             {mainWorkout && (
               <section className={`tile tone-sage solo ${done.has(mainWorkout.id) ? 'is-done' : ''}`}>
                 <Badge name="dumbbell" />
@@ -123,9 +89,6 @@ export default function Today({ store, date, setDate }: { store: Store; date: st
           const items = list.filter((t) => t.category === cat)
           if (!items.length) return null
           const { tone, icon } = CAT_STYLE[cat]
-          if (cat === 'WATER') {
-            return items.map((t) => <WaterSection key={t.id} task={t} done={done} onSet={(n) => store.setWater(date, t, n)} />)
-          }
           return (
             <Section key={cat} tone={tone} icon={icon} title={title} counter={`${items.filter((t) => done.has(t.id)).length}/${items.length}`}>
               {items.map((t) => (
@@ -138,13 +101,6 @@ export default function Today({ store, date, setDate }: { store: Store; date: st
         <Thoughts store={store} date={date} />
       </div>
 
-      {weighing && (
-        <WeightDialog
-          initial={weight?.kg}
-          onClose={() => setWeighing(false)}
-          onSave={(kg) => { if (kg != null) void store.saveWeight(date, kg); setWeighing(false) }}
-        />
-      )}
       {exercisesFor && <ExercisesSheet task={exercisesFor} onClose={() => setExercisesFor(null)} />}
     </>
   )
@@ -201,26 +157,43 @@ function TaskRow({ task, done, onToggle }: { task: Task; done: boolean; onToggle
   )
 }
 
-function WaterSection({ task, done, onSet }: { task: Task; done: Set<string>; onSet: (n: number) => void }) {
+/** Square walk tile: the day's goal and a check. */
+function WalkTile({ task, done, onToggle }: { task: Task; done: boolean; onToggle: () => void }) {
+  return (
+    <section className={`tile tone-sage square-tile ${done ? 'is-done' : ''}`}>
+      <Badge name="steps" />
+      <h3>Walk</h3>
+      <p className="desc">{task.title.replace(/^Walk\s+/i, '')}</p>
+      <div className="actions">
+        <button className={`check check-round ${done ? 'on' : ''}`} aria-pressed={done} aria-label={`${task.title} done`} onClick={onToggle}>
+          {done && <Icon name="tick" size={18} strokeWidth={3} />}
+        </button>
+      </div>
+    </section>
+  )
+}
+
+/** Square water tile: litres so far, minus / plus in 0.5 L steps. Done at the full amount. */
+function WaterTile({ task, done, onSet }: { task: Task; done: Set<string>; onSet: (n: number) => void }) {
   let count = 0
   while (count < WATER_PORTIONS && done.has(`${task.id}#${count + 1}`)) count++
+  const litres = (n: number) => (n * WATER_PORTION_L).toFixed(1)
   return (
-    <Section tone="sky" icon="droplet" title="Water" sub={task.title}
-      counter={`${(count * WATER_PORTION_L).toFixed(1)} / ${(WATER_PORTIONS * WATER_PORTION_L).toFixed(0)} L`}>
-      <div className="bottles">
-        {Array.from({ length: WATER_PORTIONS }, (_, i) => (
-          <button
-            key={i}
-            className={`bottle ${i < count ? 'full' : ''}`}
-            aria-label={`${((i + 1) * WATER_PORTION_L).toFixed(1)} L`}
-            aria-pressed={i < count}
-            onClick={() => onSet(i + 1 === count ? i : i + 1)}
-          >
-            <span />
-          </button>
-        ))}
+    <section className={`tile tone-sky square-tile ${count >= WATER_PORTIONS ? 'is-done' : ''}`}>
+      <Badge name="droplet" />
+      <h3>Water</h3>
+      <p className="water-amount" aria-live="polite">
+        <strong>{litres(count)}</strong> / {(WATER_PORTIONS * WATER_PORTION_L).toFixed(0)} L
+      </p>
+      <div className="actions water-actions">
+        <button className="round-btn" aria-label={`Less water, ${WATER_PORTION_L} L`} disabled={count === 0} onClick={() => onSet(count - 1)}>
+          <Icon name="minus" />
+        </button>
+        <button className="round-btn round-ink" aria-label={`More water, ${WATER_PORTION_L} L`} disabled={count >= WATER_PORTIONS} onClick={() => onSet(count + 1)}>
+          <Icon name="plus" />
+        </button>
       </div>
-    </Section>
+    </section>
   )
 }
 
@@ -295,13 +268,4 @@ function ExercisesSheet({ task, onClose }: { task: Task; onClose: () => void }) 
       </div>
     </div>
   )
-}
-
-// Skipping the weigh-in is remembered per day on this device.
-const key = (date: string) => `weigh-dismissed-${date}`
-function isDismissed(date: string) {
-  try { return localStorage.getItem(key(date)) === '1' } catch { return false }
-}
-function dismiss(date: string) {
-  try { localStorage.setItem(key(date), '1') } catch { /* private mode: just shows again */ }
 }

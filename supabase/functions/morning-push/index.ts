@@ -40,7 +40,7 @@ function localNow(tz: string) {
 const pad = (n: number) => String(n).padStart(2, '0')
 const hhmm = (m: number) => `${pad(Math.floor(m / 60))}:${pad(m % 60)}`
 
-// Same list and rotation as the app (src/quotes.ts).
+// The quote list and its daily rotation live only here (the app no longer shows a quote).
 const QUOTES: [string, string][] = [
   ['We are what we repeatedly do. Excellence, then, is not an act, but a habit.', 'Will Durant'],
   ['You do not rise to the level of your goals. You fall to the level of your systems.', 'James Clear'],

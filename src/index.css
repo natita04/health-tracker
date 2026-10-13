@@ -148,14 +148,7 @@ button:not(:disabled):active, .press:active { transform: scale(0.98); }
   border-radius: var(--r-hero); padding: var(--pad-hero);
   display: flex; flex-direction: column; gap: 16px;
 }
-.hero-top { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
-.hero-num { font-size: 64px; font-weight: 600; line-height: 1; }
 .hero-suffix { font-size: 20px; color: var(--on-ink-muted); margin-left: 6px; }
-.hero-pct { font-size: 15px; color: var(--on-ink-muted); }
-.segments { display: flex; gap: 4px; }
-.segments > span { flex: 1; height: 8px; border-radius: 4px; background: var(--on-ink-track); transition: background-color 150ms; }
-.quote { font-size: 15px; line-height: 1.45; color: var(--on-ink-soft); }
-.quote em { display: block; }
 
 /* tone helpers: each category tile sets its palette once */
 .tone-sky    { --tile: var(--sky-tile);    --rowbg: var(--sky-row);    --tile-text: var(--sky-text);    --accent: var(--sky-accent); }
@@ -163,10 +156,9 @@ button:not(:disabled):active, .press:active { transform: scale(0.98); }
 .tone-lilac  { --tile: var(--lilac-tile);  --rowbg: var(--lilac-row);  --tile-text: var(--lilac-text);  --accent: var(--lilac-accent); }
 .tone-peach  { --tile: var(--peach-tile);  --rowbg: var(--peach-row);  --tile-text: var(--peach-text);  --accent: var(--peach-accent); }
 .tone-butter { --tile: var(--butter-tile); --rowbg: var(--butter-row); --tile-text: var(--butter-text); --accent: var(--butter-accent); }
-.seg-done.tone-sky, .seg-done.tone-sage, .seg-done.tone-lilac, .seg-done.tone-peach, .seg-done.tone-butter { background: var(--accent); }
 
 /* ---------- 2-up tiles ---------- */
-.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: var(--gap-grid); }
+.grid2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--gap-grid); }
 .grid2 > .solo { grid-column: 1 / -1; }
 .tile {
   position: relative; background: var(--tile); color: var(--ink);
@@ -228,15 +220,6 @@ button:not(:disabled):active, .press:active { transform: scale(0.98); }
 }
 
 /* ---------- water ---------- */
-.water-total { font-variant-numeric: tabular-nums; }
-.bottles { display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; padding: 4px 4px 0; }
-.bottle {
-  position: relative; height: 52px; border-radius: 12px; overflow: hidden;
-  background: var(--surface); border: 2px solid var(--sky-accent);
-}
-.bottle > span { position: absolute; left: 0; right: 0; bottom: 0; height: 0; background: var(--sky-accent); transition: height 250ms; }
-.bottle.full > span { height: 100%; }
-.water-note { font-size: 13px; color: var(--tile-text); padding: 2px 6px 0; }
 
 /* ---------- thank you thoughts ---------- */
 .thought {
@@ -501,3 +484,14 @@ button.stat { width: 100%; }
 .goal-row { color: var(--peach-text); }
 .goal-row input { width: 96px; text-align: center; font-variant-numeric: tabular-nums; margin-left: auto; }
 .goal-row > span { width: 32px; }
+
+/* ---------- today: square walk / water tiles ---------- */
+.square-tile { min-height: 172px; justify-content: space-between; } /* same height side by side: the grid row stretches both */
+.square-tile .actions { justify-content: flex-end; }
+.water-amount { font-size: 15px; color: var(--tile-text); font-variant-numeric: tabular-nums; flex-grow: 1; }
+.water-amount strong { font-size: 30px; font-weight: 600; color: var(--ink); }
+.water-actions { justify-content: space-between !important; }
+.round-btn { width: var(--touch); height: var(--touch); border-radius: 50%; background: var(--surface); color: var(--ink); display: grid; place-items: center; }
+.round-btn.round-ink { background: var(--ink); color: var(--on-ink); }
+.square-tile.is-done .desc, .square-tile.is-done .water-amount { opacity: .7; }
+.square-tile { min-width: 0; }
