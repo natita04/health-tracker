@@ -318,7 +318,7 @@ function Meter({ label, value, goal, unit, tone, overIsBad, onIdeas }: {
         <span className="meter-right">
           <span className={`meter-status ${left < 0 && overIsBad ? 'over' : ''}`}>{status}</span>
           {onIdeas && (
-            <button className="ideas-chip" onClick={onIdeas}><Icon name="sparkle" size={14} />Get ideas</button>
+            <button className="hint-chip" onClick={onIdeas}><Icon name="sparkle" size={14} />Get ideas</button>
           )}
         </span>
       </div>

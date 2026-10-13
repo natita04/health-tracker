@@ -308,11 +308,6 @@ button:not(:disabled):active, .press:active { transform: scale(0.98); }
 
 /* ---------- history / plan (restyled, same layout) ---------- */
 .plain-title { font-size: 38px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.1; }
-.list-card { background: var(--surface); border-radius: var(--r-stat); padding: 14px 16px; width: 100%; text-align: left; color: var(--ink); }
-.list-card.row { display: flex; }
-.cat-title { display: flex; align-items: center; gap: 10px; font-size: 20px; font-weight: 600; margin-top: 6px; }
-.planrow { gap: 12px; }
-.planrow .title { font-weight: 600; font-size: 16px; }
 
 /* ---------- forms & dialogs ---------- */
 label { display: flex; flex-direction: column; gap: 6px; font-size: 14px; color: var(--ink-muted); }
@@ -352,8 +347,6 @@ input.invalid { box-shadow: inset 0 0 0 2px var(--danger); }
 .login { padding-top: 12vh; }
 .login .hero-badge { width: 64px; height: 64px; border-radius: 50%; background: var(--butter-tile); display: grid; place-items: center; margin: 0 auto; }
 .login .login-card { background: var(--surface); border-radius: var(--r-hero); padding: 22px; display: flex; flex-direction: column; gap: 14px; }
-.list-card + .list-card { margin-top: var(--gap-rows); }
-section > .cat-title { margin-bottom: var(--gap-rows); }
 
 /* guest preview */
 .guest-bar { background: var(--butter-tile); color: var(--butter-text); border-radius: var(--r-pill); padding: 4px 6px 4px 16px; font-size: 14px; }
@@ -509,7 +502,6 @@ button.stat { width: 100%; }
 .past-day + .past-day { border-top: 1px solid var(--surface-muted); }
 .past-date { font-size: 14px; font-weight: 600; color: var(--ink-muted); margin-bottom: 4px; }
 .past-day ul { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 2px; }
-.nudge-btn { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; flex: none; }
 .earlier-btn { align-self: center; }
 .nudge-row { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 10px; row-gap: 2px; padding: 0 6px; }
 .nudge-text { font-size: 15px; font-weight: 600; color: var(--butter-text); }
@@ -530,11 +522,22 @@ button.stat { width: 100%; }
 
 /* "Get ideas" next to "N g to go" in the dark totals card */
 .meter-right { display: inline-flex; align-items: center; gap: 8px; }
-.ideas-chip {
-  display: inline-flex; align-items: center; gap: 4px; min-height: 30px; padding: 0 10px;
-  border-radius: var(--r-pill); background: var(--butter-tile); color: var(--ink); font-size: 13px; font-weight: 600;
-}
 .time-line { gap: 10px; flex-wrap: nowrap; }
 .time-line .time-row { min-width: 0; }
 .time-line .time-row input { width: 160px; min-width: 0; padding: 0 14px; }
 .time-line .btn { flex: none; padding: 0 18px; }
+
+/* One hint style: "Get ideas" (Food) and "Need a nudge?" (Thank you) */
+.hint-chip {
+  display: inline-flex; align-items: center; gap: 6px; flex: none; min-height: 32px; padding: 0 12px;
+  border-radius: var(--r-pill); background: var(--surface); color: var(--ink); font-size: 13px; font-weight: 600;
+}
+
+/* ---------- settings: every group is a neutral card ---------- */
+.settings .section { background: var(--surface); --rowbg: var(--surface-muted); --tile-text: var(--ink-muted); }
+.settings .section .badge { background: var(--surface-muted); }
+.settings .time-row, .settings .goal-row { color: var(--ink); }
+.settings .time-row input { background: var(--surface-muted); }
+.planrow { align-items: center; }
+.planrow .icon { color: var(--ink-muted); }
+.settings-actions { padding: 0 6px 6px; gap: 8px; }
