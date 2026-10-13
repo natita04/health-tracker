@@ -49,7 +49,7 @@
 
   /* Sizing */
   --touch: 44px;
-  --nav-item: 56px;
+  --nav-item: 48px;   /* six tabs fit a 360px phone */
   --icon: 20px;
   --icon-nav: 24px;
   --icon-badge: 40px;
@@ -243,7 +243,7 @@ button:not(:disabled):active, .press:active { transform: scale(0.98); }
 /* ---------- floating nav ---------- */
 .nav {
   position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 10;
-  background: var(--ink); border-radius: var(--r-pill); padding: 8px; display: flex; gap: 8px;
+  background: var(--ink); border-radius: var(--r-pill); padding: 8px; display: flex; gap: 4px;
 }
 .nav button {
   width: var(--nav-item); height: var(--nav-item); border-radius: 50%;
@@ -495,3 +495,12 @@ button.stat { width: 100%; }
 .round-btn.round-ink { background: var(--ink); color: var(--on-ink); }
 .square-tile.is-done .desc, .square-tile.is-done .water-amount { opacity: .7; }
 .square-tile { min-width: 0; }
+
+/* ---------- thank you tab ---------- */
+.prompt-row { align-items: center; }
+.prompt-row .task-title { font-weight: 500; }
+.memory { font-size: 18px; line-height: 1.4; padding: 4px 8px 6px; overflow-wrap: anywhere; }
+.past-day { padding: 12px 0; }
+.past-day + .past-day { border-top: 1px solid var(--surface-muted); }
+.past-date { font-size: 14px; font-weight: 600; color: var(--ink-muted); margin-bottom: 4px; }
+.past-day ul { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 2px; }
