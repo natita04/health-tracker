@@ -7,6 +7,8 @@ import { partOfDay, type FoodEntry, type FoodIdea, type FoodInput, type FoodPhot
 import type { IconName } from '../icons'
 
 const SAVED_SHOWN = 5
+/** Hebrew alphabet without final forms (no word starts with one). */
+const HEBREW_LETTERS = [...'אבגדהוזחטיכלמנסעפצקרשת']
 /** Below this many grams to go, no "ideas" nudge. */
 const GAP_MIN = 5
 const PHOTO_MAX_SIDE = 1280
@@ -167,7 +169,8 @@ function AddSheet({ store, date, onClose }: { store: Store; date: string; onClos
   const q = text.trim().toLowerCase()
   const [letter, setLetter] = useState<string | null>(null)
   // Hebrew first letters your saved meals start with, in alphabet order.
-  const letters = [...new Set(store.savedFoods.map((s) => s.name.trim()[0]).filter((c) => c && c >= '\u05D0' && c <= '\u05EA'))].sort()
+  // Which letters your saved meals start with; the whole alphabet shows, the rest disabled.
+  const used = new Set(store.savedFoods.map((s) => s.name.trim()[0]))
   const matches = ranked.filter((s) =>
     (!q || s.name.toLowerCase().includes(q)) && (!letter || s.name.trim().startsWith(letter)))
   const shown = showAll ? matches : matches.slice(0, SAVED_SHOWN)
@@ -228,16 +231,16 @@ function AddSheet({ store, date, onClose }: { store: Store; date: string; onClos
         <label className="sr-only" htmlFor="food-input">What did you eat?</label>
         <input id="food-input" dir="auto" value={text} onChange={(e) => { setText(e.target.value); setShowAll(false) }}
           placeholder="What did you eat?" maxLength={300} enterKeyHint="send" autoComplete="off" autoFocus disabled={busy} />
-        <button type="button" className="add-btn add-btn-soft" aria-label="Enter the numbers myself" disabled={busy}
-          onClick={() => setDraft({ name: text.trim(), kcal: '', protein: '' })}>
-          <Icon name="pencil" />
+        <button className="add-btn" aria-label="Estimate calories and protein" disabled={!q || busy}>
+          {busy ? <span className="spinner" aria-hidden="true" /> : <Icon name="sparkle" />}
         </button>
         <button type="button" className="add-btn add-btn-soft" aria-label="Estimate from a photo" disabled={busy}
           onClick={() => photoInput.current?.click()}>
           <Icon name="camera" />
         </button>
-        <button className="add-btn" aria-label="Estimate calories and protein" disabled={!q || busy}>
-          {busy ? <span className="spinner" aria-hidden="true" /> : <Icon name="sparkle" />}
+        <button type="button" className="add-btn add-btn-soft" aria-label="Enter the numbers myself" disabled={busy}
+          onClick={() => setDraft({ name: text.trim(), kcal: '', protein: '' })}>
+          <Icon name="pencil" />
         </button>
         <input ref={photoInput} type="file" accept="image/*" hidden
           onChange={(e) => {
@@ -253,10 +256,10 @@ function AddSheet({ store, date, onClose }: { store: Store; date: string; onClos
 
       <div className={`food-picker tone-${CAT_STYLE.FOOD.tone}`}>
         <div className="food-sub">My meals</div>
-        {letters.length > 1 && (
+        {store.savedFoods.length > 0 && (
           <div className="letter-row" role="group" aria-label="Filter by first letter" dir="rtl">
-            {letters.map((l) => (
-              <button key={l} type="button" className={`letter ${letter === l ? 'on' : ''}`} aria-pressed={letter === l}
+            {HEBREW_LETTERS.map((l) => (
+              <button key={l} type="button" className={`letter ${letter === l ? 'on' : ''}`} aria-pressed={letter === l} disabled={!used.has(l)}
                 onClick={() => { setLetter(letter === l ? null : l); setShowAll(false) }}>
                 {l}
               </button>
