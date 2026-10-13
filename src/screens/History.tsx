@@ -79,7 +79,7 @@ export default function History({ store, openDay }: { store: Store; openDay: (d:
         </div>
       </section>
 
-      <div className="stats">
+      <div className="stats history-tiles">
         {cats.map((c) => {
           const s = streaks(store, c.id)
           return (

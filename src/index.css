@@ -467,7 +467,13 @@ section > .cat-title { margin-bottom: var(--gap-rows); }
 .day-cell:disabled { background: transparent; box-shadow: inset 0 0 0 1px var(--surface-muted); opacity: 1; color: var(--ink-muted); }
 
 button.stat { width: 100%; }
-.stat[aria-pressed='true'] { box-shadow: inset 0 0 0 2px var(--ink); }
+/* History tiles: all white; the one you open takes its category color, matching its section below. */
+.history-tiles .stat { background: var(--surface); }
+.history-tiles .stat .label { color: var(--ink-muted); }
+.history-tiles .stat .badge { background: var(--surface-muted); }
+.history-tiles .stat[aria-pressed='true'] { background: var(--tile); }
+.history-tiles .stat[aria-pressed='true'] .label { color: var(--tile-text); }
+.history-tiles .stat[aria-pressed='true'] .badge { background: var(--surface); }
 
 .detail-close { margin-left: auto; color: var(--tile-text); }
 .detail-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
