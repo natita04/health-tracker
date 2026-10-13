@@ -79,7 +79,7 @@ export default function Food({ store, date, setDate }: { store: Store; date: str
 
       {/* Ideas are about the rest of today, so only on today. */}
       {store.foodReady && isToday && goals.protein - protein >= GAP_MIN && (
-        <button className="tile tile-row tone-sage ideas-strip" onClick={() => setIdeasOpen(true)}>
+        <button className="tile tile-row tone-butter ideas-strip" onClick={() => setIdeasOpen(true)}>
           <Badge name="sparkle" />
           <span className="grow">
             <span className="ideas-title">{g1(goals.protein - protein)} g protein to go</span>
@@ -99,7 +99,6 @@ export default function Food({ store, date, setDate }: { store: Store; date: str
           <Badge name="apple" />
           <div>
             <h2>{isToday ? 'Eaten today' : 'Eaten'}</h2>
-            {entries.length > 0 && <div className="sub">Tap to fix the numbers</div>}
           </div>
           <span className="counter">{entries.length}</span>
         </div>
@@ -176,7 +175,11 @@ function AddSheet({ store, date, onClose }: { store: Store; date: string; onClos
   })
   const photoInput = useRef<HTMLInputElement>(null)
   const q = text.trim().toLowerCase()
-  const matches = q ? ranked.filter((s) => s.name.toLowerCase().includes(q)) : ranked
+  const [letter, setLetter] = useState<string | null>(null)
+  // Hebrew first letters your saved meals start with, in alphabet order.
+  const letters = [...new Set(store.savedFoods.map((s) => s.name.trim()[0]).filter((c) => c && c >= '\u05D0' && c <= '\u05EA'))].sort()
+  const matches = ranked.filter((s) =>
+    (!q || s.name.toLowerCase().includes(q)) && (!letter || s.name.trim().startsWith(letter)))
   const shown = showAll ? matches : matches.slice(0, SAVED_SHOWN)
 
   async function estimate(photo?: FoodPhoto) {
@@ -235,6 +238,10 @@ function AddSheet({ store, date, onClose }: { store: Store; date: string; onClos
         <label className="sr-only" htmlFor="food-input">What did you eat?</label>
         <input id="food-input" dir="auto" value={text} onChange={(e) => { setText(e.target.value); setShowAll(false) }}
           placeholder="What did you eat?" maxLength={300} enterKeyHint="send" autoComplete="off" autoFocus disabled={busy} />
+        <button type="button" className="add-btn add-btn-soft" aria-label="Enter the numbers myself" disabled={busy}
+          onClick={() => setDraft({ name: text.trim(), kcal: '', protein: '' })}>
+          <Icon name="pencil" />
+        </button>
         <button type="button" className="add-btn add-btn-soft" aria-label="Estimate from a photo" disabled={busy}
           onClick={() => photoInput.current?.click()}>
           <Icon name="camera" />
@@ -252,15 +259,20 @@ function AddSheet({ store, date, onClose }: { store: Store; date: string; onClos
             }))
           }} />
       </form>
-      <p className="muted small" role="status">
-        {busy ? 'Estimating…' : 'Write it like you\'d say it and tap the sparkle, or snap a photo (any text you typed goes along as a note).'}
-      </p>
-      <button className="text-btn manual-btn" onClick={() => setDraft({ name: text.trim(), kcal: '', protein: '' })}>
-        Enter numbers myself
-      </button>
+      {busy && <p className="muted small" role="status">Estimating…</p>}
 
       <div className="food-picker tone-peach">
         <div className="food-sub">My meals</div>
+        {letters.length > 1 && (
+          <div className="letter-row" role="group" aria-label="Filter by first letter" dir="rtl">
+            {letters.map((l) => (
+              <button key={l} type="button" className={`letter ${letter === l ? 'on' : ''}`} aria-pressed={letter === l}
+                onClick={() => { setLetter(letter === l ? null : l); setShowAll(false) }}>
+                {l}
+              </button>
+            ))}
+          </div>
+        )}
         {store.savedFoods.length === 0 ? (
           <p className="empty-line">Meals you add are kept here, so next time it's one tap.</p>
         ) : matches.length === 0 ? (

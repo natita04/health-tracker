@@ -395,7 +395,6 @@ section > .cat-title { margin-bottom: var(--gap-rows); }
 .food-name { font-size: 16px; font-weight: 600; line-height: 1.3; overflow-wrap: anywhere; text-align: start; }
 .food-meta { font-size: 13px; color: var(--tile-text); font-variant-numeric: tabular-nums; }
 .add-small { width: 40px; height: 40px; border-radius: 50%; background: var(--ink); color: var(--on-ink); display: grid; place-items: center; flex: none; }
-.manual-btn { align-self: flex-start; margin: 0 6px; font-size: 14px; }
 .more-btn { align-self: center; font-size: 14px; }
 .add-form input:disabled { opacity: .6; }
 .spinner {
@@ -521,3 +520,16 @@ button.stat { width: 100%; }
 .nudge-row { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 10px; row-gap: 2px; padding: 0 6px; }
 .nudge-text { font-size: 15px; font-weight: 600; color: var(--butter-text); }
 .eyebrow-rel { color: var(--ink); font-weight: 600; }
+
+/* My meals: filter by first letter */
+.letter-row { display: flex; gap: 6px; overflow-x: auto; padding: 2px 2px 4px; scrollbar-width: none; }
+.letter-row::-webkit-scrollbar { display: none; }
+.letter {
+  flex: none; min-width: 40px; height: 40px; border-radius: 50%; background: var(--rowbg); color: var(--ink);
+  font-size: 17px; font-weight: 600; display: grid; place-items: center;
+}
+.letter.on { background: var(--ink); color: var(--on-ink); }
+/* Add food: input + three buttons fit a 360px phone */
+.sheet-form { gap: 6px; }
+.sheet-form .add-btn { width: 48px; height: 48px; }
+.dialog .sheet-form input { height: 48px; min-height: 48px; padding: 0 14px; }
