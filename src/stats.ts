@@ -80,6 +80,8 @@ export function insights(store: Store): Insight[] {
     out.push({ id: 'best', text: `${best.c.label}: ${best.r.pct}% this month. Rock solid.`, ...style(best.c.id) })
   }
 
+  out.push(...foodInsights(store, past30))
+
   // Weekend dip.
   for (const c of cats) {
     const wk = rate(store, past30, c.id, false), we = rate(store, past30, c.id, true)
@@ -132,5 +134,53 @@ export function insights(store: Store): Insight[] {
   const thanks = week.reduce((n, d) => n + (store.thoughts[d]?.length ?? 0), 0)
   if (thanks > 0) out.push({ id: 'thanks', text: `${thanks} thank you thought${thanks === 1 ? '' : 's'} this week.`, tone: 'butter', icon: 'heart' })
 
-  return out.slice(0, 4)
+  return out.slice(0, 5)
+}
+
+/** Calories and protein per logged day. */
+export function foodTotals(store: Store) {
+  const t: Record<string, { kcal: number; protein: number }> = {}
+  for (const f of store.food) {
+    const d = (t[f.date] ??= { kcal: 0, protein: 0 })
+    d.kcal += f.kcal
+    d.protein += f.protein
+  }
+  return t
+}
+
+/** At most two food observations: a protein streak or weekend dip, and this week's calories. */
+function foodInsights(store: Store, past30: string[]): Insight[] {
+  const totals = foodTotals(store)
+  const { kcal: kcalGoal, protein: proteinGoal } = store.foodGoals
+  const logged = past30.filter((d) => totals[d])
+  if (logged.length < 3) return []
+  const out: Insight[] = []
+  const food = { icon: 'apple' as const }
+
+  // Protein goal streak: full days in a row, counting back from yesterday.
+  let run = 0
+  for (let i = past30.length - 1; i >= 0 && (totals[past30[i]]?.protein ?? 0) >= proteinGoal; i--) run++
+  const avg = (ds: string[], k: 'kcal' | 'protein') => ds.reduce((s, d) => s + totals[d][k], 0) / ds.length
+  const wkend = logged.filter((d) => dayIndex(d) >= 5), wkday = logged.filter((d) => dayIndex(d) < 5)
+  if (run >= 3) {
+    out.push({ id: 'protein-run', text: `Protein goal hit ${run} days in a row!`, tone: 'sage', ...food })
+  } else if (wkend.length >= 2 && wkday.length >= 3 && avg(wkday, 'protein') - avg(wkend, 'protein') >= 15) {
+    out.push({
+      id: 'protein-weekend', tone: 'sage', ...food,
+      text: `Protein dips on weekends: ${Math.round(avg(wkend, 'protein'))} g vs ${Math.round(avg(wkday, 'protein'))} g on weekdays.`,
+    })
+  }
+
+  // Calories, last 7 full days.
+  const week = logged.slice(-7).filter((d) => d >= addDays(todayIso(), -7))
+  if (week.length >= 3) {
+    const k = Math.round(avg(week, 'kcal'))
+    out.push({
+      id: 'kcal-week', tone: 'peach', ...food,
+      text: k <= kcalGoal
+        ? `Calories this week: ${k.toLocaleString('en-US')} a day on average, within your ${kcalGoal.toLocaleString('en-US')}.`
+        : `Calories this week: ${k.toLocaleString('en-US')} a day on average, ${(k - kcalGoal).toLocaleString('en-US')} over your goal.`,
+    })
+  }
+  return out
 }

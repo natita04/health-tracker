@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import type { Store } from '../store'
 import { addDays, fmt, todayIso } from '../dates'
-import { KCAL_GOAL, PROTEIN_GOAL } from '../types'
 
 type Range = '1W' | '1M' | '3M'
 const RANGES: { id: Range; days: number }[] = [
@@ -16,6 +15,7 @@ const short = (d: string) => fmt(d, { day: 'numeric', month: 'short' })
 /** Daily calories and protein over time, each against its goal. Days with nothing logged are gaps, not zeros. */
 export default function FoodHistory({ store }: { store: Store }) {
   const today = todayIso()
+  const { kcal: KCAL_GOAL, protein: PROTEIN_GOAL } = store.foodGoals
   const [range, setRange] = useState<Range>('1M')
   const [selected, setSelected] = useState<string | null>(null)
   const [showDays, setShowDays] = useState(false)

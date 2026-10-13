@@ -93,6 +93,10 @@ create table if not exists public.saved_foods (
 alter table public.food_entries enable row level security;
 alter table public.saved_foods  enable row level security;
 
+-- Daily food goals (editable in the Food tab); empty means the defaults, 1800 kcal and 120 g.
+alter table public.user_settings add column if not exists kcal_goal    int;
+alter table public.user_settings add column if not exists protein_goal numeric(5, 1);
+
 do $$
 declare t text;
 begin

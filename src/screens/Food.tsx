@@ -1,10 +1,39 @@
-import { useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import type { Store } from '../store'
 import { fmt, todayIso } from '../dates'
 import { Badge, Icon } from '../icons'
-import { KCAL_GOAL, PROTEIN_GOAL, type FoodEntry, type FoodInput } from '../types'
+import { partOfDay, type FoodEntry, type FoodIdea, type FoodInput, type FoodPhoto, type PartOfDay, type SavedFood } from '../types'
+import type { IconName } from '../icons'
 
 const SAVED_SHOWN = 5
+/** Below this many grams to go, no "ideas" nudge. */
+const GAP_MIN = 5
+const PHOTO_MAX_SIDE = 1280
+
+const PART: Record<PartOfDay, { icon: IconName; label: string }> = {
+  morning: { icon: 'sunrise', label: 'Morning' },
+  afternoon: { icon: 'sun', label: 'Afternoon' },
+  evening: { icon: 'moon', label: 'Evening' },
+}
+
+/** Saved meals, most eaten first (by name, in the loaded history), then most recently used. */
+function rankSaved(saved: SavedFood[], food: FoodEntry[]) {
+  const uses = new Map<string, number>()
+  for (const f of food) uses.set(f.name, (uses.get(f.name) ?? 0) + 1)
+  return [...saved].sort((a, b) => (uses.get(b.name) ?? 0) - (uses.get(a.name) ?? 0) || b.last_used.localeCompare(a.last_used))
+}
+
+/** Shrinks a photo to at most PHOTO_MAX_SIDE px and re-encodes it as JPEG, so uploads stay small. */
+async function shrinkPhoto(file: File): Promise<FoodPhoto> {
+  const img = await createImageBitmap(file)
+  const scale = Math.min(1, PHOTO_MAX_SIDE / Math.max(img.width, img.height))
+  const canvas = document.createElement('canvas')
+  canvas.width = Math.round(img.width * scale)
+  canvas.height = Math.round(img.height * scale)
+  canvas.getContext('2d')!.drawImage(img, 0, 0, canvas.width, canvas.height)
+  img.close()
+  return { data: canvas.toDataURL('image/jpeg', 0.82).split(',')[1], media_type: 'image/jpeg' }
+}
 
 /** Protein to one decimal, without a trailing ".0". */
 const g1 = (n: number) => String(Math.round(n * 10) / 10)
@@ -31,6 +60,9 @@ export default function Food({ store }: { store: Store }) {
   const today = todayIso()
   const [adding, setAdding] = useState(false)
   const [editing, setEditing] = useState<FoodEntry | null>(null)
+  const [goalsOpen, setGoalsOpen] = useState(false)
+  const [ideasOpen, setIdeasOpen] = useState(false)
+  const goals = store.foodGoals
 
   const entries = store.food.filter((f) => f.date === today)
   const kcal = Math.round(entries.reduce((s, f) => s + f.kcal, 0))
@@ -46,9 +78,21 @@ export default function Food({ store }: { store: Store }) {
       </header>
 
       <section className="hero food-hero" aria-label="Today's totals">
-        <Meter label="Calories" value={kcal} goal={KCAL_GOAL} unit="kcal" tone="peach" overIsBad />
-        <Meter label="Protein" value={protein} goal={PROTEIN_GOAL} unit="g" tone="sage" />
+        <Meter label="Calories" value={kcal} goal={goals.kcal} unit="kcal" tone="peach" overIsBad />
+        <Meter label="Protein" value={protein} goal={goals.protein} unit="g" tone="sage" />
+        <button className="text-btn hero-link" onClick={() => setGoalsOpen(true)}>Edit goals</button>
       </section>
+
+      {store.foodReady && goals.protein - protein >= GAP_MIN && (
+        <button className="tile tile-row tone-sage ideas-strip" onClick={() => setIdeasOpen(true)}>
+          <Badge name="sparkle" />
+          <span className="grow">
+            <span className="ideas-title">{g1(goals.protein - protein)} g protein to go</span>
+            <span className="ideas-sub">{kcal < goals.kcal ? `${num(goals.kcal - kcal)} kcal left · ` : ''}Get ideas</span>
+          </span>
+          <Icon name="chevron-right" />
+        </button>
+      )}
 
       {!store.foodReady && (
         <p className="banner small">The food log can't be saved yet: the database needs its one-time update (the SQL from setup).</p>
@@ -72,6 +116,10 @@ export default function Food({ store }: { store: Store }) {
         ) : (
           entries.map((f) => (
             <div key={f.id} className="food-row">
+              <span className="part-icon" title={PART[partOfDay(f.created_at)].label}>
+                <Icon name={PART[partOfDay(f.created_at)].icon} />
+                <span className="sr-only">{PART[partOfDay(f.created_at)].label}</span>
+              </span>
               <button className="food-body food-edit" onClick={() => setEditing(f)}>
                 <span className="food-name" dir="auto">{f.name}</span>
                 <span className="food-meta">{meta(f)}</span>
@@ -85,6 +133,11 @@ export default function Food({ store }: { store: Store }) {
       </section>
 
       {adding && <AddSheet store={store} date={today} onClose={() => setAdding(false)} />}
+      {goalsOpen && <GoalsSheet store={store} onClose={() => setGoalsOpen(false)} />}
+      {ideasOpen && (
+        <IdeasSheet store={store} date={today} kcalLeft={Math.max(0, goals.kcal - kcal)}
+          proteinLeft={Math.max(0, goals.protein - protein)} onClose={() => setIdeasOpen(false)} />
+      )}
       {editing && (
         <Sheet label="Edit meal" onClose={() => setEditing(null)}>
           <FoodForm
@@ -120,24 +173,24 @@ function AddSheet({ store, date, onClose }: { store: Store; date: string; onClos
 
   // Most eaten first: how many times each name was logged in the loaded history (last 120 days),
   // then the most recently used. Typing narrows the list down.
-  // Counted once when the sheet opens, so a row doesn't jump while you tap +.
-  const [uses] = useState(() => {
-    const m = new Map<string, number>()
-    for (const f of store.food) m.set(f.name, (m.get(f.name) ?? 0) + 1)
-    return m
+  // Ranked once when the sheet opens, so a row doesn't jump while you tap +.
+  const [order] = useState(() => rankSaved(store.savedFoods, store.food).map((s) => s.id))
+  const ranked = [...store.savedFoods].sort((a, b) => {
+    const ia = order.indexOf(a.id), ib = order.indexOf(b.id)
+    return (ia < 0 ? -1 : ia) - (ib < 0 ? -1 : ib) // newly saved ones first
   })
-  const ranked = [...store.savedFoods].sort((a, b) =>
-    (uses.get(b.name) ?? 0) - (uses.get(a.name) ?? 0) || b.last_used.localeCompare(a.last_used))
+  const photoInput = useRef<HTMLInputElement>(null)
   const q = text.trim().toLowerCase()
   const matches = q ? ranked.filter((s) => s.name.toLowerCase().includes(q)) : ranked
   const shown = showAll ? matches : matches.slice(0, SAVED_SHOWN)
 
-  async function estimate() {
+  async function estimate(photo?: FoodPhoto) {
     const v = text.trim()
-    if (!v || busy) return
+    if ((!v && !photo) || busy) return
     setBusy(true)
     try {
-      const e = await store.estimateFood(v)
+      const e = await store.estimateFood(v, photo)
+      if (!e.items.length && !e.kcal) throw new Error("couldn't spot any food")
       setDraft({ name: e.name || v, kcal: String(Math.round(e.kcal)), protein: g1(e.protein), items: e.items })
     } catch (e) {
       const why = e instanceof Error && e.message ? ` (${e.message})` : ''
@@ -187,12 +240,25 @@ function AddSheet({ store, date, onClose }: { store: Store; date: string; onClos
         <label className="sr-only" htmlFor="food-input">What did you eat?</label>
         <input id="food-input" dir="auto" value={text} onChange={(e) => { setText(e.target.value); setShowAll(false) }}
           placeholder="What did you eat?" maxLength={300} enterKeyHint="send" autoComplete="off" autoFocus disabled={busy} />
+        <button type="button" className="add-btn add-btn-soft" aria-label="Estimate from a photo" disabled={busy}
+          onClick={() => photoInput.current?.click()}>
+          <Icon name="camera" />
+        </button>
         <button className="add-btn" aria-label="Estimate calories and protein" disabled={!q || busy}>
           {busy ? <span className="spinner" aria-hidden="true" /> : <Icon name="sparkle" />}
         </button>
+        <input ref={photoInput} type="file" accept="image/*" hidden
+          onChange={(e) => {
+            const file = e.target.files?.[0]
+            e.target.value = '' // so picking the same photo again still fires
+            if (!file) return
+            shrinkPhoto(file).then((p) => estimate(p), () => setDraft({
+              name: text.trim(), kcal: '', protein: '', note: "Couldn't read that photo, so fill in the numbers yourself.",
+            }))
+          }} />
       </form>
       <p className="muted small" role="status">
-        {busy ? 'Estimating…' : 'Write it like you\'d say it, the sparkle estimates calories and protein.'}
+        {busy ? 'Estimating…' : 'Write it like you\'d say it and tap the sparkle, or snap a photo (any text you typed goes along as a note).'}
       </p>
       <button className="text-btn manual-btn" onClick={() => setDraft({ name: text.trim(), kcal: '', protein: '' })}>
         Enter numbers myself
@@ -408,5 +474,101 @@ function ItemsForm({ name: initialName, items, onBack, onSave }: {
         <button className="btn btn-ink" disabled={!valid}>{separate ? `Add ${rows.length} items` : 'Add'}</button>
       </div>
     </form>
+  )
+}
+
+/** Daily calorie and protein targets. */
+function GoalsSheet({ store, onClose }: { store: Store; onClose: () => void }) {
+  const [kcalText, setKcal] = useState(String(store.foodGoals.kcal))
+  const [proteinText, setProtein] = useState(g1(store.foodGoals.protein))
+  const kcal = parseNum(kcalText, 10000)
+  const protein = parseNum(proteinText, 1000)
+  const valid = kcal != null && kcal >= 500 && protein != null && protein > 0
+  return (
+    <Sheet label="Daily goals" onClose={onClose}>
+      <form className="stack" onSubmit={(e) => {
+        e.preventDefault()
+        if (!valid) return
+        void store.setFoodGoals({ kcal: Math.round(kcal!), protein: Math.round(protein! * 10) / 10 })
+        onClose()
+      }}>
+        <h2>Daily goals</h2>
+        <div className="grid2">
+          <label>Calories, at most (kcal)
+            <input inputMode="numeric" value={kcalText} onChange={(e) => setKcal(e.target.value)} autoFocus />
+          </label>
+          <label>Protein, at least (g)
+            <input inputMode="decimal" value={proteinText} onChange={(e) => setProtein(e.target.value)} />
+          </label>
+        </div>
+        <div className="row end">
+          <span className="grow" />
+          <button type="button" className="btn btn-muted" onClick={onClose}>Cancel</button>
+          <button className="btn btn-ink" disabled={!valid}>Save</button>
+        </div>
+      </form>
+    </Sheet>
+  )
+}
+
+/** Ideas for the rest of the day that fit the calories left, your own meals first. */
+function IdeasSheet({ store, date, kcalLeft, proteinLeft, onClose }: {
+  store: Store; date: string; kcalLeft: number; proteinLeft: number; onClose: () => void
+}) {
+  const [ideas, setIdeas] = useState<FoodIdea[] | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [added, setAdded] = useState<Set<number>>(new Set())
+  const started = useRef(false)
+
+  const request = () => {
+    // Your 40 most eaten saved meals, so ideas can come from what you actually eat.
+    const meals = rankSaved(store.savedFoods, store.food).slice(0, 40).map(({ name, kcal, protein }) => ({ name, kcal, protein }))
+    store.suggestFood(Math.round(kcalLeft), Math.round(proteinLeft * 10) / 10, meals)
+      .then(setIdeas, (e) => setError(e instanceof Error ? e.message : String(e)))
+  }
+  const ask = () => { setIdeas(null); setError(null); request() }
+  // Ask once when the sheet opens (the ref keeps a double-mounted effect from asking twice).
+  useEffect(() => {
+    if (started.current) return
+    started.current = true
+    request()
+  })
+
+  return (
+    <Sheet label="Ideas" onClose={onClose}>
+      <div className="row">
+        <h2 className="grow">Ideas</h2>
+        <button className="icon-btn" aria-label="Close" onClick={onClose}><Icon name="x" /></button>
+      </div>
+      <p className="muted small">{g1(proteinLeft)} g protein to go, {num(kcalLeft)} kcal left today.</p>
+      {error ? (
+        <p className="banner small">Couldn't get ideas right now ({error}).</p>
+      ) : !ideas ? (
+        <p className="empty-line row"><span className="spinner spinner-ink" aria-hidden="true" />Thinking…</p>
+      ) : (
+        <div className="food-picker tone-sage">
+          {ideas.map((i, n) => (
+            <div key={n} className="food-row">
+              <span className="food-body">
+                <span className="food-name" dir="auto">{i.name}</span>
+                <span className="food-meta">{meta(i)}{i.mine ? ' · My meals' : ''}</span>
+              </span>
+              <button className={`add-small ${added.has(n) ? 'is-added' : ''}`} aria-label={added.has(n) ? `${i.name} added` : `Add ${i.name}`}
+                disabled={added.has(n)}
+                onClick={() => {
+                  void store.addFood(date, { name: i.name, kcal: i.kcal, protein: i.protein }, true)
+                  setAdded((p) => new Set(p).add(n))
+                }}>
+                <Icon name={added.has(n) ? 'tick' : 'plus'} />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+      <div className="row end">
+        <button className="btn btn-muted" onClick={ask} disabled={!error && !ideas}>Other ideas</button>
+        <button className="btn btn-ink" onClick={onClose}>Done</button>
+      </div>
+    </Sheet>
   )
 }

@@ -488,3 +488,14 @@ button.stat { width: 100%; }
 .detail-bar { width: 72px; height: 8px; border-radius: 4px; background: var(--surface); overflow: hidden; flex: none; }
 .detail-bar > span { display: block; height: 100%; border-radius: 4px; background: var(--tile-text); }
 .detail-anchor { scroll-margin-top: 16px; } .detail-anchor:empty { display: none; }
+
+/* ---------- goals, ideas, time of day, photo ---------- */
+.hero-link { align-self: flex-start; color: var(--on-ink); font-size: 14px; }
+.ideas-strip { text-align: left; color: var(--ink); }
+.ideas-strip .grow { display: flex; flex-direction: column; gap: 2px; }
+.ideas-title { font-size: 17px; font-weight: 600; }
+.ideas-sub { font-size: 13px; color: var(--tile-text); }
+.part-icon { color: var(--tile-text); display: grid; place-items: center; flex: none; margin-right: 4px; }
+.add-btn-soft { background: var(--surface); color: var(--ink); box-shadow: inset 0 0 0 1.5px var(--ink); }
+.dialog .add-btn-soft { background: var(--surface-muted); box-shadow: none; }
+.spinner-ink { border-color: var(--surface-muted); border-top-color: var(--ink); display: inline-block; }
