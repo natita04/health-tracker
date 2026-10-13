@@ -1,7 +1,8 @@
 import { useState, type ReactNode } from 'react'
 import { tasksFor, type Store } from '../store'
-import { addDays, fmt, formatTime, todayIso } from '../dates'
+import { formatTime } from '../dates'
 import { Badge, CAT_STYLE, Icon } from '../icons'
+import DayHeader from './DayHeader'
 import { WATER_PORTIONS, WATER_PORTION_L, type Category, type Task } from '../types'
 
 // Sections in page order (after the tiles). Walk and water are tiles of their own.
@@ -12,7 +13,6 @@ const SECTIONS: { cat: Category; title: string }[] = [
 
 export default function Today({ store, date, setDate }: { store: Store; date: string; setDate: (d: string) => void }) {
   const [exercisesFor, setExercisesFor] = useState<Task | null>(null)
-  const today = todayIso()
   const list = tasksFor(store.tasks, date)
   const done = store.done[date] ?? new Set<string>()
 
@@ -23,26 +23,9 @@ export default function Today({ store, date, setDate }: { store: Store; date: st
   const walks = list.filter((t) => t.category === 'WALK')
   const waters = list.filter((t) => t.category === 'WATER')
 
-  const title = date === today ? 'Today'
-    : date === addDays(today, -1) ? 'Yesterday'
-    : date === addDays(today, 1) ? 'Tomorrow'
-    : fmt(date, { weekday: 'long' })
-
   return (
     <>
-      <header className="screen-head">
-        <div>
-          <div className="eyebrow">
-            {fmt(date, { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}
-            {date !== today && <button className="text-btn" onClick={() => setDate(today)}>Back to today</button>}
-          </div>
-          <h1>{title}</h1>
-        </div>
-        <div className="head-actions">
-          <button className="circle-btn" aria-label="Previous day" onClick={() => setDate(addDays(date, -1))}><Icon name="chevron-left" /></button>
-          <button className="circle-btn" aria-label="Next day" onClick={() => setDate(addDays(date, 1))}><Icon name="chevron-right" /></button>
-        </div>
-      </header>
+      <DayHeader title="Habits" date={date} setDate={setDate} allowFuture />
 
       <div key={date} className="stack-section fade">
         {(mainWorkout || walks.length > 0 || waters.length > 0) && (

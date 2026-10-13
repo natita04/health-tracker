@@ -13,14 +13,14 @@ import Food from './screens/Food'
 import Thanks from './screens/Thanks'
 import { Icon, type IconName } from './icons'
 
-type Tab = 'today' | 'food' | 'thanks' | 'weight' | 'history' | 'plan'
+type Tab = 'today' | 'food' | 'weight' | 'thanks' | 'history' | 'plan'
 const TABS: { id: Tab; label: string; icon: IconName }[] = [
-  { id: 'today', label: 'Today', icon: 'check-circle' },
+  { id: 'today', label: 'Habits', icon: 'check-circle' },
   { id: 'food', label: 'Food', icon: 'apple' },
-  { id: 'thanks', label: 'Thank you', icon: 'heart' },
   { id: 'weight', label: 'Weight', icon: 'scale' },
+  { id: 'thanks', label: 'Thank you', icon: 'heart' },
   { id: 'history', label: 'History', icon: 'chart' },
-  { id: 'plan', label: 'Plan', icon: 'sliders' },
+  { id: 'plan', label: 'Settings', icon: 'sliders' },
 ]
 
 export default function App() {
@@ -87,9 +87,9 @@ function Shell({ store }: { store: Store }) {
         ) : (
           <>
             {tab === 'today' && <Today store={store} date={date} setDate={setDate} />}
-            {tab === 'food' && <Food store={store} />}
+            {tab === 'food' && <Food store={store} date={date} setDate={setDate} />}
+            {tab === 'weight' && <WeightScreen store={store} date={date} setDate={setDate} />}
             {tab === 'thanks' && <Thanks store={store} />}
-            {tab === 'weight' && <WeightScreen store={store} />}
             {tab === 'history' && <History store={store} openDay={(d) => { setDate(d); setTab('today') }} />}
             {tab === 'plan' && <Plan store={store} />}
           </>
@@ -101,7 +101,11 @@ function Shell({ store }: { store: Store }) {
             key={t.id}
             aria-label={t.label}
             aria-current={tab === t.id ? 'page' : undefined}
-            onClick={() => { if (t.id === 'today' && tab === 'today') setDate(todayIso()); setTab(t.id) }}
+            onClick={() => {
+              // Tapping the tab you're on jumps back to today; Food and Weight never show a future day.
+              if (t.id === tab || date > todayIso()) setDate(todayIso())
+              setTab(t.id)
+            }}
           >
             <Icon name={t.icon} size={24} />
           </button>
