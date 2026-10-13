@@ -2,6 +2,7 @@ import { useRef, useState } from 'react'
 import type { Store } from '../store'
 import { addDays, fmt, todayIso } from '../dates'
 import { Badge, Icon } from '../icons'
+import DayHeader from './DayHeader'
 import { PROMPTS, THANKS_TARGET } from '../thanks'
 
 /** A random prompt, never the same one twice in a row. */
@@ -10,14 +11,15 @@ const randomPrompt = (current: string | null) => {
   return pool[Math.floor(Math.random() * pool.length)]
 }
 
-export default function Thanks({ store }: { store: Store }) {
+export default function Thanks({ store, date, setDate }: { store: Store; date: string; setDate: (d: string) => void }) {
   const today = todayIso()
   const [text, setText] = useState('')
   const [hint, setHint] = useState<string | null>(null)
   const [showEarlier, setShowEarlier] = useState(false)
   const input = useRef<HTMLInputElement>(null)
-  const items = store.thoughts[today] ?? []
-  const pastDays = Object.keys(store.thoughts).filter((d) => d < today && store.thoughts[d].length).sort().reverse()
+  const items = store.thoughts[date] ?? []
+  // Days before the one on screen that have thoughts, newest first.
+  const pastDays = Object.keys(store.thoughts).filter((d) => d < date && store.thoughts[d].length).sort().reverse()
 
   // A prompt to answer (in any language), shown next to the nudge button.
   function nudge() {
@@ -27,18 +29,13 @@ export default function Thanks({ store }: { store: Store }) {
 
   return (
     <>
-      <header className="screen-head">
-        <div>
-          <div className="eyebrow">{fmt(today, { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}</div>
-          <h1>Thank you</h1>
-        </div>
-      </header>
+      <DayHeader title="Thank you" date={date} setDate={setDate} />
 
       <section className="section tone-butter">
         <div className="section-head">
           <Badge name="heart" />
           <div>
-            <h2>Today</h2>
+            <h2>{date === today ? 'Today' : fmt(date, { weekday: 'long' })}</h2>
             <div className="sub">What are you thankful for?</div>
           </div>
           <span className="counter">{items.length}/{THANKS_TARGET}</span>
@@ -50,7 +47,7 @@ export default function Thanks({ store }: { store: Store }) {
             <div key={t.id} className="thought">
               <span className="num">{i + 1}</span>
               <span className="thought-text" dir="auto">{t.text}</span>
-              <button className="icon-btn" aria-label="Remove" onClick={() => void store.removeThought(today, t.id)}><Icon name="x" /></button>
+              <button className="icon-btn" aria-label="Remove" onClick={() => void store.removeThought(date, t.id)}><Icon name="x" /></button>
             </div>
           ))
         )}
@@ -60,7 +57,7 @@ export default function Thanks({ store }: { store: Store }) {
             e.preventDefault()
             const v = text.trim()
             if (!v || !store.thoughtsReady) return
-            void store.addThought(today, v)
+            void store.addThought(date, v)
             setText('')
             setHint(null)
             input.current?.focus()
@@ -68,7 +65,7 @@ export default function Thanks({ store }: { store: Store }) {
         >
           <label className="sr-only" htmlFor="thought-input">Something you're thankful for</label>
           <input id="thought-input" ref={input} dir="auto" value={text} onChange={(e) => setText(e.target.value)}
-            placeholder="Today I'm thankful for..." maxLength={500} disabled={!store.thoughtsReady} enterKeyHint="done" autoComplete="off" />
+            placeholder={date === today ? "Today I'm thankful for..." : "I'm thankful for..."} maxLength={500} disabled={!store.thoughtsReady} enterKeyHint="done" autoComplete="off" />
           <button className="add-btn" aria-label="Add thank you thought" disabled={!store.thoughtsReady}><Icon name="plus" /></button>
         </form>
         <div className="nudge-row">

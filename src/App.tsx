@@ -89,7 +89,7 @@ function Shell({ store }: { store: Store }) {
             {tab === 'today' && <Today store={store} date={date} setDate={setDate} />}
             {tab === 'food' && <Food store={store} date={date} setDate={setDate} />}
             {tab === 'weight' && <WeightScreen store={store} date={date} setDate={setDate} />}
-            {tab === 'thanks' && <Thanks store={store} />}
+            {tab === 'thanks' && <Thanks store={store} date={date} setDate={setDate} />}
             {tab === 'history' && <History store={store} openDay={(d) => { setDate(d); setTab('today') }} />}
             {tab === 'plan' && <Plan store={store} />}
           </>

@@ -38,7 +38,6 @@ export default function History({ store, openDay }: { store: Store; openDay: (d:
     <>
       <header className="screen-head">
         <div>
-          <div className="eyebrow">Your patterns</div>
           <h1>History</h1>
         </div>
       </header>
