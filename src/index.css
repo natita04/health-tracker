@@ -534,3 +534,7 @@ button.stat { width: 100%; }
   display: inline-flex; align-items: center; gap: 4px; min-height: 30px; padding: 0 10px;
   border-radius: var(--r-pill); background: var(--butter-tile); color: var(--ink); font-size: 13px; font-weight: 600;
 }
+.time-line { gap: 10px; flex-wrap: nowrap; }
+.time-line .time-row { min-width: 0; }
+.time-line .time-row input { width: 160px; min-width: 0; padding: 0 14px; }
+.time-line .btn { flex: none; padding: 0 18px; }
