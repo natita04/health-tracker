@@ -48,11 +48,11 @@ export default function WeightScreen({ store, date, setDate }: { store: Store; d
       </section>
 
       <div className="stats">
-        <div className="stat tone-lilac">
+        <div className="stat stat-plain">
           <span className="label">Start</span>
           <span className="value">{first ? <>{kg1(first.kg)}<small>kg</small></> : '-'}</span>
         </div>
-        <button className="stat tone-peach" onClick={() => setDialog('goal')} aria-label={store.goal != null ? `Goal ${kg1(store.goal)} kg, change` : 'Set goal'}>
+        <button className="stat stat-plain" onClick={() => setDialog('goal')} aria-label={store.goal != null ? `Goal ${kg1(store.goal)} kg, change` : 'Set goal'}>
           <span className="label">Goal</span>
           {store.goal != null
             ? <span className="value">{kg1(store.goal)}<small>kg</small></span>

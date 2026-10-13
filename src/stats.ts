@@ -125,14 +125,14 @@ export function insights(store: Store): Insight[] {
   if (w.length >= 2) {
     const diff = w[w.length - 1].kg - w[0].kg
     if (Math.abs(diff) >= 0.1) {
-      out.push({ id: 'weight', text: `Weight: ${diff < 0 ? 'down' : 'up'} ${Math.abs(diff).toFixed(1)} kg over the last 30 days.`, tone: 'sky', icon: 'scale' })
+      out.push({ id: 'weight', text: `Weight: ${diff < 0 ? 'down' : 'up'} ${Math.abs(diff).toFixed(1)} kg over the last 30 days.`, ...style('WEIGH') })
     }
   }
 
   // Thank you thoughts this week.
   const week = Array.from({ length: 7 }, (_, i) => addDays(today, -i))
   const thanks = week.reduce((n, d) => n + (store.thoughts[d]?.length ?? 0), 0)
-  if (thanks > 0) out.push({ id: 'thanks', text: `${thanks} thank you thought${thanks === 1 ? '' : 's'} this week.`, tone: 'butter', icon: 'heart' })
+  if (thanks > 0) out.push({ id: 'thanks', text: `${thanks} thank you thought${thanks === 1 ? '' : 's'} this week.`, ...CAT_STYLE.THANKS })
 
   return out.slice(0, 5)
 }
@@ -155,7 +155,7 @@ function foodInsights(store: Store, past30: string[]): Insight[] {
   const logged = past30.filter((d) => totals[d])
   if (logged.length < 3) return []
   const out: Insight[] = []
-  const food = { icon: 'apple' as const }
+  const food = CAT_STYLE.FOOD
 
   // Protein goal streak: full days in a row, counting back from yesterday.
   let run = 0
@@ -163,10 +163,10 @@ function foodInsights(store: Store, past30: string[]): Insight[] {
   const avg = (ds: string[], k: 'kcal' | 'protein') => ds.reduce((s, d) => s + totals[d][k], 0) / ds.length
   const wkend = logged.filter((d) => dayIndex(d) >= 5), wkday = logged.filter((d) => dayIndex(d) < 5)
   if (run >= 3) {
-    out.push({ id: 'protein-run', text: `Protein goal hit ${run} days in a row!`, tone: 'sage', ...food })
+    out.push({ id: 'protein-run', text: `Protein goal hit ${run} days in a row!`, ...food })
   } else if (wkend.length >= 2 && wkday.length >= 3 && avg(wkday, 'protein') - avg(wkend, 'protein') >= 15) {
     out.push({
-      id: 'protein-weekend', tone: 'sage', ...food,
+      id: 'protein-weekend', ...food,
       text: `Protein dips on weekends: ${Math.round(avg(wkend, 'protein'))} g vs ${Math.round(avg(wkday, 'protein'))} g on weekdays.`,
     })
   }
@@ -176,7 +176,7 @@ function foodInsights(store: Store, past30: string[]): Insight[] {
   if (week.length >= 3) {
     const k = Math.round(avg(week, 'kcal'))
     out.push({
-      id: 'kcal-week', tone: 'peach', ...food,
+      id: 'kcal-week', ...food,
       text: k <= kcalGoal
         ? `Calories this week: ${k.toLocaleString('en-US')} a day on average, within your ${kcalGoal.toLocaleString('en-US')}.`
         : `Calories this week: ${k.toLocaleString('en-US')} a day on average, ${(k - kcalGoal).toLocaleString('en-US')} over your goal.`,

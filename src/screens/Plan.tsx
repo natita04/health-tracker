@@ -41,7 +41,7 @@ export default function Plan({ store }: { store: Store }) {
             .sort((a, b) => (a.time_minutes ?? -1) - (b.time_minutes ?? -1) || a.sort_order - b.sort_order)
           if (!items.length) return null
           return (
-            <section key={c.id} className="section">
+            <section key={c.id} className={`section tone-${CAT_STYLE[c.id].tone}`}>
               <div className="section-head">
                 <Badge name={CAT_STYLE[c.id].icon} />
                 <div>
@@ -113,7 +113,7 @@ function FoodGoalsCard({ store }: { store: Store }) {
   }
 
   return (
-    <section className="section">
+    <section className={`section tone-${CAT_STYLE.FOOD.tone}`}>
       <div className="section-head">
         <Badge name="apple" />
         <div><h2>Food goals</h2><div className="sub">For the Food tab and History</div></div>

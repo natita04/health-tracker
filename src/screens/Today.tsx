@@ -37,7 +37,7 @@ export default function Today({ store, date, setDate }: { store: Store; date: st
               <WaterTile key={t.id} task={t} done={done} onSet={(n) => store.setWater(date, t, n)} />
             ))}
             {mainWorkout && (
-              <section className={`tile tone-sage solo ${done.has(mainWorkout.id) ? 'is-done' : ''}`}>
+              <section className={`tile tone-${CAT_STYLE.WORKOUT.tone} solo ${done.has(mainWorkout.id) ? 'is-done' : ''}`}>
                 <Badge name="dumbbell" />
                 <h3>Workout</h3>
                 <p className="desc">{[mainWorkout.title, mainWorkout.details].filter(Boolean).join(' · ')}</p>
@@ -60,7 +60,7 @@ export default function Today({ store, date, setDate }: { store: Store; date: st
         )}
 
         {strength.length > 0 && (
-          <Section tone="sage" icon="dumbbell" title="Strength" counter={`${strength.filter((t) => done.has(t.id)).length}/${strength.length}`}>
+          <Section tone={CAT_STYLE.WORKOUT.tone} icon="dumbbell" title="Strength" counter={`${strength.filter((t) => done.has(t.id)).length}/${strength.length}`}>
             {strength.map((t) => (
               <TaskRow key={t.id} task={t} done={done.has(t.id)} onToggle={() => store.toggle(date, t, !done.has(t.id))} />
             ))}
@@ -145,7 +145,7 @@ function WalkTile({ task, done, onToggle }: { task: Task; done: boolean; onToggl
   const t = /([\d,.]+)\s*(steps?|min(?:utes?)?|km|kilometers?)\b/i.exec(task.title)
   const m = t ? [t[0], t[1], t[2]] : task.duration_min ? ['', String(task.duration_min), 'min'] : null
   return (
-    <section className={`tile tone-sage small-tile ${done ? 'is-done' : ''}`}>
+    <section className={`tile tone-${CAT_STYLE.WALK.tone} small-tile ${done ? 'is-done' : ''}`}>
       <div className="tile-top">
         <Badge name="steps" />
         <button className={`check check-round ${done ? 'on' : ''}`} aria-pressed={done} aria-label={`${task.title} done`} onClick={onToggle}>
@@ -164,7 +164,7 @@ function WaterTile({ task, done, onSet }: { task: Task; done: Set<string>; onSet
   while (count < WATER_PORTIONS && done.has(`${task.id}#${count + 1}`)) count++
   const litres = (n: number) => (n * WATER_PORTION_L).toFixed(1)
   return (
-    <section className={`tile tone-sky small-tile ${count >= WATER_PORTIONS ? 'is-done' : ''}`}>
+    <section className={`tile tone-${CAT_STYLE.WATER.tone} small-tile ${count >= WATER_PORTIONS ? 'is-done' : ''}`}>
       <div className="tile-top">
         <Badge name="droplet" />
         <span className="tile-controls">

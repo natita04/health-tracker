@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import type { Store } from '../store'
 import { todayIso } from '../dates'
-import { Badge, Icon } from '../icons'
+import { Badge, CAT_STYLE, Icon } from '../icons'
 import DayHeader from './DayHeader'
 import { partOfDay, type FoodEntry, type FoodIdea, type FoodInput, type FoodPhoto, type PartOfDay, type SavedFood } from '../types'
 import type { IconName } from '../icons'
@@ -84,7 +84,7 @@ export default function Food({ store, date, setDate }: { store: Store; date: str
       )}
 
 
-      <section className="section tone-sage">
+      <section className={`section tone-${CAT_STYLE.FOOD.tone}`}>
         <div className="section-head">
           <Badge name="apple" />
           <div>
@@ -251,7 +251,7 @@ function AddSheet({ store, date, onClose }: { store: Store; date: string; onClos
       </form>
       {busy && <p className="muted small" role="status">Estimating…</p>}
 
-      <div className="food-picker tone-peach">
+      <div className={`food-picker tone-${CAT_STYLE.FOOD.tone}`}>
         <div className="food-sub">My meals</div>
         {letters.length > 1 && (
           <div className="letter-row" role="group" aria-label="Filter by first letter" dir="rtl">
@@ -514,7 +514,7 @@ function IdeasSheet({ store, date, kcalLeft, proteinLeft, onClose }: {
       ) : !ideas ? (
         <p className="empty-line row"><span className="spinner spinner-ink" aria-hidden="true" />Thinking…</p>
       ) : (
-        <div className="food-picker tone-sage">
+        <div className={`food-picker tone-${CAT_STYLE.FOOD.tone}`}>
           {ideas.map((i, n) => (
             <div key={n} className="food-row">
               <span className="food-body">
