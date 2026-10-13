@@ -46,7 +46,6 @@ export default function Plan({ store }: { store: Store }) {
                 <Badge name={CAT_STYLE[c.id].icon} />
                 <div>
                   <h2>{c.label}</h2>
-                  <div className="sub">{items.length} {items.length === 1 ? 'item' : 'items'} in your plan</div>
                 </div>
               </div>
               {items.map((t) => (
@@ -71,7 +70,7 @@ export default function Plan({ store }: { store: Store }) {
         <section className="section">
           <div className="section-head">
             <Badge name="user" />
-            <div><h2>Account</h2><div className="sub">{store.isGuest ? 'Guest preview' : 'Backup and sign-in'}</div></div>
+            <div><h2>Account</h2></div>
           </div>
           <div className="row wrap settings-actions">
             <button className="btn btn-muted" onClick={() => void store.exportBackup()}>Download backup</button>
@@ -116,7 +115,7 @@ function FoodGoalsCard({ store }: { store: Store }) {
     <section className={`section tone-${CAT_STYLE.FOOD.tone}`}>
       <div className="section-head">
         <Badge name="apple" />
-        <div><h2>Food goals</h2><div className="sub">For the Food tab and History</div></div>
+        <div><h2>Food goals</h2></div>
       </div>
       <div className="notify-body">
         <label className="time-row goal-row">Calories, at most
@@ -157,7 +156,7 @@ function MorningCard({ store }: { store: Store }) {
     <section className="section">
       <div className="section-head">
         <Badge name="bell" />
-        <div><h2>Morning notification</h2><div className="sub">Your plan for the day, every morning</div></div>
+        <div><h2>Morning notification</h2></div>
       </div>
       <div className="notify-body">
         {store.isGuest ? (
