@@ -27,46 +27,58 @@ export default function Plan({ store }: { store: Store }) {
   return (
     <>
       <header>
-        <h1 className="plain-title">Plan</h1>
+        <h1 className="plain-title">Settings</h1>
       </header>
 
-      <MorningCard store={store} />
-      <FoodGoalsCard store={store} />
+      {/* Every group is the same white card: icon, title and subtitle, then grey rows. */}
+      <div className="settings stack-section">
+        <MorningCard store={store} />
+        <FoodGoalsCard store={store} />
 
-      {CATEGORIES.map((c) => {
-        const items = store.tasks
-          .filter((t) => t.category === c.id)
-          .sort((a, b) => (a.time_minutes ?? -1) - (b.time_minutes ?? -1) || a.sort_order - b.sort_order)
-        if (!items.length) return null
-        return (
-          <section key={c.id}>
-            <h2 className="cat-title"><Badge name={CAT_STYLE[c.id].icon} />{c.label}</h2>
-            {items.map((t) => (
-              <button key={t.id} className="list-card row planrow" onClick={() => setEditing({ task: t, isNew: false })}>
-                <span className="grow">
-                  <span className="title block">{t.title}</span>
-                  <span className="muted small">
-                    {[daysLabel(t.days_mask), t.time_minutes != null && formatTime(t.time_minutes),
-                      t.duration_min && `${t.duration_min} min`,
-                      t.start_date && `from ${fmt(t.start_date, { day: 'numeric', month: 'short' })}`,
-                      t.end_date && `until ${fmt(t.end_date, { day: 'numeric', month: 'short' })}`, t.videos?.length && `▶ ${t.videos.length} video${t.videos.length > 1 ? 's' : ''}`, t.steps?.length && 'exercise list']
-                      .filter(Boolean).join(' · ')}
+        {CATEGORIES.map((c) => {
+          const items = store.tasks
+            .filter((t) => t.category === c.id)
+            .sort((a, b) => (a.time_minutes ?? -1) - (b.time_minutes ?? -1) || a.sort_order - b.sort_order)
+          if (!items.length) return null
+          return (
+            <section key={c.id} className="section">
+              <div className="section-head">
+                <Badge name={CAT_STYLE[c.id].icon} />
+                <div>
+                  <h2>{c.label}</h2>
+                  <div className="sub">{items.length} {items.length === 1 ? 'item' : 'items'} in your plan</div>
+                </div>
+              </div>
+              {items.map((t) => (
+                <button key={t.id} className="task-row planrow" onClick={() => setEditing({ task: t, isNew: false })}>
+                  <span className="task-body">
+                    <span className="task-title">{t.title}</span>
+                    <span className="task-note">
+                      {[daysLabel(t.days_mask), t.time_minutes != null && formatTime(t.time_minutes),
+                        t.duration_min && `${t.duration_min} min`,
+                        t.start_date && `from ${fmt(t.start_date, { day: 'numeric', month: 'short' })}`,
+                        t.end_date && `until ${fmt(t.end_date, { day: 'numeric', month: 'short' })}`, t.videos?.length && `▶ ${t.videos.length} video${t.videos.length > 1 ? 's' : ''}`, t.steps?.length && 'exercise list']
+                        .filter(Boolean).join(' · ')}
+                    </span>
                   </span>
-                </span>
-                <Icon name="chevron-right" />
-              </button>
-            ))}
-          </section>
-        )
-      })}
+                  <Icon name="chevron-right" />
+                </button>
+              ))}
+            </section>
+          )
+        })}
 
-      <section className="list-card stack">
-        <strong>Account</strong>
-        <div className="row wrap">
-          <button className="btn btn-muted" onClick={() => void store.exportBackup()}>Download backup</button>
-          <button className="btn btn-muted" onClick={() => void store.signOut()}>{store.isGuest ? 'Exit guest view' : 'Sign out'}</button>
-        </div>
-      </section>
+        <section className="section">
+          <div className="section-head">
+            <Badge name="user" />
+            <div><h2>Account</h2><div className="sub">{store.isGuest ? 'Guest preview' : 'Backup and sign-in'}</div></div>
+          </div>
+          <div className="row wrap settings-actions">
+            <button className="btn btn-muted" onClick={() => void store.exportBackup()}>Download backup</button>
+            <button className="btn btn-muted" onClick={() => void store.signOut()}>{store.isGuest ? 'Exit guest view' : 'Sign out'}</button>
+          </div>
+        </section>
+      </div>
 
       <button className="btn-primary pinned-action" onClick={addNew}><Icon name="plus" />Add item</button>
 
@@ -101,7 +113,7 @@ function FoodGoalsCard({ store }: { store: Store }) {
   }
 
   return (
-    <section className="section tone-peach">
+    <section className="section">
       <div className="section-head">
         <Badge name="apple" />
         <div><h2>Food goals</h2><div className="sub">For the Food tab and History</div></div>
@@ -142,7 +154,7 @@ function MorningCard({ store }: { store: Store }) {
   const minutes = parseTime(time) ?? 300
 
   return (
-    <section className="section tone-butter">
+    <section className="section">
       <div className="section-head">
         <Badge name="bell" />
         <div><h2>Morning notification</h2><div className="sub">Your plan for the day, every morning</div></div>

@@ -68,8 +68,8 @@ export default function Thanks({ store, date, setDate }: { store: Store; date: s
           <button className="add-btn" aria-label="Add thank you thought" disabled={!store.thoughtsReady}><Icon name="plus" /></button>
         </form>
         <div className="nudge-row">
-          <button type="button" className="text-btn nudge-btn" disabled={!store.thoughtsReady} onClick={nudge}>
-            <Icon name="sparkle" size={16} />{hint ? 'Another nudge' : 'Need a nudge?'}
+          <button type="button" className="hint-chip" disabled={!store.thoughtsReady} onClick={nudge}>
+            <Icon name="sparkle" size={14} />{hint ? 'Another nudge' : 'Need a nudge?'}
           </button>
           {hint && <span className="nudge-text" aria-live="polite">{hint}</span>}
         </div>
