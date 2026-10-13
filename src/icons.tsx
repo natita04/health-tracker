@@ -44,14 +44,20 @@ export function Icon({ name, size = 20, strokeWidth, className = '' }: {
   )
 }
 
-/** Each category owns a pastel family and an icon. */
-export const CAT_STYLE: Record<Category | 'THANKS', { tone: 'sky' | 'sage' | 'lilac' | 'peach' | 'butter'; icon: IconName }> = {
-  WEIGH: { tone: 'sky', icon: 'scale' },
+export type Tone = 'sky' | 'sage' | 'lilac' | 'peach' | 'butter' | 'rose' | 'sand' | 'plain'
+
+/**
+ * Each area owns one color family and an icon, used everywhere it shows (Habits, Food,
+ * Thank you, History tiles, sections and insights). Weight stays neutral.
+ */
+export const CAT_STYLE: Record<Category | 'THANKS' | 'FOOD', { tone: Tone; icon: IconName }> = {
+  WEIGH: { tone: 'plain', icon: 'scale' },
   WALK: { tone: 'sage', icon: 'steps' },
   WATER: { tone: 'sky', icon: 'droplet' },
-  WORKOUT: { tone: 'sage', icon: 'dumbbell' },
-  MEDS: { tone: 'lilac', icon: 'pill' },
-  BEAUTY: { tone: 'peach', icon: 'sparkle' },
+  WORKOUT: { tone: 'rose', icon: 'dumbbell' },
+  MEDS: { tone: 'sand', icon: 'pill' },
+  BEAUTY: { tone: 'lilac', icon: 'sparkle' },
+  FOOD: { tone: 'peach', icon: 'apple' },
   THANKS: { tone: 'butter', icon: 'heart' },
 }
 

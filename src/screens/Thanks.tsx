@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react'
 import type { Store } from '../store'
 import { addDays, fmt, todayIso } from '../dates'
-import { Badge, Icon } from '../icons'
+import { Badge, CAT_STYLE, Icon } from '../icons'
 import DayHeader from './DayHeader'
 import { PROMPTS, THANKS_TARGET } from '../thanks'
 
@@ -31,7 +31,7 @@ export default function Thanks({ store, date, setDate }: { store: Store; date: s
     <>
       <DayHeader title="Thank you" date={date} setDate={setDate} />
 
-      <section className="section tone-butter">
+      <section className={`section tone-${CAT_STYLE.THANKS.tone}`}>
         <div className="section-head">
           <Badge name="heart" />
           <div>
