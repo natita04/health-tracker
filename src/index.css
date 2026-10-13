@@ -485,16 +485,17 @@ button.stat { width: 100%; }
 .goal-row input { width: 96px; text-align: center; font-variant-numeric: tabular-nums; margin-left: auto; }
 .goal-row > span { width: 32px; }
 
-/* ---------- today: square walk / water tiles ---------- */
-.square-tile { min-height: 172px; justify-content: space-between; } /* same height side by side: the grid row stretches both */
-.square-tile .actions { justify-content: flex-end; }
-.water-amount { font-size: 15px; color: var(--tile-text); font-variant-numeric: tabular-nums; flex-grow: 1; }
-.water-amount strong { font-size: 30px; font-weight: 600; color: var(--ink); }
-.water-actions { justify-content: space-between !important; }
-.round-btn { width: var(--touch); height: var(--touch); border-radius: 50%; background: var(--surface); color: var(--ink); display: grid; place-items: center; }
+/* ---------- today: walk / water tiles ---------- */
+.small-tile { min-width: 0; gap: 6px; }
+.tile-top { display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-bottom: 4px; }
+.tile-controls { display: flex; gap: 6px; }
+.tile-amount { font-size: 15px; color: var(--tile-text); font-variant-numeric: tabular-nums; }
+.tile-amount strong { font-size: 30px; font-weight: 600; color: var(--ink); line-height: 1.1; }
+/* 40px so icon + two buttons fit a tile on a 360px phone */
+.round-btn { width: 40px; height: 40px; border-radius: 50%; background: var(--surface); color: var(--ink); display: grid; place-items: center; flex: none; }
 .round-btn.round-ink { background: var(--ink); color: var(--on-ink); }
-.square-tile.is-done .desc, .square-tile.is-done .water-amount { opacity: .7; }
-.square-tile { min-width: 0; }
+.small-tile .check-round { width: 40px; height: 40px; }
+.small-tile.is-done .tile-amount { opacity: .7; }
 
 /* ---------- thank you tab ---------- */
 .prompt-row { align-items: center; }
