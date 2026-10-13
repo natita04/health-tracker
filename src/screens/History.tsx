@@ -91,8 +91,8 @@ export default function History({ store, openDay }: { store: Store; openDay: (d:
         })}
         <button className={`stat streak tone-${CAT_STYLE.FOOD.tone}`} aria-pressed={open === 'FOOD'} onClick={() => toggle('FOOD')}>
           <span className="row"><Badge name="apple" /><span className="label">Food</span></span>
-          <span className="value">{avgKcal != null ? <>{avgKcal.toLocaleString('en-US')}<small>kcal</small></> : '-'}</span>
-          <span className="label">{avgKcal != null ? 'Avg a day, last 7 days' : 'No meals logged yet'}</span>
+          {/* Average over the last 7 days, in one line so the tile matches the others' height. */}
+          <span className="value">{avgKcal != null ? <>{avgKcal.toLocaleString('en-US')}<small>kcal/day</small></> : '-'}</span>
         </button>
       </div>
 
