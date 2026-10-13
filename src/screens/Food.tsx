@@ -74,20 +74,10 @@ export default function Food({ store, date, setDate }: { store: Store; date: str
 
       <section className="hero food-hero" aria-label="Totals for the day">
         <Meter label="Calories" value={kcal} goal={goals.kcal} unit="kcal" tone="peach" overIsBad />
-        <Meter label="Protein" value={protein} goal={goals.protein} unit="g" tone="sage" />
+        <Meter label="Protein" value={protein} goal={goals.protein} unit="g" tone="sage"
+          // Ideas are about the rest of today, so only on today.
+          onIdeas={store.foodReady && isToday && goals.protein - protein >= GAP_MIN ? () => setIdeasOpen(true) : undefined} />
       </section>
-
-      {/* Ideas are about the rest of today, so only on today. */}
-      {store.foodReady && isToday && goals.protein - protein >= GAP_MIN && (
-        <button className="tile tile-row tone-butter ideas-strip" onClick={() => setIdeasOpen(true)}>
-          <Badge name="sparkle" />
-          <span className="grow">
-            <span className="ideas-title">{g1(goals.protein - protein)} g protein to go</span>
-            <span className="ideas-sub">{kcal < goals.kcal ? `${num(goals.kcal - kcal)} kcal left · ` : ''}Get ideas</span>
-          </span>
-          <Icon name="chevron-right" />
-        </button>
-      )}
 
       {!store.foodReady && (
         <p className="banner small">The food log can't be saved yet: the database needs its one-time update (the SQL from setup).</p>
@@ -316,8 +306,8 @@ function AddSheet({ store, date, onClose }: { store: Store; date: string; onClos
   )
 }
 
-function Meter({ label, value, goal, unit, tone, overIsBad }: {
-  label: string; value: number; goal: number; unit: string; tone: string; overIsBad?: boolean
+function Meter({ label, value, goal, unit, tone, overIsBad, onIdeas }: {
+  label: string; value: number; goal: number; unit: string; tone: string; overIsBad?: boolean; onIdeas?: () => void
 }) {
   const left = Math.round((goal - value) * 10) / 10
   const status = left > 0 ? `${left} ${unit} to go` : left === 0 || !overIsBad ? 'Goal reached' : `${-left} ${unit} over`
@@ -325,7 +315,12 @@ function Meter({ label, value, goal, unit, tone, overIsBad }: {
     <div className="meter">
       <div className="meter-top">
         <span className="meter-label">{label}</span>
-        <span className={`meter-status ${left < 0 && overIsBad ? 'over' : ''}`}>{status}</span>
+        <span className="meter-right">
+          <span className={`meter-status ${left < 0 && overIsBad ? 'over' : ''}`}>{status}</span>
+          {onIdeas && (
+            <button className="ideas-chip" onClick={onIdeas}><Icon name="sparkle" size={14} />Get ideas</button>
+          )}
+        </span>
       </div>
       <div><span className="meter-num">{value}</span><span className="hero-suffix">/ {goal} {unit}</span></div>
       <div className={`bar tone-${tone}`} role="progressbar" aria-label={label} aria-valuemin={0} aria-valuemax={goal} aria-valuenow={value}>
