@@ -36,7 +36,6 @@ export default function WeightScreen({ store, date, setDate }: { store: Store; d
   const change = visible.length >= 2 ? visible[visible.length - 1].kg - visible[0].kg : null
 
   const recent = [...all].reverse()
-  const shown = showAll ? recent : recent.slice(0, 3)
 
   return (
     <>
@@ -71,32 +70,31 @@ export default function WeightScreen({ store, date, setDate }: { store: Store; d
         </div>
       </section>
 
+      {/* Same as "Show earlier days" in Thank you: hidden until asked for, then the full list. */}
       {recent.length > 0 && (
-        <section className="entries" aria-label="Recent entries">
-          {shown.map((w) => {
-            const idx = all.indexOf(w)
-            const prev = idx > 0 ? all[idx - 1] : null
-            const d = prev ? w.kg - prev.kg : null
-            return (
-              <div key={w.date} className="entry">
-                <span className="grow">{fmt(w.date, { weekday: 'short', day: 'numeric', month: 'short' })}</span>
-                <span className="kg">{kg1(w.kg)}</span>
-                {d != null && <span className={`delta ${d < 0 ? 'down' : ''}`}>{signed(d)}</span>}
-                {showAll && (
+        showAll ? (
+          <section className="entries" aria-label="Previous weights">
+            {recent.map((w) => {
+              const idx = all.indexOf(w)
+              const prev = idx > 0 ? all[idx - 1] : null
+              const d = prev ? w.kg - prev.kg : null
+              return (
+                <div key={w.date} className="entry">
+                  <span className="grow">{fmt(w.date, { weekday: 'short', day: 'numeric', month: 'short' })}</span>
+                  <span className="kg">{kg1(w.kg)}</span>
+                  {d != null && <span className={`delta ${d < 0 ? 'down' : ''}`}>{signed(d)}</span>}
                   <button className="icon-btn" aria-label={`Delete ${fmt(w.date, { day: 'numeric', month: 'short' })}`}
                     onClick={() => { if (confirm('Delete this entry?')) void store.deleteWeight(w.date) }}>
                     <Icon name="x" />
                   </button>
-                )}
-              </div>
-            )
-          })}
-        </section>
-      )}
-      {(recent.length > 3 || showAll) && (
-        <button className="btn btn-white earlier-btn" onClick={() => setShowAll(!showAll)}>
-          {showAll ? 'Hide previous weights' : 'Show previous weights'}
-        </button>
+                </div>
+              )
+            })}
+            <button className="more" onClick={() => setShowAll(false)}>Hide previous weights</button>
+          </section>
+        ) : (
+          <button className="btn btn-white earlier-btn" onClick={() => setShowAll(true)}>Show previous weights</button>
+        )
       )}
 
       <button className="btn-primary pinned-action" onClick={() => setDialog('log')}>
