@@ -49,9 +49,15 @@ export interface Weight {
 
 export const ALL_DAYS = 0b1111111
 
-/** Daily food targets. */
+/** Default daily food targets; editable in the Food tab. */
 export const KCAL_GOAL = 1800
 export const PROTEIN_GOAL = 120
+
+export interface FoodGoals {
+  kcal: number
+  /** grams */
+  protein: number
+}
 
 export interface FoodEntry {
   id: string
@@ -77,4 +83,24 @@ export type FoodInput = Pick<FoodEntry, 'name' | 'kcal' | 'protein'>
 /** What the estimate function returns for free text. */
 export interface FoodEstimate extends FoodInput {
   items: FoodInput[]
+}
+
+/** A photo for the estimate: base64 without the data: prefix. */
+export interface FoodPhoto {
+  data: string
+  media_type: 'image/jpeg'
+}
+
+/** An idea for closing the protein gap. */
+export interface FoodIdea extends FoodInput {
+  /** true when it's one of your saved meals */
+  mine: boolean
+}
+
+export type PartOfDay = 'morning' | 'afternoon' | 'evening'
+
+/** From when an entry was added: morning before 12:00, afternoon until 17:00, then evening. */
+export const partOfDay = (iso: string): PartOfDay => {
+  const h = new Date(iso).getHours()
+  return h >= 5 && h < 12 ? 'morning' : h >= 12 && h < 17 ? 'afternoon' : 'evening'
 }

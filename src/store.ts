@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { supabase } from './supabase'
 import { newSince, UPGRADES, VERSION } from './defaults'
 import { addDays, isOn, todayIso } from './dates'
-import { WATER_PORTIONS, type FoodEntry, type FoodEstimate, type FoodInput, type SavedFood, type Task, type Weight } from './types'
+import { KCAL_GOAL, PROTEIN_GOAL, WATER_PORTIONS, type FoodEntry, type FoodEstimate, type FoodGoals, type FoodIdea, type FoodInput, type FoodPhoto, type SavedFood, type Task, type Weight } from './types'
 
 const HISTORY_DAYS = 120
 
@@ -71,6 +71,7 @@ export function useStore(userId: string) {
   const [savedFoods, setSavedFoods] = useState<SavedFood[]>([])
   /** false until the food tables exist (see supabase/schema.sql) */
   const [foodReady, setFoodReady] = useState(true)
+  const [foodGoals, setFoodGoalsState] = useState<FoodGoals>({ kcal: KCAL_GOAL, protein: PROTEIN_GOAL })
   const [error, setError] = useState<string | null>(null)
 
   const fail = (e: unknown) => setError(e instanceof Error ? e.message : (e as { message?: string })?.message ?? String(e))
@@ -115,6 +116,14 @@ export function useStore(userId: string) {
         setFoodReady(true)
       } catch {
         setFoodReady(false)
+      }
+      // Separate query: until the columns exist (see supabase/schema.sql) the defaults apply.
+      const fg = await supabase.from('user_settings').select('kcal_goal,protein_goal').maybeSingle()
+      if (!fg.error && fg.data) {
+        setFoodGoalsState({
+          kcal: fg.data.kcal_goal != null ? Number(fg.data.kcal_goal) : KCAL_GOAL,
+          protein: fg.data.protein_goal != null ? Number(fg.data.protein_goal) : PROTEIN_GOAL,
+        })
       }
       const g = await supabase.from('user_settings').select('goal_kg').maybeSingle()
       setGoalState(!g.error && g.data?.goal_kg != null ? Number(g.data.goal_kg) : null)
@@ -256,16 +265,28 @@ export function useStore(userId: string) {
     if (error) { setSavedFoods(before); fail(error) }
   }
 
-  /** Free text -> calories and protein, via the food-estimate edge function. Throws if it isn't set up. */
-  async function estimateFood(text: string): Promise<FoodEstimate> {
-    const { data, error } = await supabase.functions.invoke('food-estimate', { body: { text } })
-    if (error) {
-      // The function answers errors as { error: "..." }; surface that instead of a generic status.
-      const body = await (error as { context?: Response }).context?.json?.().catch(() => null)
-      throw new Error(body?.error ?? error.message)
-    }
-    return data as FoodEstimate
+  async function setFoodGoals(g: FoodGoals) {
+    const { error } = await supabase.from('user_settings').upsert({ user_id: userId, kcal_goal: g.kcal, protein_goal: g.protein })
+    if (error) return fail(error)
+    setFoodGoalsState(g)
   }
+
+  /** Calls the food-estimate edge function; it answers errors as { error: "..." }, surfaced instead of a generic status. */
+  async function callFood<T>(body: object): Promise<T> {
+    const { data, error } = await supabase.functions.invoke('food-estimate', { body })
+    if (error) {
+      const res = await (error as { context?: Response }).context?.json?.().catch(() => null)
+      throw new Error(res?.error ?? error.message)
+    }
+    return data as T
+  }
+
+  /** Free text and/or a photo -> calories and protein. Throws if the function isn't set up. */
+  const estimateFood = (text: string, photo?: FoodPhoto) => callFood<FoodEstimate>({ text, photo })
+
+  /** A few ideas that fit what's left of today's calories and protein. */
+  const suggestFood = (kcalLeft: number, proteinLeft: number, meals: FoodInput[]) =>
+    callFood<{ ideas: FoodIdea[] }>({ mode: 'ideas', kcalLeft, proteinLeft, meals }).then((r) => r.ideas)
 
   async function exportBackup() {
     const [t, c, w] = await Promise.all([
@@ -292,10 +313,10 @@ export function useStore(userId: string) {
 
   return {
     userId, isGuest: false, signOut: async (): Promise<void> => { await supabase.auth.signOut() },
-    tasks: active, done, weights, thoughts, thoughtsReady, goal, food, savedFoods, foodReady,
+    tasks: active, done, weights, thoughts, thoughtsReady, goal, food, savedFoods, foodReady, foodGoals,
     loading, error, clearError: () => setError(null), reload: load,
     toggle, setWater, addThought, removeThought, setGoal, saveWeight, deleteWeight, saveTask, archiveTask, exportBackup,
-    addFood, updateFood, removeFood, removeSavedFood, estimateFood,
+    addFood, updateFood, removeFood, removeSavedFood, estimateFood, suggestFood, setFoodGoals,
   }
 }
 

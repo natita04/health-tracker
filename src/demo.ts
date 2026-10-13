@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { newSince, UPGRADES } from './defaults'
 import { addDays, todayIso } from './dates'
 import { tasksFor, type Store, type Thought } from './store'
-import { WATER_PORTIONS, type FoodEntry, type SavedFood, type Task, type Weight } from './types'
+import { KCAL_GOAL, PROTEIN_GOAL, WATER_PORTIONS, type FoodEntry, type FoodGoals, type SavedFood, type Task, type Weight } from './types'
 
 // Guest preview: same screens, made-up data kept in memory only. Nothing is read from or written to Supabase.
 
@@ -64,7 +64,8 @@ function demoData(tasks: Task[]) {
     meal('טוסט גבינה צהובה', 340, 19, 5),
   ]
   const food: FoodEntry[] = meals.slice(0, 3).map((m) => ({
-    id: `demo-food-${m.n}`, date: today, name: m.name, kcal: m.kcal, protein: m.protein, created_at: `${today}T0${m.n + 7}:00:00Z`,
+    id: `demo-food-${m.n}`, date: today, name: m.name, kcal: m.kcal, protein: m.protein,
+    created_at: new Date(`${today}T${['08:10', '13:30', '19:45'][m.n - 1]}`).toISOString(), // local times
   }))
   for (let i = 1; i <= 30; i++) {
     const d = addDays(today, -i)
@@ -88,6 +89,7 @@ export function useDemoStore(onExit: () => void): Store {
   const [goal, setGoalState] = useState<number | null>(60)
   const [food, setFood] = useState(initial.food)
   const [savedFoods, setSavedFoods] = useState(initial.savedFoods)
+  const [foodGoals, setFoodGoals] = useState<FoodGoals>({ kcal: KCAL_GOAL, protein: PROTEIN_GOAL })
 
   const setIds = (date: string, ids: string[], on: boolean) =>
     setDone((p) => {
@@ -99,7 +101,7 @@ export function useDemoStore(onExit: () => void): Store {
   return {
     userId: 'guest', isGuest: true,
     signOut: async () => onExit(),
-    tasks: tasks.filter((t) => !t.archived), done, weights, thoughts, thoughtsReady: true, goal, food, savedFoods, foodReady: true,
+    tasks: tasks.filter((t) => !t.archived), done, weights, thoughts, thoughtsReady: true, goal, food, savedFoods, foodReady: true, foodGoals,
     loading: false, error: null, clearError: () => {}, reload: async () => {},
     toggle: async (date, task, on) => setIds(date, [task.id], on),
     setWater: async (date, task, count) => {
@@ -126,8 +128,18 @@ export function useDemoStore(onExit: () => void): Store {
     removeFood: async (id) => setFood((p) => p.filter((x) => x.id !== id)),
     removeSavedFood: async (id) => setSavedFoods((p) => p.filter((x) => x.id !== id)),
     // Made-up numbers so the preview flow works without the real estimate function.
-    estimateFood: async (text) => {
+    setFoodGoals: async (g) => setFoodGoals(g),
+    suggestFood: async (_kcalLeft, _proteinLeft, meals) => {
       await new Promise((r) => setTimeout(r, 700))
+      return [
+        ...meals.filter((m) => m.protein >= 15).slice(0, 2).map((m) => ({ ...m, mine: true })),
+        { name: 'קוטג׳ 5% עם מלפפון', kcal: 230, protein: 27, mine: false },
+        { name: 'שייק חלבון עם מים', kcal: 120, protein: 24, mine: false },
+      ]
+    },
+    estimateFood: async (text, photo) => {
+      await new Promise((r) => setTimeout(r, 700))
+      if (photo && !text) text = 'סלט, חזה עוף, אורז'
       const items = text.split(/,|\+| עם | and /).map((x) => x.trim()).filter(Boolean).map((name) => ({
         name, kcal: 60 + Math.round(pseudo(name.length) * 30) * 10, protein: Math.round(pseudo(name.length + 1) * 25),
       }))

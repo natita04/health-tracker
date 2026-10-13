@@ -55,7 +55,8 @@ npm run dev
 
 ## Food tab (calorie + protein estimates)
 - Run `supabase/schema.sql` again once: it adds the `food_entries` and `saved_foods` tables.
-- `supabase/functions/food-estimate/index.ts` sends what you typed to Claude Haiku and returns calories and protein.
+- `supabase/functions/food-estimate/index.ts` sends what you typed (and/or a photo) to Claude Haiku and returns calories and protein.
+  With `mode: "ideas"` it suggests foods that close the protein gap within the calories left.
   Deploy it as a function named `food-estimate` with **JWT verification on** (only signed-in users can use it).
   Secret: `ANTHROPIC_API_KEY` (create it at platform.claude.com/settings/keys, it needs prepaid credit).
 - Without the function the tab still works: you just type the numbers in yourself.
