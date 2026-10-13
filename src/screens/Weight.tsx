@@ -103,7 +103,7 @@ export default function WeightScreen({ store }: { store: Store }) {
         </section>
       )}
 
-      <button className="btn-primary" onClick={() => setDialog('today')}>
+      <button className="btn-primary pinned-action" onClick={() => setDialog('today')}>
         <Icon name="plus" />{todayEntry ? "Edit today's weight" : "Log today's weight"}
       </button>
 

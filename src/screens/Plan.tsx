@@ -69,7 +69,7 @@ export default function Plan({ store }: { store: Store }) {
         </div>
       </section>
 
-      <button className="fab" onClick={addNew}><Icon name="plus" />Add item</button>
+      <button className="btn-primary pinned-action" onClick={addNew}><Icon name="plus" />Add item</button>
 
       {editing && (
         <EditDialog
