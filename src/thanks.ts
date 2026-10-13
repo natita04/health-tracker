@@ -1,6 +1,4 @@
-// Prompts for days when nothing comes to mind. "Need a nudge?" shows a random one next to the button.
-
-export const THANKS_TARGET = 3
+// Prompts for days when nothing comes to mind. "Need a nudge?" shows a random one above the input.
 
 export const PROMPTS: string[] = [
   'Someone who made you laugh lately',

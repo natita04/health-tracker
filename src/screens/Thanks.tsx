@@ -3,7 +3,7 @@ import type { Store } from '../store'
 import { addDays, fmt, todayIso } from '../dates'
 import { Badge, CAT_STYLE, Icon } from '../icons'
 import DayHeader from './DayHeader'
-import { PROMPTS, THANKS_TARGET } from '../thanks'
+import { PROMPTS } from '../thanks'
 
 /** A random prompt, never the same one twice in a row. */
 const randomPrompt = (current: string | null) => {
@@ -37,7 +37,9 @@ export default function Thanks({ store, date, setDate }: { store: Store; date: s
           <div>
             <h2>Thoughts</h2>
           </div>
-          <span className="counter">{items.length}/{THANKS_TARGET}</span>
+          <button type="button" className="hint-chip head-chip" disabled={!store.thoughtsReady} onClick={nudge}>
+            <Icon name="sparkle" size={14} />{hint ? 'Another nudge' : 'Need a nudge?'}
+          </button>
         </div>
         {!store.thoughtsReady ? (
           <p className="empty-line">Thoughts can't be saved yet: the database needs its one-time update (the SQL from setup).</p>
@@ -50,6 +52,8 @@ export default function Thanks({ store, date, setDate }: { store: Store; date: s
             </div>
           ))
         )}
+        {/* The nudge's prompt sits right above the input it's for. */}
+        {hint && <p className="nudge-text" aria-live="polite">{hint}</p>}
         <form
           className="add-form"
           onSubmit={(e) => {
@@ -67,12 +71,6 @@ export default function Thanks({ store, date, setDate }: { store: Store; date: s
             placeholder={date === today ? "Today I'm thankful for..." : "I'm thankful for..."} maxLength={500} disabled={!store.thoughtsReady} enterKeyHint="done" autoComplete="off" />
           <button className="add-btn" aria-label="Add thank you thought" disabled={!store.thoughtsReady}><Icon name="plus" /></button>
         </form>
-        <div className="nudge-row">
-          <button type="button" className="hint-chip" disabled={!store.thoughtsReady} onClick={nudge}>
-            <Icon name="sparkle" size={14} />{hint ? 'Another nudge' : 'Need a nudge?'}
-          </button>
-          {hint && <span className="nudge-text" aria-live="polite">{hint}</span>}
-        </div>
       </section>
 
       {pastDays.length > 0 && (

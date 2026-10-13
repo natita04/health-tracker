@@ -510,8 +510,8 @@ button.stat { width: 100%; }
 .past-date { font-size: 14px; font-weight: 600; color: var(--ink-muted); margin-bottom: 4px; }
 .past-day ul { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 2px; }
 .earlier-btn { align-self: center; }
-.nudge-row { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 10px; row-gap: 2px; padding: 0 6px; }
-.nudge-text { font-size: 15px; font-weight: 600; color: var(--butter-text); }
+.nudge-text { font-size: 15px; font-weight: 600; color: var(--tile-text); padding: 2px 6px 0; }
+.head-chip { margin-left: auto; }
 .eyebrow-rel { color: var(--ink); font-weight: 600; }
 
 /* My meals: filter by first letter */
