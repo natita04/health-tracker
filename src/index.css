@@ -490,7 +490,6 @@ button.stat { width: 100%; }
 .detail-anchor { scroll-margin-top: 16px; } .detail-anchor:empty { display: none; }
 
 /* ---------- goals, ideas, time of day, photo ---------- */
-.hero-link { align-self: flex-start; color: var(--on-ink); font-size: 14px; }
 .ideas-strip { text-align: left; color: var(--ink); }
 .ideas-strip .grow { display: flex; flex-direction: column; gap: 2px; }
 .ideas-title { font-size: 17px; font-weight: 600; }
@@ -499,3 +498,6 @@ button.stat { width: 100%; }
 .add-btn-soft { background: var(--surface); color: var(--ink); box-shadow: inset 0 0 0 1.5px var(--ink); }
 .dialog .add-btn-soft { background: var(--surface-muted); box-shadow: none; }
 .spinner-ink { border-color: var(--surface-muted); border-top-color: var(--ink); display: inline-block; }
+.goal-row { color: var(--peach-text); }
+.goal-row input { width: 96px; text-align: center; font-variant-numeric: tabular-nums; margin-left: auto; }
+.goal-row > span { width: 32px; }

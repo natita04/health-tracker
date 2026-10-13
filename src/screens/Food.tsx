@@ -60,7 +60,6 @@ export default function Food({ store }: { store: Store }) {
   const today = todayIso()
   const [adding, setAdding] = useState(false)
   const [editing, setEditing] = useState<FoodEntry | null>(null)
-  const [goalsOpen, setGoalsOpen] = useState(false)
   const [ideasOpen, setIdeasOpen] = useState(false)
   const goals = store.foodGoals
 
@@ -80,7 +79,6 @@ export default function Food({ store }: { store: Store }) {
       <section className="hero food-hero" aria-label="Today's totals">
         <Meter label="Calories" value={kcal} goal={goals.kcal} unit="kcal" tone="peach" overIsBad />
         <Meter label="Protein" value={protein} goal={goals.protein} unit="g" tone="sage" />
-        <button className="text-btn hero-link" onClick={() => setGoalsOpen(true)}>Edit goals</button>
       </section>
 
       {store.foodReady && goals.protein - protein >= GAP_MIN && (
@@ -133,7 +131,6 @@ export default function Food({ store }: { store: Store }) {
       </section>
 
       {adding && <AddSheet store={store} date={today} onClose={() => setAdding(false)} />}
-      {goalsOpen && <GoalsSheet store={store} onClose={() => setGoalsOpen(false)} />}
       {ideasOpen && (
         <IdeasSheet store={store} date={today} kcalLeft={Math.max(0, goals.kcal - kcal)}
           proteinLeft={Math.max(0, goals.protein - protein)} onClose={() => setIdeasOpen(false)} />
@@ -474,40 +471,6 @@ function ItemsForm({ name: initialName, items, onBack, onSave }: {
         <button className="btn btn-ink" disabled={!valid}>{separate ? `Add ${rows.length} items` : 'Add'}</button>
       </div>
     </form>
-  )
-}
-
-/** Daily calorie and protein targets. */
-function GoalsSheet({ store, onClose }: { store: Store; onClose: () => void }) {
-  const [kcalText, setKcal] = useState(String(store.foodGoals.kcal))
-  const [proteinText, setProtein] = useState(g1(store.foodGoals.protein))
-  const kcal = parseNum(kcalText, 10000)
-  const protein = parseNum(proteinText, 1000)
-  const valid = kcal != null && kcal >= 500 && protein != null && protein > 0
-  return (
-    <Sheet label="Daily goals" onClose={onClose}>
-      <form className="stack" onSubmit={(e) => {
-        e.preventDefault()
-        if (!valid) return
-        void store.setFoodGoals({ kcal: Math.round(kcal!), protein: Math.round(protein! * 10) / 10 })
-        onClose()
-      }}>
-        <h2>Daily goals</h2>
-        <div className="grid2">
-          <label>Calories, at most (kcal)
-            <input inputMode="numeric" value={kcalText} onChange={(e) => setKcal(e.target.value)} autoFocus />
-          </label>
-          <label>Protein, at least (g)
-            <input inputMode="decimal" value={proteinText} onChange={(e) => setProtein(e.target.value)} />
-          </label>
-        </div>
-        <div className="row end">
-          <span className="grow" />
-          <button type="button" className="btn btn-muted" onClick={onClose}>Cancel</button>
-          <button className="btn btn-ink" disabled={!valid}>Save</button>
-        </div>
-      </form>
-    </Sheet>
   )
 }
 
