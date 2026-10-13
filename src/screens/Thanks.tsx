@@ -1,46 +1,27 @@
 import { useRef, useState } from 'react'
-import type { Store, Thought } from '../store'
+import type { Store } from '../store'
 import { addDays, fmt, todayIso } from '../dates'
 import { Badge, Icon } from '../icons'
 import { PROMPTS, THANKS_TARGET } from '../thanks'
 
-const PROMPTS_SHOWN = 4
-const EARLIER_SHOWN = 7
-
-/** Deterministic shuffle seeded by the day, so prompts change daily but stay put within a day. */
-function shuffled<T>(list: T[], seed: number) {
-  const out = [...list]
-  let x = seed || 1
-  for (let i = out.length - 1; i > 0; i--) {
-    x = (x * 1103515245 + 12345) % 2147483648
-    const j = x % (i + 1)
-    ;[out[i], out[j]] = [out[j], out[i]]
-  }
-  return out
+/** A random prompt, never the same one twice in a row. */
+const randomPrompt = (current: string | null) => {
+  const pool = PROMPTS.filter((p) => p !== current)
+  return pool[Math.floor(Math.random() * pool.length)]
 }
 
 export default function Thanks({ store }: { store: Store }) {
   const today = todayIso()
   const [text, setText] = useState('')
   const [hint, setHint] = useState<string | null>(null)
-  const [page, setPage] = useState(0)
-  const [memorySeed, setMemorySeed] = useState(() => Math.floor(Math.random() * 1e9))
-  const [showAllDays, setShowAllDays] = useState(false)
+  const [showEarlier, setShowEarlier] = useState(false)
   const input = useRef<HTMLInputElement>(null)
   const items = store.thoughts[today] ?? []
-
-  const order = shuffled(PROMPTS, Number(today.replaceAll('-', '')))
-  const prompts = Array.from({ length: PROMPTS_SHOWN }, (_, i) => order[(page * PROMPTS_SHOWN + i) % order.length])
-
-  // Earlier days, newest first; one random thought from them as a little reminder.
   const pastDays = Object.keys(store.thoughts).filter((d) => d < today && store.thoughts[d].length).sort().reverse()
-  const past: Thought[] = pastDays.flatMap((d) => store.thoughts[d])
-  const memory = past.length ? past[memorySeed % past.length] : null
-  const daysShown = showAllDays ? pastDays : pastDays.slice(0, EARLIER_SHOWN)
 
-  // The prompt becomes the input's hint, so you can answer it in any language.
-  function use(prompt: string) {
-    setHint(prompt)
+  // A prompt to answer (in any language); shown in full above the input.
+  function nudge() {
+    setHint(randomPrompt(hint))
     input.current?.focus()
   }
 
@@ -75,6 +56,7 @@ export default function Thanks({ store }: { store: Store }) {
             </div>
           ))
         )}
+        {hint && <p className="nudge-text" aria-live="polite">{hint}</p>}
         <form
           className="add-form"
           onSubmit={(e) => {
@@ -89,62 +71,30 @@ export default function Thanks({ store }: { store: Store }) {
         >
           <label className="sr-only" htmlFor="thought-input">Something you're thankful for</label>
           <input id="thought-input" ref={input} dir="auto" value={text} onChange={(e) => setText(e.target.value)}
-            placeholder={hint ? `${hint}...` : "Today I'm thankful for..."} maxLength={500} disabled={!store.thoughtsReady} enterKeyHint="done" autoComplete="off" />
+            placeholder="Today I'm thankful for..." maxLength={500} disabled={!store.thoughtsReady} enterKeyHint="done" autoComplete="off" />
           <button className="add-btn" aria-label="Add thank you thought" disabled={!store.thoughtsReady}><Icon name="plus" /></button>
         </form>
+        <button type="button" className="text-btn nudge-btn" disabled={!store.thoughtsReady} onClick={nudge}>
+          <Icon name="sparkle" size={16} />{hint ? 'Another nudge' : 'Need a nudge?'}
+        </button>
       </section>
-
-      <section className="section tone-peach">
-        <div className="section-head">
-          <Badge name="sparkle" />
-          <div>
-            <h2>Need a nudge?</h2>
-            <div className="sub">Tap one, then write what comes to mind</div>
-          </div>
-        </div>
-        {prompts.map((p) => (
-          <button key={p} className="task-row prompt-row" disabled={!store.thoughtsReady} onClick={() => use(p)}>
-            <span className="task-body"><span className="task-title">{p}</span></span>
-            <Icon name="chevron-right" />
-          </button>
-        ))}
-        <button className="text-btn more-btn" onClick={() => setPage((n) => n + 1)}>Other ideas</button>
-      </section>
-
-      {memory && (
-        <section className="section tone-lilac">
-          <div className="section-head">
-            <Badge name="heart" />
-            <div>
-              <h2>From your past</h2>
-              <div className="sub">{fmt(memory.date, { weekday: 'long', day: 'numeric', month: 'short' })}</div>
-            </div>
-          </div>
-          <p className="memory" dir="auto">“{memory.text}”</p>
-          {past.length > 1 && (
-            <button className="text-btn more-btn" onClick={() => setMemorySeed((s) => s + 1 + Math.floor(Math.random() * (past.length - 1)))}>
-              Another one
-            </button>
-          )}
-        </section>
-      )}
 
       {pastDays.length > 0 && (
-        <section className="entries" aria-label="Earlier days">
-          {daysShown.map((d) => (
-            <div key={d} className="past-day">
-              <div className="past-date">{d === addDays(today, -1) ? 'Yesterday' : fmt(d, { weekday: 'short', day: 'numeric', month: 'short' })}</div>
-              <ul>
-                {store.thoughts[d].map((t) => <li key={t.id} dir="auto">{t.text}</li>)}
-              </ul>
-            </div>
-          ))}
-          {pastDays.length > EARLIER_SHOWN && (
-            <button className="more" onClick={() => setShowAllDays(!showAllDays)}>
-              {showAllDays ? 'Show less' : `Show all ${pastDays.length} days`}
-            </button>
-          )}
-        </section>
+        showEarlier ? (
+          <section className="entries" aria-label="Earlier days">
+            {pastDays.map((d) => (
+              <div key={d} className="past-day">
+                <div className="past-date">{d === addDays(today, -1) ? 'Yesterday' : fmt(d, { weekday: 'short', day: 'numeric', month: 'short' })}</div>
+                <ul>
+                  {store.thoughts[d].map((t) => <li key={t.id} dir="auto">{t.text}</li>)}
+                </ul>
+              </div>
+            ))}
+            <button className="more" onClick={() => setShowEarlier(false)}>Hide earlier days</button>
+          </section>
+        ) : (
+          <button className="btn btn-white earlier-btn" onClick={() => setShowEarlier(true)}>Show earlier days</button>
+        )
       )}
     </>
   )

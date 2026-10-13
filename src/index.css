@@ -498,10 +498,10 @@ button.stat { width: 100%; }
 .small-tile.is-done .tile-amount { opacity: .7; }
 
 /* ---------- thank you tab ---------- */
-.prompt-row { align-items: center; }
-.prompt-row .task-title { font-weight: 500; }
-.memory { font-size: 18px; line-height: 1.4; padding: 4px 8px 6px; overflow-wrap: anywhere; }
 .past-day { padding: 12px 0; }
 .past-day + .past-day { border-top: 1px solid var(--surface-muted); }
 .past-date { font-size: 14px; font-weight: 600; color: var(--ink-muted); margin-bottom: 4px; }
 .past-day ul { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 2px; }
+.nudge-btn { align-self: flex-start; display: inline-flex; align-items: center; gap: 6px; margin: 2px 6px 0; font-size: 14px; }
+.earlier-btn { align-self: center; }
+.nudge-text { font-size: 16px; font-weight: 600; color: var(--butter-text); padding: 4px 6px 0; }
