@@ -1,10 +1,9 @@
-import { useRef, useState, type ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import { tasksFor, type Store } from '../store'
 import { addDays, fmt, formatTime, todayIso } from '../dates'
 import { Badge, CAT_STYLE, Icon } from '../icons'
 import { WATER_PORTIONS, WATER_PORTION_L, type Category, type Task } from '../types'
 
-const THANKS_TARGET = 3
 // Sections in page order (after the tiles). Walk and water are tiles of their own.
 const SECTIONS: { cat: Category; title: string }[] = [
   { cat: 'MEDS', title: 'Meds & supplements' },
@@ -98,7 +97,6 @@ export default function Today({ store, date, setDate }: { store: Store; date: st
           )
         })}
 
-        <Thoughts store={store} date={date} />
       </div>
 
       {exercisesFor && <ExercisesSheet task={exercisesFor} onClose={() => setExercisesFor(null)} />}
@@ -194,46 +192,6 @@ function WaterTile({ task, done, onSet }: { task: Task; done: Set<string>; onSet
         </button>
       </div>
     </section>
-  )
-}
-
-function Thoughts({ store, date }: { store: Store; date: string }) {
-  const [text, setText] = useState('')
-  const input = useRef<HTMLInputElement>(null)
-  const items = store.thoughts[date] ?? []
-
-  return (
-    <Section tone="butter" icon="heart" title="Thank you thoughts" sub={`Aim for ${THANKS_TARGET} a day`} counter={`${items.length}/${THANKS_TARGET}`}>
-      {!store.thoughtsReady ? (
-        <p className="empty-line">Thoughts can't be saved yet: the database needs its one-time update (the SQL from setup).</p>
-      ) : items.length === 0 ? (
-        <p className="empty-line">Nothing yet today. What made you smile?</p>
-      ) : (
-        items.map((t, i) => (
-          <div key={t.id} className="thought">
-            <span className="num">{i + 1}</span>
-            <span className="thought-text">{t.text}</span>
-            <button className="icon-btn" aria-label="Remove" onClick={() => void store.removeThought(date, t.id)}><Icon name="x" /></button>
-          </div>
-        ))
-      )}
-      <form
-        className="add-form"
-        onSubmit={(e) => {
-          e.preventDefault()
-          const v = text.trim()
-          if (!v || !store.thoughtsReady) return
-          void store.addThought(date, v)
-          setText('')
-          input.current?.focus()
-        }}
-      >
-        <label className="sr-only" htmlFor="thought-input">Something you're thankful for</label>
-        <input id="thought-input" ref={input} value={text} onChange={(e) => setText(e.target.value)}
-          placeholder="Today I'm thankful for..." maxLength={500} disabled={!store.thoughtsReady} enterKeyHint="done" autoComplete="off" />
-        <button className="add-btn" aria-label="Add thank you thought" disabled={!store.thoughtsReady}><Icon name="plus" /></button>
-      </form>
-    </Section>
   )
 }
 

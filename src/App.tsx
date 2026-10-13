@@ -10,12 +10,14 @@ import WeightScreen from './screens/Weight'
 import History from './screens/History'
 import Plan from './screens/Plan'
 import Food from './screens/Food'
+import Thanks from './screens/Thanks'
 import { Icon, type IconName } from './icons'
 
-type Tab = 'today' | 'food' | 'weight' | 'history' | 'plan'
+type Tab = 'today' | 'food' | 'thanks' | 'weight' | 'history' | 'plan'
 const TABS: { id: Tab; label: string; icon: IconName }[] = [
   { id: 'today', label: 'Today', icon: 'check-circle' },
   { id: 'food', label: 'Food', icon: 'apple' },
+  { id: 'thanks', label: 'Thank you', icon: 'heart' },
   { id: 'weight', label: 'Weight', icon: 'scale' },
   { id: 'history', label: 'History', icon: 'chart' },
   { id: 'plan', label: 'Plan', icon: 'sliders' },
@@ -86,6 +88,7 @@ function Shell({ store }: { store: Store }) {
           <>
             {tab === 'today' && <Today store={store} date={date} setDate={setDate} />}
             {tab === 'food' && <Food store={store} />}
+            {tab === 'thanks' && <Thanks store={store} />}
             {tab === 'weight' && <WeightScreen store={store} />}
             {tab === 'history' && <History store={store} openDay={(d) => { setDate(d); setTab('today') }} />}
             {tab === 'plan' && <Plan store={store} />}
