@@ -96,9 +96,6 @@ export default function Food({ store }: { store: Store }) {
         <p className="banner small">The food log can't be saved yet: the database needs its one-time update (the SQL from setup).</p>
       )}
 
-      <button className="btn-primary" onClick={() => setAdding(true)} disabled={!store.foodReady}>
-        <Icon name="plus" />Add food
-      </button>
 
       <section className="section tone-sage">
         <div className="section-head">
@@ -129,6 +126,10 @@ export default function Food({ store }: { store: Store }) {
           ))
         )}
       </section>
+
+      <button className="btn-primary pinned-action" onClick={() => setAdding(true)} disabled={!store.foodReady}>
+        <Icon name="plus" />Add food
+      </button>
 
       {adding && <AddSheet store={store} date={today} onClose={() => setAdding(false)} />}
       {ideasOpen && (
