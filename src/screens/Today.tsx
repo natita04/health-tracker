@@ -157,8 +157,10 @@ function TaskRow({ task, done, onToggle }: { task: Task; done: boolean; onToggle
 
 /** Walk tile: icon and check on top, then the step goal, big. */
 function WalkTile({ task, done, onToggle }: { task: Task; done: boolean; onToggle: () => void }) {
-  // "Walk 6,500 steps" -> big "6,500", small "steps"; any other title shows as is.
-  const m = /([\d,.]+)\s*(steps?)/i.exec(task.title)
+  // The goal, big: "Walk 6,500 steps" -> 6,500 steps, "Walk 30 min" -> 30 min, "Walk 3 km" -> 3 km;
+  // otherwise the item's minutes; otherwise the title as is.
+  const t = /([\d,.]+)\s*(steps?|min(?:utes?)?|km|kilometers?)\b/i.exec(task.title)
+  const m = t ? [t[0], t[1], t[2]] : task.duration_min ? ['', String(task.duration_min), 'min'] : null
   return (
     <section className={`tile tone-sage small-tile ${done ? 'is-done' : ''}`}>
       <div className="tile-top">
