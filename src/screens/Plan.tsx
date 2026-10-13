@@ -27,7 +27,6 @@ export default function Plan({ store }: { store: Store }) {
   return (
     <>
       <header>
-        <p className="muted">Tap an item to change it</p>
         <h1 className="plain-title">Plan</h1>
       </header>
 
