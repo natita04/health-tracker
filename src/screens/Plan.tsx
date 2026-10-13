@@ -32,6 +32,7 @@ export default function Plan({ store }: { store: Store }) {
       </header>
 
       <MorningCard store={store} />
+      <FoodGoalsCard store={store} />
 
       {CATEGORIES.map((c) => {
         const items = store.tasks
@@ -80,6 +81,46 @@ export default function Plan({ store }: { store: Store }) {
         />
       )}
     </>
+  )
+}
+
+/** Daily calorie and protein goals for the Food tab; each field saves when you leave it. */
+function FoodGoalsCard({ store }: { store: Store }) {
+  const [kcal, setKcal] = useState(String(store.foodGoals.kcal))
+  const [protein, setProtein] = useState(String(store.foodGoals.protein))
+  const [msg, setMsg] = useState<string | null>(null)
+  const num = (t: string) => Number(t.replace(',', '.'))
+  const kcalOk = kcal.trim() !== '' && num(kcal) >= 500 && num(kcal) <= 10000
+  const proteinOk = protein.trim() !== '' && num(protein) > 0 && num(protein) <= 1000
+
+  function save() {
+    if (!kcalOk || !proteinOk) return setMsg('Calories need to be 500 to 10,000 and protein more than 0.')
+    const next = { kcal: Math.round(num(kcal)), protein: Math.round(num(protein) * 10) / 10 }
+    if (next.kcal === store.foodGoals.kcal && next.protein === store.foodGoals.protein) return setMsg(null)
+    void store.setFoodGoals(next)
+    setMsg('Saved.')
+  }
+
+  return (
+    <section className="section tone-peach">
+      <div className="section-head">
+        <Badge name="apple" />
+        <div><h2>Food goals</h2><div className="sub">For the Food tab and History</div></div>
+      </div>
+      <div className="notify-body">
+        <label className="time-row goal-row">Calories, at most
+          <input inputMode="numeric" value={kcal} className={kcalOk ? '' : 'invalid'}
+            onChange={(e) => setKcal(e.target.value)} onBlur={save} />
+          <span>kcal</span>
+        </label>
+        <label className="time-row goal-row">Protein, at least
+          <input inputMode="decimal" value={protein} className={proteinOk ? '' : 'invalid'}
+            onChange={(e) => setProtein(e.target.value)} onBlur={save} />
+          <span>g</span>
+        </label>
+        {msg && <p className="empty-line" role="status">{msg}</p>}
+      </div>
+    </section>
   )
 }
 
