@@ -86,7 +86,6 @@ export default function History({ store, openDay }: { store: Store; openDay: (d:
             <button key={c.id} className={`stat streak tone-${CAT_STYLE[c.id].tone}`} aria-pressed={open === c.id} onClick={() => toggle(c.id)}>
               <span className="row"><Badge name={CAT_STYLE[c.id].icon} /><span className="label">{c.label}</span></span>
               <span className="value">{s.current}<small>{s.current === 1 ? 'day' : 'days'}</small></span>
-              <span className="label">Best: {days(s.best)}</span>
             </button>
           )
         })}
