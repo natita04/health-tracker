@@ -43,9 +43,10 @@ const g1 = (n: number) => String(Math.round(n * 10) / 10)
 const num = (n: number) => Math.round(n).toLocaleString('en-US')
 const meta = (f: FoodInput) => `${Math.round(f.kcal)} kcal · ${g1(f.protein)} g protein`
 
-/** What the confirm sheet is editing: a new meal (from an estimate or typed in) or one already logged. */
+/** What the confirm sheet is editing: a new meal (from an estimate or typed in), one already logged, or a saved meal's defaults. */
 interface Draft {
   entry?: FoodEntry
+  saved?: SavedFood
   name: string
   kcal: string
   protein: string
@@ -156,6 +157,7 @@ function AddSheet({ store, date, onClose }: { store: Store; date: string; onClos
   const [showAll, setShowAll] = useState(false)
   /** names of saved meals added while the sheet is open, to show a tick */
   const [added, setAdded] = useState<Set<string>>(new Set())
+  const [editingSaved, setEditingSaved] = useState<SavedFood | null>(null)
 
   // Most eaten first: how many times each name was logged in the loaded history (last 120 days),
   // then the most recently used. Typing narrows the list down.
@@ -189,6 +191,21 @@ function AddSheet({ store, date, onClose }: { store: Store; date: string; onClos
     } finally {
       setBusy(false)
     }
+  }
+
+  if (editingSaved) {
+    const s = editingSaved
+    return (
+      <Sheet label="Edit saved meal" onClose={onClose}>
+        <FoodForm
+          draft={{ saved: s, name: s.name, kcal: String(s.kcal), protein: g1(s.protein) }}
+          onCancel={() => setEditingSaved(null)}
+          cancelLabel="Back"
+          onRemove={() => { if (confirm('Remove this from My meals?')) { void store.removeSavedFood(s.id); setEditingSaved(null) } }}
+          onSave={(f) => { void store.updateSavedFood({ ...s, ...f }); setEditingSaved(null) }}
+        />
+      </Sheet>
+    )
   }
 
   if (draft?.items && draft.items.length > 1) {
@@ -242,7 +259,7 @@ function AddSheet({ store, date, onClose }: { store: Store; date: string; onClos
           onClick={() => setDraft({ name: text.trim(), kcal: '', protein: '' })}>
           <Icon name="pencil" />
         </button>
-        <input ref={photoInput} type="file" accept="image/*" hidden
+        <input ref={photoInput} type="file" accept="image/*" capture="environment" hidden
           onChange={(e) => {
             const file = e.target.files?.[0]
             e.target.value = '' // so picking the same photo again still fires
@@ -276,10 +293,10 @@ function AddSheet({ store, date, onClose }: { store: Store; date: string; onClos
               const isAdded = added.has(s.name)
               return (
                 <div key={s.id} className="food-row">
-                  <span className="food-body">
+                  <button className="food-body food-edit" aria-label={`Edit ${s.name}`} onClick={() => setEditingSaved(s)}>
                     <span className="food-name" dir="auto">{s.name}</span>
                     <span className="food-meta">{meta(s)}</span>
-                  </span>
+                  </button>
                   {showAll && (
                     <button className="icon-btn" aria-label={`Forget ${s.name}`}
                       onClick={() => { if (confirm('Remove this from My meals?')) void store.removeSavedFood(s.id) }}>
@@ -344,7 +361,7 @@ function FoodForm({ draft, onCancel, cancelLabel = 'Cancel', onSave, onRemove }:
   const [kcalText, setKcal] = useState(draft.kcal)
   const [proteinText, setProtein] = useState(draft.protein)
   const [remember, setRemember] = useState(true)
-  const isNew = !draft.entry
+  const isNew = !draft.entry && !draft.saved
   const kcal = Number(kcalText.replace(',', '.'))
   const protein = Number(proteinText.replace(',', '.'))
   const valid = name.trim() !== '' && kcalText.trim() !== '' && proteinText.trim() !== ''
@@ -353,8 +370,9 @@ function FoodForm({ draft, onCancel, cancelLabel = 'Cancel', onSave, onRemove }:
   return (
     <form className="stack"
       onSubmit={(e) => { e.preventDefault(); if (valid) onSave({ name: name.trim(), kcal: Math.round(kcal), protein: Math.round(protein * 10) / 10 }, remember) }}>
-      <h2>{isNew ? (draft.note || !draft.kcal ? 'Add a meal' : 'Check the numbers') : 'Edit meal'}</h2>
+      <h2>{draft.saved ? 'Edit saved meal' : isNew ? (draft.note || !draft.kcal ? 'Add a meal' : 'Check the numbers') : 'Edit meal'}</h2>
       {draft.note && <p className="banner small">{draft.note}</p>}
+      {draft.saved && <p className="muted small">Changes what one tap adds from now on. Meals already logged stay as they are.</p>}
       {isNew && draft.kcal && !draft.note && <p className="muted small">An estimate, so tweak anything that looks off.</p>}
       <label>What you ate
         <input dir="auto" value={name} onChange={(e) => setName(e.target.value)} maxLength={200} autoFocus={!name} />
