@@ -126,6 +126,7 @@ export function useDemoStore(onExit: () => void): Store {
     },
     updateFood: async (entry) => setFood((p) => p.map((x) => (x.id === entry.id ? entry : x))),
     removeFood: async (id) => setFood((p) => p.filter((x) => x.id !== id)),
+    updateSavedFood: async (saved) => setSavedFoods((p) => p.map((x) => (x.id === saved.id ? saved : x))),
     removeSavedFood: async (id) => setSavedFoods((p) => p.filter((x) => x.id !== id)),
     // Made-up numbers so the preview flow works without the real estimate function.
     setFoodGoals: async (g) => setFoodGoals(g),

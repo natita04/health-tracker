@@ -258,6 +258,15 @@ export function useStore(userId: string) {
     if (error) { setFood(before); fail(error) }
   }
 
+  /** Changes a saved meal's defaults; meals already logged keep their numbers. */
+  async function updateSavedFood(saved: SavedFood) {
+    const before = savedFoods
+    setSavedFoods((p) => p.map((x) => (x.id === saved.id ? saved : x)))
+    const { name, kcal, protein } = saved
+    const { error } = await supabase.from('saved_foods').update({ name, kcal, protein }).eq('id', saved.id)
+    if (error) { setSavedFoods(before); fail(error) }
+  }
+
   async function removeSavedFood(id: string) {
     const before = savedFoods
     setSavedFoods((p) => p.filter((x) => x.id !== id))
@@ -316,7 +325,7 @@ export function useStore(userId: string) {
     tasks: active, done, weights, thoughts, thoughtsReady, goal, food, savedFoods, foodReady, foodGoals,
     loading, error, clearError: () => setError(null), reload: load,
     toggle, setWater, addThought, removeThought, setGoal, saveWeight, deleteWeight, saveTask, archiveTask, exportBackup,
-    addFood, updateFood, removeFood, removeSavedFood, estimateFood, suggestFood, setFoodGoals,
+    addFood, updateFood, removeFood, updateSavedFood, removeSavedFood, estimateFood, suggestFood, setFoodGoals,
   }
 }
 
