@@ -1,6 +1,6 @@
 import { tasksFor, type Store } from './store'
 import { addDays, dayIndex, todayIso } from './dates'
-import { CATEGORIES, WATER_PORTIONS, WATER_PORTION_L, type Category } from './types'
+import { TRACKED, WATER_PORTIONS, WATER_PORTION_L, type Category } from './types'
 import type { IconName } from './icons'
 import { CAT_STYLE } from './icons'
 
@@ -62,7 +62,7 @@ export function insights(store: Store): Insight[] {
   const past30 = last30.filter((d) => d < today)
   if (past30.length < 3) return []
 
-  const cats = CATEGORIES.filter((c) => store.tasks.some((t) => t.category === c.id))
+  const cats = TRACKED.filter((c) => store.tasks.some((t) => t.category === c.id))
   const out: Insight[] = []
   const style = (c: Category) => ({ tone: CAT_STYLE[c].tone, icon: CAT_STYLE[c].icon })
 
