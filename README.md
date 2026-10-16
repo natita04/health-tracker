@@ -46,17 +46,13 @@ npm install
 npm run dev
 ```
 
-## Morning notification (web push)
-- `public/sw.js` shows the notification; `src/push.ts` subscribes the device (Plan tab).
-- `supabase/functions/morning-push/index.ts` builds each device's plan for the day and sends it.
+## Reminders (web push)
+- Any item can send a push reminder at its time: edit it in **Settings** and turn on **Push reminder**.
+  It's skipped if you already checked the item off that day.
+- **Chores** is a reminder-only category: chores never show on Today, History or stats,
+  they just ping you on their days at their time.
+- `public/sw.js` shows the notification; `src/push.ts` subscribes the device (Settings tab).
+- `supabase/functions/reminders/index.ts` runs every 5 minutes and sends whatever is due, in each device's time zone.
   Secrets: `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` (the public one is also in `src/push.ts`).
-  JWT verification is off for this function; it only ever sends a device its own once-a-day summary.
-- `supabase/push.sql`: the `push_subscriptions` table (part 1) and the every-5-minutes cron job (part 2).
-
-## Food tab (calorie + protein estimates)
-- Run `supabase/schema.sql` again once: it adds the `food_entries` and `saved_foods` tables.
-- `supabase/functions/food-estimate/index.ts` sends what you typed (and/or a photo) to Claude Haiku and returns calories and protein.
-  With `mode: "ideas"` it suggests foods that close the protein gap within the calories left.
-  Deploy it as a function named `food-estimate` with **JWT verification on** (only signed-in users can use it).
-  Secret: `ANTHROPIC_API_KEY` (create it at platform.claude.com/settings/keys, it needs prepaid credit).
-- Without the function the tab still works: you just type the numbers in yourself.
+  JWT verification is off for this function; it only sends devices their own reminders.
+- `supabase/push.sql`: the tables (part 1) and the every-5-minutes cron job (part 2).

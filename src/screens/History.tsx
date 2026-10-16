@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { tasksFor, type Store } from '../store'
 import { addDays, dayIndex, fmt, todayIso } from '../dates'
-import { CATEGORIES, WATER_PORTIONS, WATER_PORTION_L, type Category } from '../types'
+import { CATEGORIES, TRACKED, WATER_PORTIONS, WATER_PORTION_L, type Category } from '../types'
 import { Badge, CAT_STYLE, Icon } from '../icons'
 import { dayStat, insights, startDate, streaks } from '../stats'
 import FoodHistory from './FoodHistory'
@@ -20,7 +20,7 @@ export default function History({ store, openDay }: { store: Store; openDay: (d:
   const [week, setWeek] = useState(thisWeek)
   const [open, setOpen] = useState<Tile | null>(null)
   const start = startDate(store)
-  const cats = CATEGORIES.filter((c) => store.tasks.some((t) => t.category === c.id))
+  const cats = TRACKED.filter((c) => store.tasks.some((t) => t.category === c.id))
   const tips = insights(store)
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(week, i))
   const toggle = (t: Tile) => setOpen((p) => (p === t ? null : t))

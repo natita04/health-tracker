@@ -1,4 +1,4 @@
-export type Category = 'WEIGH' | 'WALK' | 'WATER' | 'WORKOUT' | 'MEDS' | 'BEAUTY'
+export type Category = 'WEIGH' | 'WALK' | 'WATER' | 'WORKOUT' | 'MEDS' | 'BEAUTY' | 'CHORE'
 
 export const CATEGORIES: { id: Category; label: string; emoji: string }[] = [
   { id: 'WEIGH', label: 'Weigh-in', emoji: '⚖️' },
@@ -7,9 +7,16 @@ export const CATEGORIES: { id: Category; label: string; emoji: string }[] = [
   { id: 'WORKOUT', label: 'Workout', emoji: '🏋️' },
   { id: 'MEDS', label: 'Meds & supplements', emoji: '💊' },
   { id: 'BEAUTY', label: 'Beauty', emoji: '💆' },
+  { id: 'CHORE', label: 'Chores', emoji: '🧹' },
 ]
 
-export const catInfo = (c: string) => CATEGORIES.find((x) => x.id === c) ?? CATEGORIES[CATEGORIES.length - 1]
+/** Chores never show in the app (Today, History, stats): they only exist to send reminders. */
+export const isChore = (t: { category: string }) => t.category === 'CHORE'
+
+/** Categories that are tracked in the app, i.e. everything but chores. */
+export const TRACKED = CATEGORIES.filter((c) => c.id !== 'CHORE')
+
+export const catInfo = (c: string) => CATEGORIES.find((x) => x.id === c) ?? TRACKED[TRACKED.length - 1]
 
 /** Water is tracked in 0.5 L portions; 8 portions = 4 L. */
 export const WATER_PORTIONS = 8
@@ -32,6 +39,8 @@ export interface Task {
   /** Only show from / until these days (YYYY-MM-DD), both optional. */
   start_date: string | null
   end_date: string | null
+  /** Send a push reminder at time_minutes on scheduled days. Chores always remind. */
+  notify?: boolean
   sort_order: number
   archived: boolean
   created_at?: string

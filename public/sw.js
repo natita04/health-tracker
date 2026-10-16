@@ -1,4 +1,4 @@
-// Service worker: shows the morning push notification and opens the app when tapped.
+// Service worker: shows reminder push notifications and opens the app when tapped.
 self.addEventListener('install', () => self.skipWaiting())
 self.addEventListener('activate', (event) => event.waitUntil(self.clients.claim()))
 
@@ -10,7 +10,7 @@ self.addEventListener('push', (event) => {
     body: data.body || '',
     icon: '/icon-192.png',
     badge: '/badge-96.png',
-    tag: data.tag || 'morning',
+    tag: data.tag || 'reminder',
     renotify: true,
     data: { url: data.url || '/' },
   }))

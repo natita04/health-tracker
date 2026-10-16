@@ -7,7 +7,7 @@
 create table if not exists public.tasks (
   user_id      uuid not null default auth.uid() references auth.users on delete cascade,
   id           text not null,               -- stable key, history points at it
-  category     text not null,               -- WEIGH | WALK | WORKOUT | MEDS | BEAUTY
+  category     text not null,               -- WEIGH | WALK | WATER | WORKOUT | MEDS | BEAUTY | CHORE
   title        text not null,
   details      text not null default '',
   duration_min int,
@@ -47,6 +47,7 @@ create table if not exists public.user_settings (
 -- Added later; harmless if the columns already exist.
 alter table public.tasks add column if not exists start_date date;
 alter table public.tasks add column if not exists end_date   date;
+alter table public.tasks add column if not exists notify     boolean not null default false; -- push reminder at time_minutes
 
 -- Thank you thoughts: free-text entries per day.
 create table if not exists public.thoughts (

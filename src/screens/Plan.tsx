@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { disablePush, enablePush, readPush, sendTestPush, setPushTime, type PushState } from '../push'
+import { disablePush, enablePush, readPush, sendTestPush, syncTimeZone, type PushStatus } from '../push'
 import type { Store } from '../store'
 import { fmt, formatTime, parseTime } from '../dates'
 import { MORE_WORKOUTS_URL } from '../defaults'
@@ -32,7 +32,7 @@ export default function Plan({ store }: { store: Store }) {
 
       {/* Every group is the same white card: icon, title and subtitle, then grey rows. */}
       <div className="settings stack-section">
-        <MorningCard store={store} />
+        <RemindersCard store={store} />
         <FoodGoalsCard store={store} />
 
         {CATEGORIES.map((c) => {
@@ -55,6 +55,7 @@ export default function Plan({ store }: { store: Store }) {
                     <span className="task-note">
                       {[daysLabel(t.days_mask), t.time_minutes != null && formatTime(t.time_minutes),
                         t.duration_min && `${t.duration_min} min`,
+                        (t.notify || t.category === 'CHORE') && '🔔',
                         t.start_date && `from ${fmt(t.start_date, { day: 'numeric', month: 'short' })}`,
                         t.end_date && `until ${fmt(t.end_date, { day: 'numeric', month: 'short' })}`, t.videos?.length && `▶ ${t.videos.length} video${t.videos.length > 1 ? 's' : ''}`, t.steps?.length && 'exercise list']
                         .filter(Boolean).join(' · ')}
@@ -134,15 +135,14 @@ function FoodGoalsCard({ store }: { store: Store }) {
   )
 }
 
-function MorningCard({ store }: { store: Store }) {
-  const [state, setState] = useState<PushState | null>(null)
-  const [time, setTime] = useState('05:00')
+function RemindersCard({ store }: { store: Store }) {
+  const [status, setStatus] = useState<PushStatus | null>(null)
   const [msg, setMsg] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
 
   useEffect(() => {
     if (store.isGuest) return
-    readPush().then((s) => { setState(s); setTime(formatTime(s.minutes)) }).catch(() => setState({ status: 'off', minutes: 300 }))
+    readPush().then((s) => { setStatus(s); if (s === 'on') void syncTimeZone() }).catch(() => setStatus('off'))
   }, [store.isGuest])
 
   const run = async (fn: () => Promise<unknown>, ok?: string) => {
@@ -150,50 +150,42 @@ function MorningCard({ store }: { store: Store }) {
     try { await fn(); if (ok) setMsg(ok) } catch (e) { setMsg(`Something went wrong: ${(e as Error).message}`) }
     setBusy(false)
   }
-  const minutes = parseTime(time) ?? 300
+  const count = store.tasks.filter((t) => (t.notify || t.category === 'CHORE') && t.time_minutes != null).length
 
   return (
     <section className="section">
       <div className="section-head">
         <Badge name="bell" />
-        <div><h2>Morning notification</h2></div>
+        <div><h2>Reminders</h2></div>
       </div>
       <div className="notify-body">
         {store.isGuest ? (
           <p className="empty-line">Notifications are off in the guest preview.</p>
-        ) : state === null ? (
+        ) : status === null ? (
           <p className="empty-line">Checking this device…</p>
-        ) : state.status === 'unsupported' ? (
+        ) : status === 'unsupported' ? (
           <p className="empty-line">This browser can't receive notifications. On iPhone, add the app to your home screen first and open it from there.</p>
-        ) : state.status === 'denied' ? (
+        ) : status === 'denied' ? (
           <p className="empty-line">Notifications are blocked for this site. Allow them in your browser's site settings, then come back here.</p>
         ) : (
           <>
-            {/* Time and the on / off switch on one line; the test button below once it's on. */}
-            <div className="row wrap time-line">
-              <label className="time-row"><span className="sr-only">Time</span>
-                <input type="time" value={time} disabled={busy}
-                  onChange={(e) => {
-                    setTime(e.target.value)
-                    const m = parseTime(e.target.value)
-                    if (state.status === 'on' && m != null) void run(() => setPushTime(m), `Saved, see you at ${e.target.value}.`)
-                  }} />
-              </label>
-              {state.status === 'on' ? (
-                <button className="btn btn-white" disabled={busy}
-                  onClick={() => run(async () => { await disablePush(); setState({ status: 'off', minutes }) }, 'Turned off on this device.')}>Turn off</button>
+            <p className="empty-line">
+              {count ? `${count} item${count === 1 ? '' : 's'} with a reminder.` : 'No reminders yet.'} Turn one on by editing an item, or add a chore.
+            </p>
+            <div className="row wrap">
+              {status === 'on' ? (
+                <>
+                  <button className="btn btn-ink" disabled={busy} onClick={() => run(sendTestPush, 'Sent! It should pop up in a few seconds.')}>Send a test</button>
+                  <button className="btn btn-white" disabled={busy}
+                    onClick={() => run(async () => { await disablePush(); setStatus('off') }, 'Turned off on this device.')}>Turn off</button>
+                </>
               ) : (
-                <button className="btn btn-ink" disabled={busy} aria-label="Turn on for this device"
-                  onClick={() => run(async () => { const st = await enablePush(store.userId, minutes); setState({ status: st, minutes }) }, `On! First one tomorrow at ${time}.`)}>
-                  Turn on
+                <button className="btn btn-ink" disabled={busy}
+                  onClick={() => run(async () => setStatus(await enablePush(store.userId)), 'On! Reminders will show up on this device.')}>
+                  Turn on for this device
                 </button>
               )}
             </div>
-            {state.status === 'on' && (
-              <div className="row wrap">
-                <button className="btn btn-ink" disabled={busy} onClick={() => run(sendTestPush, 'Sent! It should pop up in a few seconds.')}>Send a test</button>
-              </div>
-            )}
           </>
         )}
         {msg && <p className="empty-line" role="status">{msg}</p>}
@@ -215,8 +207,12 @@ function EditDialog({ task, isNew, onClose, onSave, onRemove }: {
   const [start, setStart] = useState(task.start_date ?? '')
   const [end, setEnd] = useState(task.end_date ?? '')
   const [steps, setSteps] = useState((task.steps ?? []).join('\n'))
+  const [notify, setNotify] = useState(task.notify ?? false)
 
-  const timeOk = !time.trim() || parseTime(time) != null
+  const chore = category === 'CHORE'
+  // A reminder needs a time to go off at; chores are nothing but a reminder.
+  const needsTime = chore || notify
+  const timeOk = time.trim() ? parseTime(time) != null : !needsTime
   const valid = title.trim() !== '' && timeOk && days !== 0 && (!start || !end || start <= end)
 
   // Videos and the exercise list only belong to workouts.
@@ -230,12 +226,13 @@ function EditDialog({ task, isNew, onClose, onSave, onRemove }: {
     })
     onSave({
       ...task, title: title.trim(), details: details.trim(), category, days_mask: days,
-      duration_min: duration ? Number(duration) : null,
+      duration_min: !chore && duration ? Number(duration) : null,
       time_minutes: time.trim() ? parseTime(time) : null,
       videos: vids.length ? vids : null,
       start_date: start || null,
       end_date: end || null,
       steps: lines.length ? lines : null,
+      notify: chore || notify,
     })
   }
 
@@ -264,9 +261,18 @@ function EditDialog({ task, isNew, onClose, onSave, onRemove }: {
         </div>
 
         <div className="row gap">
-          <label className="grow">Minutes<input inputMode="numeric" value={duration} onChange={(e) => setDuration(e.target.value.replace(/\D/g, '').slice(0, 3))} /></label>
-          <label className="grow">Time (HH:MM)<input value={time} onChange={(e) => setTime(e.target.value)} placeholder="optional" className={timeOk ? '' : 'invalid'} /></label>
+          {!chore && <label className="grow">Minutes<input inputMode="numeric" value={duration} onChange={(e) => setDuration(e.target.value.replace(/\D/g, '').slice(0, 3))} /></label>}
+          <label className="grow">{chore ? 'Reminder time (HH:MM)' : 'Time (HH:MM)'}
+            <input value={time} onChange={(e) => setTime(e.target.value)} placeholder={needsTime ? 'needed for the reminder' : 'optional'} className={timeOk ? '' : 'invalid'} />
+          </label>
         </div>
+        {chore ? (
+          <span className="muted small">Chores don't show in the app, they just send you a reminder on the days and time above.</span>
+        ) : (
+          <button type="button" className={notify ? 'chip on' : 'chip'} onClick={() => setNotify(!notify)}>
+            <Icon name="bell" size={16} />Push reminder at this time
+          </button>
+        )}
         <div className="row gap">
           <label className="grow">Starts<input type="date" value={start} onChange={(e) => setStart(e.target.value)} /></label>
           <label className="grow">Ends<input type="date" value={end} onChange={(e) => setEnd(e.target.value)} /></label>
