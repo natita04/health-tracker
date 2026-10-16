@@ -194,12 +194,22 @@ function RemindersCard({ store }: { store: Store }) {
   )
 }
 
+const PLACEHOLDER: Record<Category, string> = {
+  WEIGH: 'e.g. Weigh yourself',
+  WALK: 'e.g. Walk 10,000 steps',
+  WATER: 'e.g. Drink 4 L of water',
+  WORKOUT: 'e.g. Leg day',
+  MEDS: 'e.g. Vitamin D',
+  BEAUTY: 'e.g. Face mask',
+  CHORE: 'e.g. Take out the trash',
+}
+
 function EditDialog({ task, isNew, onClose, onSave, onRemove }: {
   task: Task; isNew: boolean; onClose: () => void; onSave: (t: Task) => void; onRemove: () => void
 }) {
   const [title, setTitle] = useState(task.title)
-  const [details, setDetails] = useState(task.details)
-  const [category, setCategory] = useState<Category>(task.category)
+  // A new item starts with no category: picking one is the first step and shapes the rest of the form.
+  const [category, setCategory] = useState<Category | null>(isNew ? null : task.category)
   const [days, setDays] = useState(task.days_mask)
   const [duration, setDuration] = useState(task.duration_min?.toString() ?? '')
   const [time, setTime] = useState(task.time_minutes != null ? formatTime(task.time_minutes) : '')
@@ -213,19 +223,20 @@ function EditDialog({ task, isNew, onClose, onSave, onRemove }: {
   // A reminder needs a time to go off at; chores are nothing but a reminder.
   const needsTime = chore || notify
   const timeOk = time.trim() ? parseTime(time) != null : !needsTime
-  const valid = title.trim() !== '' && timeOk && days !== 0 && (!start || !end || start <= end)
+  const valid = category != null && title.trim() !== '' && timeOk && days !== 0 && (!start || !end || start <= end)
 
   // Videos and the exercise list only belong to workouts.
   const isWorkout = category === 'WORKOUT'
 
   const save = () => {
+    if (!category) return
     const lines = isWorkout ? steps.split('\n').map((s) => s.trim()).filter(Boolean) : []
     const vids = !isWorkout ? [] : videos.split('\n').map((l) => l.trim()).filter(Boolean).map((l, i) => {
       const [a, b] = l.includes('|') ? l.split('|').map((s) => s.trim()) : ['', l]
       return { title: a || `Option ${i + 1}`, url: b }
     })
     onSave({
-      ...task, title: title.trim(), details: details.trim(), category, days_mask: days,
+      ...task, title: title.trim(), category, days_mask: days,
       duration_min: !chore && duration ? Number(duration) : null,
       time_minutes: time.trim() ? parseTime(time) : null,
       videos: vids.length ? vids : null,
@@ -240,10 +251,8 @@ function EditDialog({ task, isNew, onClose, onSave, onRemove }: {
     <div className="overlay" onClick={onClose}>
       <form className="dialog stack" onClick={(e) => e.stopPropagation()} onSubmit={(e) => { e.preventDefault(); if (valid) save() }}>
         <h2>{isNew ? 'New item' : 'Edit item'}</h2>
-        <label>Name<input value={title} onChange={(e) => setTitle(e.target.value)} required /></label>
-        <label>Notes<input value={details} onChange={(e) => setDetails(e.target.value)} /></label>
 
-        <span className="label">Category</span>
+        <span className="label">{isNew && !category ? 'What kind of item?' : 'Category'}</span>
         <div className="chips">
           {CATEGORIES.map((c) => (
             <button type="button" key={c.id} className={category === c.id ? 'chip on' : 'chip'} onClick={() => setCategory(c.id)}>
@@ -251,6 +260,12 @@ function EditDialog({ task, isNew, onClose, onSave, onRemove }: {
             </button>
           ))}
         </div>
+
+        {category && <>
+        <label>Name
+          <input value={title} onChange={(e) => setTitle(e.target.value)} required autoFocus={isNew}
+            placeholder={PLACEHOLDER[category]} />
+        </label>
 
         <span className="label">Days</span>
         <div className="chips">
@@ -261,22 +276,27 @@ function EditDialog({ task, isNew, onClose, onSave, onRemove }: {
         </div>
 
         <div className="row gap">
-          {!chore && <label className="grow">Minutes<input inputMode="numeric" value={duration} onChange={(e) => setDuration(e.target.value.replace(/\D/g, '').slice(0, 3))} /></label>}
-          <label className="grow">{chore ? 'Reminder time (HH:MM)' : 'Time (HH:MM)'}
-            <input value={time} onChange={(e) => setTime(e.target.value)} placeholder={needsTime ? 'needed for the reminder' : 'optional'} className={timeOk ? '' : 'invalid'} />
+          <label className="grow">{chore ? 'Reminder time' : 'Time'}
+            <input type="time" value={time} onChange={(e) => setTime(e.target.value)} className={timeOk ? '' : 'invalid'} />
           </label>
+          {!chore && <label className="grow">Minutes<input inputMode="numeric" value={duration} placeholder="optional" onChange={(e) => setDuration(e.target.value.replace(/\D/g, '').slice(0, 3))} /></label>}
         </div>
         {chore ? (
-          <span className="muted small">Chores don't show in the app, they just send you a reminder on the days and time above.</span>
+          <span className="muted small">Chores don't show in the app, they just send you a reminder on these days at this time.</span>
         ) : (
           <button type="button" className={notify ? 'chip on' : 'chip'} onClick={() => setNotify(!notify)}>
             <Icon name="bell" size={16} />Push reminder at this time
           </button>
         )}
-        <div className="row gap">
-          <label className="grow">Starts<input type="date" value={start} onChange={(e) => setStart(e.target.value)} /></label>
-          <label className="grow">Ends<input type="date" value={end} onChange={(e) => setEnd(e.target.value)} /></label>
-        </div>
+        {!timeOk && <span className="muted small">Pick a time so the reminder knows when to go off.</span>}
+
+        <details className="more" open={Boolean(start || end)}>
+          <summary className="label">Only for a while? Set start and end dates</summary>
+          <div className="row gap">
+            <label className="grow">Starts<input type="date" value={start} onChange={(e) => setStart(e.target.value)} /></label>
+            <label className="grow">Ends<input type="date" value={end} onChange={(e) => setEnd(e.target.value)} /></label>
+          </div>
+        </details>
         {isWorkout && (
           <>
             <label>Videos (one per line: Title | link)
@@ -288,6 +308,7 @@ function EditDialog({ task, isNew, onClose, onSave, onRemove }: {
             </label>
           </>
         )}
+        </>}
 
         <div className="row end">
           {!isNew && (
