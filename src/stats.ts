@@ -6,10 +6,14 @@ import { CAT_STYLE } from './icons'
 
 export interface DayStat { date: string; done: number; total: number }
 
-/** The first day you used the app; earlier days don't count as misses. */
+/**
+ * The first day that counts: when you started using the app, or the fresh start set in
+ * user_settings.history_from if that's later. Earlier days don't count as misses or wins.
+ */
 export function startDate(store: Store) {
   const today = todayIso()
-  return store.tasks.reduce((m, t) => (t.created_at && t.created_at.slice(0, 10) < m ? t.created_at.slice(0, 10) : m), today)
+  const first = store.tasks.reduce((m, t) => (t.created_at && t.created_at.slice(0, 10) < m ? t.created_at.slice(0, 10) : m), today)
+  return store.historyFrom && store.historyFrom > first ? store.historyFrom : first
 }
 
 export function dayStat(store: Store, date: string, cat?: Category): DayStat {
@@ -121,7 +125,7 @@ export function insights(store: Store): Insight[] {
   }
 
   // Weight over 30 days.
-  const w = store.weights.filter((x) => x.date >= addDays(today, -30))
+  const w = store.weights.filter((x) => x.date >= addDays(today, -30) && x.date >= start)
   if (w.length >= 2) {
     const diff = w[w.length - 1].kg - w[0].kg
     if (Math.abs(diff) >= 0.1) {
@@ -130,7 +134,7 @@ export function insights(store: Store): Insight[] {
   }
 
   // Thank you thoughts this week.
-  const week = Array.from({ length: 7 }, (_, i) => addDays(today, -i))
+  const week = Array.from({ length: 7 }, (_, i) => addDays(today, -i)).filter((d) => d >= start)
   const thanks = week.reduce((n, d) => n + (store.thoughts[d]?.length ?? 0), 0)
   if (thanks > 0) out.push({ id: 'thanks', text: `${thanks} thank you thought${thanks === 1 ? '' : 's'} this week.`, ...CAT_STYLE.THANKS })
 

@@ -67,6 +67,8 @@ export function useStore(userId: string) {
   /** false until the thoughts table exists (see supabase/schema.sql) */
   const [thoughtsReady, setThoughtsReady] = useState(true)
   const [goal, setGoalState] = useState<number | null>(null)
+  /** History, streaks and insights only count from this day on (user_settings.history_from). */
+  const [historyFrom, setHistoryFrom] = useState<string | null>(null)
   const [food, setFood] = useState<FoodEntry[]>([])
   const [savedFoods, setSavedFoods] = useState<SavedFood[]>([])
   /** false until the food tables exist (see supabase/schema.sql) */
@@ -127,6 +129,8 @@ export function useStore(userId: string) {
       }
       const g = await supabase.from('user_settings').select('goal_kg').maybeSingle()
       setGoalState(!g.error && g.data?.goal_kg != null ? Number(g.data.goal_kg) : null)
+      const h = await supabase.from('user_settings').select('history_from').maybeSingle()
+      setHistoryFrom(!h.error && h.data?.history_from ? h.data.history_from : null)
     } catch (e) {
       fail(e)
     } finally {
@@ -322,7 +326,7 @@ export function useStore(userId: string) {
 
   return {
     userId, isGuest: false, signOut: async (): Promise<void> => { await supabase.auth.signOut() },
-    tasks: active, done, weights, thoughts, thoughtsReady, goal, food, savedFoods, foodReady, foodGoals,
+    tasks: active, done, weights, thoughts, thoughtsReady, goal, historyFrom, food, savedFoods, foodReady, foodGoals,
     loading, error, clearError: () => setError(null), reload: load,
     toggle, setWater, addThought, removeThought, setGoal, saveWeight, deleteWeight, saveTask, archiveTask, exportBackup,
     addFood, updateFood, removeFood, updateSavedFood, removeSavedFood, estimateFood, suggestFood, setFoodGoals,

@@ -101,7 +101,7 @@ export function useDemoStore(onExit: () => void): Store {
   return {
     userId: 'guest', isGuest: true,
     signOut: async () => onExit(),
-    tasks: tasks.filter((t) => !t.archived), done, weights, thoughts, thoughtsReady: true, goal, food, savedFoods, foodReady: true, foodGoals,
+    tasks: tasks.filter((t) => !t.archived), done, weights, thoughts, thoughtsReady: true, goal, historyFrom: null as string | null, food, savedFoods, foodReady: true, foodGoals,
     loading: false, error: null, clearError: () => {}, reload: async () => {},
     toggle: async (date, task, on) => setIds(date, [task.id], on),
     setWater: async (date, task, count) => {

@@ -6,7 +6,7 @@ import { Badge, CAT_STYLE, Icon } from '../icons'
 import { dayStat, insights, startDate, streaks } from '../stats'
 import FoodHistory from './FoodHistory'
 
-const WEEKDAYS = ['M', 'T', 'W', 'T', 'F', 'S', 'S']
+const WEEKDAYS = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
 const DETAIL_DAYS = 30
 
 type Tile = Category | 'FOOD'
@@ -16,7 +16,7 @@ const days = (n: number) => `${n} ${n === 1 ? 'day' : 'days'}`
 
 export default function History({ store, openDay }: { store: Store; openDay: (d: string) => void }) {
   const today = todayIso()
-  const thisWeek = addDays(today, -dayIndex(today)) // Monday
+  const thisWeek = addDays(today, -((dayIndex(today) + 1) % 7)) // Sunday
   const [week, setWeek] = useState(thisWeek)
   const [open, setOpen] = useState<Tile | null>(null)
   const start = startDate(store)
@@ -30,7 +30,7 @@ export default function History({ store, openDay }: { store: Store; openDay: (d:
 
   // Food tile: average over the last 7 full days that have something logged.
   const foodDays: Record<string, number> = {}
-  for (const f of store.food) foodDays[f.date] = (foodDays[f.date] ?? 0) + f.kcal
+  for (const f of store.food) if (f.date >= start) foodDays[f.date] = (foodDays[f.date] ?? 0) + f.kcal
   const last7 = Array.from({ length: 7 }, (_, i) => addDays(today, -i - 1)).filter((d) => foodDays[d] != null)
   const avgKcal = last7.length ? Math.round(last7.reduce((s, d) => s + foodDays[d], 0) / last7.length) : null
 
@@ -138,7 +138,7 @@ function CategoryDetail({ store, cat, onClose }: { store: Store; cat: Category; 
       return `${litres.toFixed(1)} L a day on average, last 7 days`
     }
     if (cat === 'WEIGH') {
-      const w = store.weights.filter((x) => x.date >= from)
+      const w = store.weights.filter((x) => x.date >= from && x.date >= start)
       if (w.length < 2) return w.length ? '1 weigh-in in the last 30 days' : null
       const diff = w[w.length - 1].kg - w[0].kg
       return `${w.length} weigh-ins in the last 30 days, ${diff <= 0 ? 'down' : 'up'} ${Math.abs(diff).toFixed(1)} kg`

@@ -59,6 +59,9 @@ create table if not exists public.thoughts (
 );
 create index if not exists thoughts_user_date on public.thoughts (user_id, date);
 
+-- Fresh start: history, streaks and insights only count from this day on.
+alter table public.user_settings add column if not exists history_from date;
+
 -- Optional weight goal.
 alter table public.user_settings add column if not exists goal_kg numeric(5, 2);
 

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import type { Store } from '../store'
+import { startDate } from '../stats'
 import { addDays, fmt, todayIso } from '../dates'
 
 type Range = '1W' | '1M' | '3M'
@@ -20,7 +21,9 @@ export default function FoodHistory({ store }: { store: Store }) {
   const [selected, setSelected] = useState<string | null>(null)
 
   const totals: Record<string, { kcal: number; protein: number }> = {}
+  const start = startDate(store)
   for (const f of store.food) {
+    if (f.date < start) continue
     const t = (totals[f.date] ??= { kcal: 0, protein: 0 })
     t.kcal += f.kcal
     t.protein += f.protein
