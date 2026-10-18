@@ -7,13 +7,14 @@ export const CATEGORIES: { id: Category; label: string; emoji: string }[] = [
   { id: 'WORKOUT', label: 'Workout', emoji: '🏋️' },
   { id: 'MEDS', label: 'Meds & supplements', emoji: '💊' },
   { id: 'BEAUTY', label: 'Beauty', emoji: '💆' },
-  { id: 'CHORE', label: 'Chores', emoji: '🧹' },
+  // Stored as CHORE in the database; shown as Reminders.
+  { id: 'CHORE', label: 'Reminders', emoji: '🔔' },
 ]
 
-/** Chores never show in the app (Today, History, stats): they only exist to send reminders. */
-export const isChore = (t: { category: string }) => t.category === 'CHORE'
+/** Reminders never show in the app (Today, History, stats): they only exist to send a push notification. */
+export const isReminder = (t: { category: string }) => t.category === 'CHORE'
 
-/** Categories that are tracked in the app, i.e. everything but chores. */
+/** Categories that are tracked in the app, i.e. everything but reminders. */
 export const TRACKED = CATEGORIES.filter((c) => c.id !== 'CHORE')
 
 export const catInfo = (c: string) => CATEGORIES.find((x) => x.id === c) ?? TRACKED[TRACKED.length - 1]
@@ -39,8 +40,6 @@ export interface Task {
   /** Only show from / until these days (YYYY-MM-DD), both optional. */
   start_date: string | null
   end_date: string | null
-  /** Send a push reminder at time_minutes on scheduled days. Chores always remind. */
-  notify?: boolean
   sort_order: number
   archived: boolean
   created_at?: string

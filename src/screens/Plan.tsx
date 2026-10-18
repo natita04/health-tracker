@@ -8,6 +8,7 @@ import { Badge, CAT_STYLE, Icon } from '../icons'
 
 // Display order Sun..Sat, with their days_mask bit (Monday = bit 0).
 const WEEK: [string, number][] = [['Sun', 6], ['Mon', 0], ['Tue', 1], ['Wed', 2], ['Thu', 3], ['Fri', 4], ['Sat', 5]]
+const LETTER: Record<string, string> = { Sun: 'S', Mon: 'M', Tue: 'T', Wed: 'W', Thu: 'T', Fri: 'F', Sat: 'S' }
 
 const daysLabel = (mask: number) =>
   mask === ALL_DAYS ? 'Every day' : WEEK.filter(([, b]) => mask & (1 << b)).map(([n]) => n).join(', ')
@@ -32,14 +33,15 @@ export default function Plan({ store }: { store: Store }) {
 
       {/* Every group is the same white card: icon, title and subtitle, then grey rows. */}
       <div className="settings stack-section">
-        <RemindersCard store={store} />
         <FoodGoalsCard store={store} />
 
         {CATEGORIES.map((c) => {
           const items = store.tasks
             .filter((t) => t.category === c.id)
             .sort((a, b) => (a.time_minutes ?? -1) - (b.time_minutes ?? -1) || a.sort_order - b.sort_order)
-          if (!items.length) return null
+          const reminders = c.id === 'CHORE'
+          // The Reminders section always shows: it's where this device's notifications get turned on.
+          if (!items.length && !reminders) return null
           return (
             <section key={c.id} className={`section tone-${CAT_STYLE[c.id].tone}`}>
               <div className="section-head">
@@ -55,7 +57,6 @@ export default function Plan({ store }: { store: Store }) {
                     <span className="task-note">
                       {[daysLabel(t.days_mask), t.time_minutes != null && formatTime(t.time_minutes),
                         t.duration_min && `${t.duration_min} min`,
-                        (t.notify || t.category === 'CHORE') && '🔔',
                         t.start_date && `from ${fmt(t.start_date, { day: 'numeric', month: 'short' })}`,
                         t.end_date && `until ${fmt(t.end_date, { day: 'numeric', month: 'short' })}`, t.videos?.length && `▶ ${t.videos.length} video${t.videos.length > 1 ? 's' : ''}`, t.steps?.length && 'exercise list']
                         .filter(Boolean).join(' · ')}
@@ -64,6 +65,7 @@ export default function Plan({ store }: { store: Store }) {
                   <Icon name="chevron-right" />
                 </button>
               ))}
+              {reminders && <ReminderDevice store={store} empty={!items.length} />}
             </section>
           )
         })}
@@ -135,7 +137,8 @@ function FoodGoalsCard({ store }: { store: Store }) {
   )
 }
 
-function RemindersCard({ store }: { store: Store }) {
+/** Turn push notifications on or off for this device; lives at the bottom of the Reminders section. */
+function ReminderDevice({ store, empty }: { store: Store; empty: boolean }) {
   const [status, setStatus] = useState<PushStatus | null>(null)
   const [msg, setMsg] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
@@ -150,15 +153,9 @@ function RemindersCard({ store }: { store: Store }) {
     try { await fn(); if (ok) setMsg(ok) } catch (e) { setMsg(`Something went wrong: ${(e as Error).message}`) }
     setBusy(false)
   }
-  const count = store.tasks.filter((t) => (t.notify || t.category === 'CHORE') && t.time_minutes != null).length
-
   return (
-    <section className="section">
-      <div className="section-head">
-        <Badge name="bell" />
-        <div><h2>Reminders</h2></div>
-      </div>
       <div className="notify-body">
+        {empty && <p className="empty-line">Nothing yet. Tap Add item and pick Reminders: it pings you on the days and time you choose.</p>}
         {store.isGuest ? (
           <p className="empty-line">Notifications are off in the guest preview.</p>
         ) : status === null ? (
@@ -169,9 +166,7 @@ function RemindersCard({ store }: { store: Store }) {
           <p className="empty-line">Notifications are blocked for this site. Allow them in your browser's site settings, then come back here.</p>
         ) : (
           <>
-            <p className="empty-line">
-              {count ? `${count} item${count === 1 ? '' : 's'} with a reminder.` : 'No reminders yet.'} Turn one on by editing an item, or add a chore.
-            </p>
+            {status !== 'on' && <p className="empty-line">Notifications are off on this device.</p>}
             <div className="row wrap">
               {status === 'on' ? (
                 <>
@@ -190,7 +185,6 @@ function RemindersCard({ store }: { store: Store }) {
         )}
         {msg && <p className="empty-line" role="status">{msg}</p>}
       </div>
-    </section>
   )
 }
 
@@ -217,12 +211,9 @@ function EditDialog({ task, isNew, onClose, onSave, onRemove }: {
   const [start, setStart] = useState(task.start_date ?? '')
   const [end, setEnd] = useState(task.end_date ?? '')
   const [steps, setSteps] = useState((task.steps ?? []).join('\n'))
-  const [notify, setNotify] = useState(task.notify ?? false)
-
-  const chore = category === 'CHORE'
-  // A reminder needs a time to go off at; chores are nothing but a reminder.
-  const needsTime = chore || notify
-  const timeOk = time.trim() ? parseTime(time) != null : !needsTime
+  const reminder = category === 'CHORE'
+  // A reminder needs a time to go off at.
+  const timeOk = time.trim() ? parseTime(time) != null : !reminder
   const valid = category != null && title.trim() !== '' && timeOk && days !== 0 && (!start || !end || start <= end)
 
   // Videos and the exercise list only belong to workouts.
@@ -237,13 +228,12 @@ function EditDialog({ task, isNew, onClose, onSave, onRemove }: {
     })
     onSave({
       ...task, title: title.trim(), category, days_mask: days,
-      duration_min: !chore && duration ? Number(duration) : null,
+      duration_min: !reminder && duration ? Number(duration) : null,
       time_minutes: time.trim() ? parseTime(time) : null,
       videos: vids.length ? vids : null,
       start_date: start || null,
       end_date: end || null,
       steps: lines.length ? lines : null,
-      notify: chore || notify,
     })
   }
 
@@ -268,27 +258,20 @@ function EditDialog({ task, isNew, onClose, onSave, onRemove }: {
         </label>
 
         <span className="label">Days</span>
-        <div className="chips">
+        <div className="chips day-chips">
           {WEEK.map(([n, b]) => (
-            <button type="button" key={n} className={days & (1 << b) ? 'chip on' : 'chip'} onClick={() => setDays(days ^ (1 << b))}>{n}</button>
+            <button type="button" key={n} aria-label={n} aria-pressed={(days & (1 << b)) !== 0}
+              className={days & (1 << b) ? 'chip on' : 'chip'} onClick={() => setDays(days ^ (1 << b))}>{LETTER[n]}</button>
           ))}
-          <button type="button" className={days === ALL_DAYS ? 'chip on' : 'chip'} onClick={() => setDays(ALL_DAYS)}>All</button>
         </div>
 
         <div className="row gap">
-          <label className="grow">{chore ? 'Reminder time' : 'Time'}
+          <label className="grow">{reminder ? 'Reminder time' : 'Time'}
             <input type="time" value={time} onChange={(e) => setTime(e.target.value)} className={timeOk ? '' : 'invalid'} />
           </label>
-          {!chore && <label className="grow">Minutes<input inputMode="numeric" value={duration} placeholder="optional" onChange={(e) => setDuration(e.target.value.replace(/\D/g, '').slice(0, 3))} /></label>}
+          {!reminder && <label className="grow">Minutes<input inputMode="numeric" value={duration} placeholder="optional" onChange={(e) => setDuration(e.target.value.replace(/\D/g, '').slice(0, 3))} /></label>}
         </div>
-        {chore ? (
-          <span className="muted small">Chores don't show in the app, they just send you a reminder on these days at this time.</span>
-        ) : (
-          <button type="button" className={notify ? 'chip on' : 'chip'} onClick={() => setNotify(!notify)}>
-            <Icon name="bell" size={16} />Push reminder at this time
-          </button>
-        )}
-        {!timeOk && <span className="muted small">Pick a time so the reminder knows when to go off.</span>}
+        {reminder && <span className="muted small">Reminders don't show in the app, they just send you a notification on these days at this time.</span>}
 
         <details className="more" open={Boolean(start || end)}>
           <summary className="label">Only for a while? Set start and end dates</summary>

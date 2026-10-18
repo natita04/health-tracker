@@ -59,7 +59,7 @@ export const CAT_STYLE: Record<Category | 'THANKS' | 'FOOD', { tone: Tone; icon:
   MEDS: { tone: 'sand', icon: 'pill' },
   BEAUTY: { tone: 'lilac', icon: 'sparkle' },
   FOOD: { tone: 'peach', icon: 'apple' },
-  CHORE: { tone: 'plain', icon: 'home' },
+  CHORE: { tone: 'plain', icon: 'bell' },
   THANKS: { tone: 'butter', icon: 'heart' },
 }
 
