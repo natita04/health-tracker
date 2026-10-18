@@ -47,10 +47,9 @@ npm run dev
 ```
 
 ## Reminders (web push)
-- Any item can send a push reminder at its time: edit it in **Settings** and turn on **Push reminder**.
-  It's skipped if you already checked the item off that day.
-- **Chores** is a reminder-only category: chores never show on Today, History or stats,
-  they just ping you on their days at their time.
+- **Reminders** is its own category in Settings: reminders never show on Today, History or stats,
+  they just send a push notification on their days at their time. (Stored as category `CHORE`.)
+- Turn notifications on for a device at the bottom of the Reminders section.
 - `public/sw.js` shows the notification; `src/push.ts` subscribes the device (Settings tab).
 - `supabase/functions/reminders/index.ts` runs every 5 minutes and sends whatever is due, in each device's time zone.
   Secrets: `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` (the public one is also in `src/push.ts`).

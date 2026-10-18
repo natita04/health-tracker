@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { supabase } from './supabase'
 import { newSince, UPGRADES, VERSION } from './defaults'
 import { addDays, isOn, todayIso } from './dates'
-import { isChore, KCAL_GOAL, PROTEIN_GOAL, WATER_PORTIONS, type FoodEntry, type FoodEstimate, type FoodGoals, type FoodIdea, type FoodInput, type FoodPhoto, type SavedFood, type Task, type Weight } from './types'
+import { isReminder, KCAL_GOAL, PROTEIN_GOAL, WATER_PORTIONS, type FoodEntry, type FoodEstimate, type FoodGoals, type FoodIdea, type FoodInput, type FoodPhoto, type SavedFood, type Task, type Weight } from './types'
 
 const HISTORY_DAYS = 120
 
@@ -329,8 +329,8 @@ export function useStore(userId: string) {
   }
 }
 
-/** What's on the plan for a day. Chores are left out: they're reminders only. */
+/** What's on the plan for a day. Reminders are left out: they only send a notification. */
 export const tasksFor = (tasks: Task[], date: string) =>
   tasks
-    .filter((t) => !isChore(t) && isOn(t.days_mask, date) && (!t.start_date || date >= t.start_date) && (!t.end_date || date <= t.end_date))
+    .filter((t) => !isReminder(t) && isOn(t.days_mask, date) && (!t.start_date || date >= t.start_date) && (!t.end_date || date <= t.end_date))
     .sort((a, b) => (a.time_minutes ?? -1) - (b.time_minutes ?? -1) || a.sort_order - b.sort_order)
