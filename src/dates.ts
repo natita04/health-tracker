@@ -22,6 +22,16 @@ export const dayIndex = (s: string) => (fromIso(s).getDay() + 6) % 7
 
 export const isOn = (mask: number, s: string) => (mask & (1 << dayIndex(s))) !== 0
 
+/** Whole days from a to b (negative when b is earlier). */
+export const daysBetween = (a: string, b: string) => Math.round((fromIso(b).getTime() - fromIso(a).getTime()) / 86_400_000)
+
+/** Whether an item falls on a day: every N days counted from its start date, or else on its weekdays. */
+export const isScheduled = (t: { days_mask: number; every_days?: number | null; start_date: string | null }, s: string) => {
+  if (!t.every_days) return isOn(t.days_mask, s)
+  const n = daysBetween(t.start_date ?? s, s)
+  return n >= 0 && n % t.every_days === 0
+}
+
 export const formatTime = (m: number) => `${pad(Math.floor(m / 60))}:${pad(m % 60)}`
 
 export const parseTime = (t: string): number | null => {

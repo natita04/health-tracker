@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { disablePush, enablePush, readPush, sendTestPush, syncTimeZone, type PushStatus } from '../push'
 import type { Store } from '../store'
-import { fmt, formatTime, parseTime } from '../dates'
+import { fmt, formatTime, parseTime, todayIso } from '../dates'
 import { MORE_WORKOUTS_URL } from '../defaults'
 import { ALL_DAYS, CATEGORIES, type Category, type Task } from '../types'
 import { Badge, CAT_STYLE, Icon } from '../icons'
@@ -10,8 +10,9 @@ import { Badge, CAT_STYLE, Icon } from '../icons'
 const WEEK: [string, number][] = [['Sun', 6], ['Mon', 0], ['Tue', 1], ['Wed', 2], ['Thu', 3], ['Fri', 4], ['Sat', 5]]
 const LETTER: Record<string, string> = { Sun: 'S', Mon: 'M', Tue: 'T', Wed: 'W', Thu: 'T', Fri: 'F', Sat: 'S' }
 
-const daysLabel = (mask: number) =>
-  mask === ALL_DAYS ? 'Every day' : WEEK.filter(([, b]) => mask & (1 << b)).map(([n]) => n).join(', ')
+const daysLabel = (t: Task) =>
+  t.every_days ? (t.every_days === 1 ? 'Every day' : `Every ${t.every_days} days`)
+    : t.days_mask === ALL_DAYS ? 'Every day' : WEEK.filter(([, b]) => t.days_mask & (1 << b)).map(([n]) => n).join(', ')
 
 export default function Plan({ store }: { store: Store }) {
   const [editing, setEditing] = useState<{ task: Task; isNew: boolean } | null>(null)
@@ -55,7 +56,7 @@ export default function Plan({ store }: { store: Store }) {
                   <span className="task-body">
                     <span className="task-title">{t.title}</span>
                     <span className="task-note">
-                      {[daysLabel(t.days_mask), t.time_minutes != null && formatTime(t.time_minutes),
+                      {[t.details, daysLabel(t), t.time_minutes != null && formatTime(t.time_minutes),
                         t.duration_min && `${t.duration_min} min`,
                         t.start_date && `from ${fmt(t.start_date, { day: 'numeric', month: 'short' })}`,
                         t.end_date && `until ${fmt(t.end_date, { day: 'numeric', month: 'short' })}`, t.videos?.length && `▶ ${t.videos.length} video${t.videos.length > 1 ? 's' : ''}`, t.steps?.length && 'exercise list']
@@ -202,9 +203,13 @@ function EditDialog({ task, isNew, onClose, onSave, onRemove }: {
   task: Task; isNew: boolean; onClose: () => void; onSave: (t: Task) => void; onRemove: () => void
 }) {
   const [title, setTitle] = useState(task.title)
+  const [details, setDetails] = useState(task.details)
   // A new item starts with no category: picking one is the first step and shapes the rest of the form.
   const [category, setCategory] = useState<Category | null>(isNew ? null : task.category)
   const [days, setDays] = useState(task.days_mask)
+  // Repeat on weekdays, or every N days counted from the start date.
+  const [byInterval, setByInterval] = useState(Boolean(task.every_days))
+  const [every, setEvery] = useState(task.every_days?.toString() ?? '2')
   const [duration, setDuration] = useState(task.duration_min?.toString() ?? '')
   const [time, setTime] = useState(task.time_minutes != null ? formatTime(task.time_minutes) : '')
   const [videos, setVideos] = useState((task.videos ?? []).map((v) => `${v.title} | ${v.url}`).join('\n'))
@@ -214,7 +219,8 @@ function EditDialog({ task, isNew, onClose, onSave, onRemove }: {
   const reminder = category === 'CHORE'
   // A reminder needs a time to go off at.
   const timeOk = time.trim() ? parseTime(time) != null : !reminder
-  const valid = category != null && title.trim() !== '' && timeOk && days !== 0 && (!start || !end || start <= end)
+  const everyOk = Number(every) >= 1 && Number(every) <= 365
+  const valid = category != null && title.trim() !== '' && timeOk && (byInterval ? everyOk : days !== 0) && (!start || !end || start <= end)
 
   // Videos and the exercise list only belong to workouts.
   const isWorkout = category === 'WORKOUT'
@@ -227,11 +233,14 @@ function EditDialog({ task, isNew, onClose, onSave, onRemove }: {
       return { title: a || `Option ${i + 1}`, url: b }
     })
     onSave({
-      ...task, title: title.trim(), category, days_mask: days,
+      ...task, title: title.trim(), details: details.trim(), category, days_mask: days,
+      // Left undefined (not sent) for weekday items that never had an interval.
+      every_days: byInterval ? Number(every) : task.every_days ? null : undefined,
       duration_min: !reminder && duration ? Number(duration) : null,
       time_minutes: time.trim() ? parseTime(time) : null,
       videos: vids.length ? vids : null,
-      start_date: start || null,
+      // Every N days needs a day to count from: today when no start date is set.
+      start_date: start || (byInterval ? todayIso() : null),
       end_date: end || null,
       steps: lines.length ? lines : null,
     })
@@ -251,19 +260,40 @@ function EditDialog({ task, isNew, onClose, onSave, onRemove }: {
           ))}
         </div>
 
+        {category === 'WEIGH' && <span className="muted small">The days you step on the scale. It ticks itself off when you log your weight in the Weight tab.</span>}
+
         {category && <>
         <label>Name
           <input value={title} onChange={(e) => setTitle(e.target.value)} required autoFocus={isNew}
             placeholder={PLACEHOLDER[category]} />
         </label>
 
-        <span className="label">Days</span>
-        <div className="chips day-chips">
-          {WEEK.map(([n, b]) => (
-            <button type="button" key={n} aria-label={n} aria-pressed={(days & (1 << b)) !== 0}
-              className={days & (1 << b) ? 'chip on' : 'chip'} onClick={() => setDays(days ^ (1 << b))}>{LETTER[n]}</button>
-          ))}
+        <label>Notes
+          <input value={details} onChange={(e) => setDetails(e.target.value)} placeholder="optional, e.g. Morning, Evening, with food" />
+        </label>
+
+        <span className="label">Repeat</span>
+        <div className="chips">
+          <button type="button" aria-pressed={!byInterval} className={byInterval ? 'chip' : 'chip on'} onClick={() => setByInterval(false)}>On these days</button>
+          <button type="button" aria-pressed={byInterval} className={byInterval ? 'chip on' : 'chip'} onClick={() => setByInterval(true)}>Every few days</button>
         </div>
+        {byInterval ? (
+          <>
+            <label className="every-row">Every
+              <input inputMode="numeric" value={every} className={everyOk ? '' : 'invalid'} aria-label="Number of days"
+                onChange={(e) => setEvery(e.target.value.replace(/\D/g, '').slice(0, 3))} />
+              <span>days</span>
+            </label>
+            <span className="muted small">Counted from the start date. Leave it blank to start today.</span>
+          </>
+        ) : (
+          <div className="chips day-chips">
+            {WEEK.map(([n, b]) => (
+              <button type="button" key={n} aria-label={n} aria-pressed={(days & (1 << b)) !== 0}
+                className={days & (1 << b) ? 'chip on' : 'chip'} onClick={() => setDays(days ^ (1 << b))}>{LETTER[n]}</button>
+            ))}
+          </div>
+        )}
 
         <div className="row gap">
           <label className="grow">{reminder ? 'Reminder time' : 'Time'}
@@ -273,13 +303,10 @@ function EditDialog({ task, isNew, onClose, onSave, onRemove }: {
         </div>
         {reminder && <span className="muted small">Reminders don't show in the app, they just send you a notification on these days at this time.</span>}
 
-        <details className="more" open={Boolean(start || end)}>
-          <summary className="label">Only for a while? Set start and end dates</summary>
-          <div className="row gap">
-            <label className="grow">Starts<input type="date" value={start} onChange={(e) => setStart(e.target.value)} /></label>
-            <label className="grow">Ends<input type="date" value={end} onChange={(e) => setEnd(e.target.value)} /></label>
-          </div>
-        </details>
+        <div className="row gap">
+          <label className="grow">Starts<input type="date" value={start} onChange={(e) => setStart(e.target.value)} /></label>
+          <label className="grow">Ends<input type="date" value={end} onChange={(e) => setEnd(e.target.value)} /></label>
+        </div>
         {isWorkout && (
           <>
             <label>Videos (one per line: Title | link)
