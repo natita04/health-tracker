@@ -31,6 +31,8 @@ export interface Task {
   duration_min: number | null
   /** bit 0 = Monday ... bit 6 = Sunday */
   days_mask: number
+  /** Every N days from start_date instead of on weekdays; days_mask is ignored when set. */
+  every_days?: number | null
   /** minutes after midnight */
   time_minutes: number | null
   /** Video options to pick from. */

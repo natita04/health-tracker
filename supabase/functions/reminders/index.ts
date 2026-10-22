@@ -20,7 +20,15 @@ const LATE_WINDOW_MIN = 30 // cron runs every 5 min; if it was down longer, skip
 interface Sub { endpoint: string; user_id: string; p256dh: string; auth: string; tz: string }
 interface Task {
   id: string; user_id: string; category: string; title: string; details: string; days_mask: number
+  every_days?: number | null
   time_minutes: number | null; start_date: string | null; end_date: string | null
+}
+
+/** Every N days from start_date, or else on its weekdays (Mon=0). */
+function onDay(t: Task, date: string, weekday: number) {
+  if (!t.every_days) return (t.days_mask & (1 << weekday)) !== 0
+  const n = Math.round((Date.parse(date) - Date.parse(t.start_date ?? date)) / 86_400_000)
+  return n >= 0 && n % t.every_days === 0
 }
 
 /** Local date (YYYY-MM-DD), minutes after midnight and weekday (Mon=0) in a time zone. */
@@ -95,7 +103,7 @@ Deno.serve(async (req) => {
     const now = localNow(sub.tz)
     const due = (tasks as Task[]).filter((t) =>
       t.user_id === sub.user_id &&
-      (t.days_mask & (1 << now.weekday)) !== 0 &&
+      onDay(t, now.date, now.weekday) &&
       (!t.start_date || now.date >= t.start_date) && (!t.end_date || now.date <= t.end_date) &&
       now.minutes >= t.time_minutes! && now.minutes < t.time_minutes! + LATE_WINDOW_MIN)
     for (const t of due) {

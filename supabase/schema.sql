@@ -48,6 +48,7 @@ create table if not exists public.user_settings (
 alter table public.tasks add column if not exists start_date date;
 alter table public.tasks add column if not exists end_date   date;
 alter table public.tasks add column if not exists notify     boolean not null default false; -- push reminder at time_minutes
+alter table public.tasks add column if not exists every_days int check (every_days between 1 and 365); -- every N days from start_date
 
 -- Thank you thoughts: free-text entries per day.
 create table if not exists public.thoughts (
