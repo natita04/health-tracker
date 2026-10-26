@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { supabase } from './supabase'
 import { newSince, UPGRADES, VERSION } from './defaults'
 import { addDays, isScheduled, todayIso } from './dates'
-import { isReminder, KCAL_GOAL, PROTEIN_GOAL, WATER_PORTIONS, type FoodEntry, type FoodEstimate, type FoodGoals, type FoodIdea, type FoodInput, type FoodPhoto, type SavedFood, type Task, type Weight } from './types'
+import { isReminder, partRank, KCAL_GOAL, PROTEIN_GOAL, WATER_PORTIONS, type FoodEntry, type FoodEstimate, type FoodGoals, type FoodIdea, type FoodInput, type FoodPhoto, type SavedFood, type Task, type Weight } from './types'
 
 const HISTORY_DAYS = 120
 
@@ -333,4 +333,4 @@ export function useStore(userId: string) {
 export const tasksFor = (tasks: Task[], date: string) =>
   tasks
     .filter((t) => !isReminder(t) && isScheduled(t, date) && (!t.start_date || date >= t.start_date) && (!t.end_date || date <= t.end_date))
-    .sort((a, b) => (a.time_minutes ?? -1) - (b.time_minutes ?? -1) || a.sort_order - b.sort_order)
+    .sort((a, b) => partRank(a) - partRank(b) || (a.time_minutes ?? -1) - (b.time_minutes ?? -1) || a.sort_order - b.sort_order)
