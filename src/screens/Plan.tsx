@@ -3,7 +3,7 @@ import { disablePush, enablePush, readPush, sendTestPush, syncTimeZone, type Pus
 import type { Store } from '../store'
 import { fmt, formatTime, parseTime, todayIso } from '../dates'
 import { MORE_WORKOUTS_URL } from '../defaults'
-import { ALL_DAYS, CATEGORIES, type Category, type Task } from '../types'
+import { ALL_DAYS, CATEGORIES, PARTS, partRank, type Category, type PartOfDay, type Task } from '../types'
 import { Badge, CAT_STYLE, Icon } from '../icons'
 
 // Display order Sun..Sat, with their days_mask bit (Monday = bit 0).
@@ -39,7 +39,7 @@ export default function Plan({ store }: { store: Store }) {
         {CATEGORIES.map((c) => {
           const items = store.tasks
             .filter((t) => t.category === c.id)
-            .sort((a, b) => (a.time_minutes ?? -1) - (b.time_minutes ?? -1) || a.sort_order - b.sort_order)
+            .sort((a, b) => partRank(a) - partRank(b) || (a.time_minutes ?? -1) - (b.time_minutes ?? -1) || a.sort_order - b.sort_order)
           const reminders = c.id === 'CHORE'
           // The Reminders section always shows: it's where this device's notifications get turned on.
           if (!items.length && !reminders) return null
@@ -56,12 +56,13 @@ export default function Plan({ store }: { store: Store }) {
                   <span className="task-body">
                     <span className="task-title">{t.title}</span>
                     <span className="task-note">
-                      {[t.details, daysLabel(t), t.time_minutes != null && formatTime(t.time_minutes),
+                      {[whenLabel(t), daysLabel(t),
                         t.duration_min && `${t.duration_min} min`,
                         t.start_date && `from ${fmt(t.start_date, { day: 'numeric', month: 'short' })}`,
                         t.end_date && `until ${fmt(t.end_date, { day: 'numeric', month: 'short' })}`, t.videos?.length && `▶ ${t.videos.length} video${t.videos.length > 1 ? 's' : ''}`, t.steps?.length && 'exercise list']
                         .filter(Boolean).join(' · ')}
                     </span>
+                    {t.details.trim() && <span className="task-note one-line">{t.details}</span>}
                   </span>
                   <Icon name="chevron-right" />
                 </button>
@@ -199,6 +200,20 @@ const PLACEHOLDER: Record<Category, string> = {
   CHORE: 'e.g. Take out the trash',
 }
 
+const INSTRUCTIONS_HINT: Partial<Record<Category, string>> = {
+  MEDS: 'e.g. With food, keep away from coffee',
+  BEAUTY: 'e.g. Wash, toner, moisturiser, sunscreen',
+  WORKOUT: 'e.g. 3 rounds, rest 1 min between',
+  CHORE: 'Shows in the notification',
+}
+
+type When = 'any' | PartOfDay | 'time'
+const WHEN: { id: When; label: string }[] = [{ id: 'any', label: 'Any time' }, ...PARTS, { id: 'time', label: 'At a set time' }]
+
+/** "08:00", "Morning" or nothing, for the Settings list. */
+const whenLabel = (t: Task) =>
+  t.time_minutes != null ? formatTime(t.time_minutes) : PARTS.find((p) => p.id === t.day_part)?.label
+
 function EditDialog({ task, isNew, onClose, onSave, onRemove }: {
   task: Task; isNew: boolean; onClose: () => void; onSave: (t: Task) => void; onRemove: () => void
 }) {
@@ -212,13 +227,16 @@ function EditDialog({ task, isNew, onClose, onSave, onRemove }: {
   const [every, setEvery] = useState(task.every_days?.toString() ?? '2')
   const [duration, setDuration] = useState(task.duration_min?.toString() ?? '')
   const [time, setTime] = useState(task.time_minutes != null ? formatTime(task.time_minutes) : '')
+  // Exact time, a rough part of the day, or no timing at all.
+  const [when, setWhen] = useState<When>(task.time_minutes != null ? 'time' : task.day_part ?? 'any')
   const [videos, setVideos] = useState((task.videos ?? []).map((v) => `${v.title} | ${v.url}`).join('\n'))
   const [start, setStart] = useState(task.start_date ?? '')
   const [end, setEnd] = useState(task.end_date ?? '')
   const [steps, setSteps] = useState((task.steps ?? []).join('\n'))
   const reminder = category === 'CHORE'
-  // A reminder needs a time to go off at.
-  const timeOk = time.trim() ? parseTime(time) != null : !reminder
+  // Reminders always go off at an exact time.
+  const timed = reminder || when === 'time'
+  const timeOk = !timed || parseTime(time) != null
   const everyOk = Number(every) >= 1 && Number(every) <= 365
   const valid = category != null && title.trim() !== '' && timeOk && (byInterval ? everyOk : days !== 0) && (!start || !end || start <= end)
 
@@ -234,10 +252,12 @@ function EditDialog({ task, isNew, onClose, onSave, onRemove }: {
     })
     onSave({
       ...task, title: title.trim(), details: details.trim(), category, days_mask: days,
+      // Like every_days: only sent once an item has used it.
+      day_part: !timed && when !== 'any' ? when : task.day_part ? null : undefined,
       // Left undefined (not sent) for weekday items that never had an interval.
       every_days: byInterval ? Number(every) : task.every_days ? null : undefined,
       duration_min: !reminder && duration ? Number(duration) : null,
-      time_minutes: time.trim() ? parseTime(time) : null,
+      time_minutes: timed ? parseTime(time) : null,
       videos: vids.length ? vids : null,
       // Every N days needs a day to count from: today when no start date is set.
       start_date: start || (byInterval ? todayIso() : null),
@@ -268,9 +288,31 @@ function EditDialog({ task, isNew, onClose, onSave, onRemove }: {
             placeholder={PLACEHOLDER[category]} />
         </label>
 
-        <label>Notes
-          <input value={details} onChange={(e) => setDetails(e.target.value)} placeholder="optional, e.g. Morning, Evening, with food" />
+        <label>Instructions
+          <textarea rows={2} value={details} onChange={(e) => setDetails(e.target.value)}
+            placeholder={`optional, ${INSTRUCTIONS_HINT[category] ?? 'anything to remember'}`} />
         </label>
+
+        {!reminder && (
+          <>
+            <span className="label">When</span>
+            <div className="chips">
+              {WHEN.map((w) => (
+                <button type="button" key={w.id} aria-pressed={when === w.id} className={when === w.id ? 'chip on' : 'chip'} onClick={() => setWhen(w.id)}>{w.label}</button>
+              ))}
+            </div>
+          </>
+        )}
+        <div className="row gap">
+          {timed && (
+            <label className="grow">{reminder ? 'Reminder time' : 'Time'}
+              <input type="time" value={time} onChange={(e) => setTime(e.target.value)} className={timeOk ? '' : 'invalid'} />
+            </label>
+          )}
+          {!reminder && <label className="grow">How long (min)<input inputMode="numeric" value={duration} placeholder="optional" onChange={(e) => setDuration(e.target.value.replace(/\D/g, '').slice(0, 3))} /></label>}
+          {!timed && <span className="grow" />}
+        </div>
+        {reminder && <span className="muted small">Reminders don't show in the app, they just send you a notification on these days at this time.</span>}
 
         <span className="label">Repeat</span>
         <div className="chips">
@@ -294,14 +336,6 @@ function EditDialog({ task, isNew, onClose, onSave, onRemove }: {
             ))}
           </div>
         )}
-
-        <div className="row gap">
-          <label className="grow">{reminder ? 'Reminder time' : 'Time'}
-            <input type="time" value={time} onChange={(e) => setTime(e.target.value)} className={timeOk ? '' : 'invalid'} />
-          </label>
-          {!reminder && <label className="grow">Minutes<input inputMode="numeric" value={duration} placeholder="optional" onChange={(e) => setDuration(e.target.value.replace(/\D/g, '').slice(0, 3))} /></label>}
-        </div>
-        {reminder && <span className="muted small">Reminders don't show in the app, they just send you a notification on these days at this time.</span>}
 
         <div className="row gap">
           <label className="grow">Starts<input type="date" value={start} onChange={(e) => setStart(e.target.value)} /></label>

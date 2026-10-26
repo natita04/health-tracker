@@ -6,7 +6,12 @@ import { KCAL_GOAL, PROTEIN_GOAL, WATER_PORTIONS, type FoodEntry, type FoodGoals
 
 // Guest preview: same screens, made-up data kept in memory only. Nothing is read from or written to Supabase.
 
-const SAMPLE_MEDS: Partial<Record<string, Partial<Task>>> = {
+const SAMPLE: Partial<Record<string, Partial<Task>>> = {
+  beauty_plate_light: { details: '', day_part: 'morning' },
+  beauty_dry_brush: { details: 'Long strokes toward the heart, before the shower.', day_part: 'evening' },
+  beauty_castor_oil: { details: '', day_part: 'evening' },
+  beauty_legs_wall: { details: '', day_part: 'evening' },
+  beauty_face: { details: 'Cleanse, mask for 15 min, rinse, moisturiser.' },
   med_eltroxin: { title: 'Vitamin D', details: 'With breakfast.', time_minutes: 8 * 60 },
   med_iron: { title: 'Probiotic', details: 'Before lunch.', time_minutes: 12 * 60 },
   med_lunch: { title: 'Omega 3', details: 'With lunch, fat in the meal helps absorption.', time_minutes: 13 * 60 + 30 },
@@ -22,7 +27,7 @@ function demoTasks(): Task[] {
   // Show everything right away in the preview: no start/end dates, one steady walk goal.
   return [...map.values()]
     .filter((t) => !t.archived && !['walk_5000', 'walk_6500', 'walk_8000'].includes(t.id))
-    .map((t) => ({ ...t, ...SAMPLE_MEDS[t.id], start_date: null, end_date: null, created_at: addDays(todayIso(), -30) }))
+    .map((t) => ({ ...t, ...SAMPLE[t.id], start_date: null, end_date: null, created_at: addDays(todayIso(), -30) }))
 }
 
 /** Deterministic "random" so the preview looks the same every time. */

@@ -35,6 +35,8 @@ export interface Task {
   every_days?: number | null
   /** minutes after midnight */
   time_minutes: number | null
+  /** Rough timing when there's no exact time: morning, afternoon or evening. */
+  day_part?: PartOfDay | null
   /** Video options to pick from. */
   videos: Video[] | null
   /** Exercise list; lines starting with "# " are section headings. */
@@ -108,6 +110,22 @@ export interface FoodIdea extends FoodInput {
 }
 
 export type PartOfDay = 'morning' | 'afternoon' | 'evening'
+
+export const PARTS: { id: PartOfDay; label: string }[] = [
+  { id: 'morning', label: 'Morning' },
+  { id: 'afternoon', label: 'Afternoon' },
+  { id: 'evening', label: 'Evening' },
+]
+
+/** When in the day an item belongs: its part of day, else from its time (morning before 12:00, afternoon until 17:00). */
+export const partOf = (t: Pick<Task, 'time_minutes' | 'day_part'>): PartOfDay | null =>
+  t.day_part ?? (t.time_minutes == null ? null : t.time_minutes < 12 * 60 ? 'morning' : t.time_minutes < 17 * 60 ? 'afternoon' : 'evening')
+
+/** Sort key: morning, afternoon, evening, then any time. */
+export const partRank = (t: Pick<Task, 'time_minutes' | 'day_part'>) => {
+  const p = partOf(t)
+  return p ? PARTS.findIndex((x) => x.id === p) : PARTS.length
+}
 
 /** From when an entry was added: morning before 12:00, afternoon until 17:00, then evening. */
 export const partOfDay = (iso: string): PartOfDay => {

@@ -3,7 +3,7 @@ import { tasksFor, type Store } from '../store'
 import { formatTime } from '../dates'
 import { Badge, CAT_STYLE, Icon } from '../icons'
 import DayHeader from './DayHeader'
-import { WATER_PORTIONS, WATER_PORTION_L, type Category, type Task } from '../types'
+import { PARTS, partOf, WATER_PORTIONS, WATER_PORTION_L, type Category, type Task } from '../types'
 
 // Sections in page order (after the tiles). Walk and water are tiles of their own.
 const SECTIONS: { cat: Category; title: string }[] = [
@@ -61,9 +61,7 @@ export default function Today({ store, date, setDate }: { store: Store; date: st
 
         {strength.length > 0 && (
           <Section tone={CAT_STYLE.WORKOUT.tone} icon="dumbbell" title="Strength" counter={`${strength.filter((t) => done.has(t.id)).length}/${strength.length}`}>
-            {strength.map((t) => (
-              <TaskRow key={t.id} task={t} done={done.has(t.id)} onToggle={() => store.toggle(date, t, !done.has(t.id))} />
-            ))}
+            <Rows items={strength} done={done} onToggle={(t) => store.toggle(date, t, !done.has(t.id))} />
           </Section>
         )}
 
@@ -73,9 +71,7 @@ export default function Today({ store, date, setDate }: { store: Store; date: st
           const { tone, icon } = CAT_STYLE[cat]
           return (
             <Section key={cat} tone={tone} icon={icon} title={title} counter={`${items.filter((t) => done.has(t.id)).length}/${items.length}`}>
-              {items.map((t) => (
-                <TaskRow key={t.id} task={t} done={done.has(t.id)} onToggle={() => store.toggle(date, t, !done.has(t.id))} />
-              ))}
+              <Rows items={items} done={done} onToggle={(t) => store.toggle(date, t, !done.has(t.id))} />
             </Section>
           )
         })}
@@ -105,10 +101,27 @@ function Section({ tone, icon, title, sub, counter, children }: {
   )
 }
 
+/** A section's items under Morning / Afternoon / Evening / Any time, once any of them has a timing. */
+function Rows({ items, done, onToggle }: { items: Task[]; done: Set<string>; onToggle: (t: Task) => void }) {
+  const row = (t: Task) => <TaskRow key={t.id} task={t} done={done.has(t.id)} onToggle={() => onToggle(t)} />
+  if (items.every((t) => !partOf(t))) return <>{items.map(row)}</>
+  const groups = [...PARTS, { id: null, label: 'Any time' }]
+    .map((p) => ({ ...p, items: items.filter((t) => partOf(t) === p.id) }))
+    .filter((g) => g.items.length)
+  return (
+    <>
+      {groups.map((g) => (
+        <div key={g.label} className="part-group">
+          <h3 className="part-label">{g.label}</h3>
+          {g.items.map(row)}
+        </div>
+      ))}
+    </>
+  )
+}
+
 function TaskRow({ task, done, onToggle }: { task: Task; done: boolean; onToggle: () => void }) {
-  const isBeauty = task.category === 'BEAUTY'
-  const pill = isBeauty ? task.details : null
-  const note = isBeauty ? null : task.details
+  const note = task.details.trim()
   const row = (
     <button className={`task-row ${done ? 'is-done' : ''}`} aria-pressed={done} onClick={onToggle}>
       <span className={`check ${done ? 'on' : ''}`} aria-hidden="true">{done && <Icon name="tick" size={16} strokeWidth={3} />}</span>
@@ -119,7 +132,6 @@ function TaskRow({ task, done, onToggle }: { task: Task; done: boolean; onToggle
         </span>
         {note && <span className="task-note">{note}</span>}
       </span>
-      {pill && <span className="task-pill">{pill}</span>}
     </button>
   )
   if (!task.videos?.length) return row

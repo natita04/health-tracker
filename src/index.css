@@ -208,8 +208,10 @@ button:not(:disabled):active, .press:active { transform: scale(0.98); }
 .task-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; transition: opacity 150ms; }
 .task-title { font-size: 16px; font-weight: 600; line-height: 1.3; }
 .task-time { font-size: 15px; font-weight: 600; color: var(--icon, var(--ink)); margin-right: 8px; font-variant-numeric: tabular-nums; }
-.task-note { font-size: 13px; line-height: 1.35; color: var(--tile-text); }
-.task-pill { flex: none; align-self: center; background: var(--surface); font-size: 13px; padding: 4px 10px; border-radius: var(--r-pill); }
+.task-note { font-size: 14px; line-height: 1.4; color: var(--tile-text); overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.task-note.one-line { -webkit-line-clamp: 1; }
+.part-group { display: flex; flex-direction: column; gap: var(--gap-rows); }
+.part-label { font-size: 13px; font-weight: 600; letter-spacing: 0.02em; color: var(--tile-text); padding: 6px 6px 0; }
 .is-done .task-body { opacity: 0.55; }
 .is-done .task-title-text { text-decoration: line-through; }
 

@@ -49,6 +49,12 @@ alter table public.tasks add column if not exists start_date date;
 alter table public.tasks add column if not exists end_date   date;
 alter table public.tasks add column if not exists notify     boolean not null default false; -- push reminder at time_minutes
 alter table public.tasks add column if not exists every_days int check (every_days between 1 and 365); -- every N days from start_date
+alter table public.tasks add column if not exists day_part text check (day_part in ('morning', 'afternoon', 'evening')); -- rough timing when there's no exact time
+-- One-off: notes that were just "Morning" / "Evening · 10 min" become the item's timing.
+update public.tasks
+   set day_part = lower(substring(details from '^(Morning|Afternoon|Evening)')),
+       details  = regexp_replace(details, '^(Morning|Afternoon|Evening)( · \d+ min)?$', '')
+ where day_part is null and time_minutes is null and details ~ '^(Morning|Afternoon|Evening)( · \d+ min)?$';
 
 -- Thank you thoughts: free-text entries per day.
 create table if not exists public.thoughts (
