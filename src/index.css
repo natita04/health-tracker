@@ -178,7 +178,6 @@ button:not(:disabled):active, .press:active { transform: scale(0.98); }
   display: flex; flex-direction: column; gap: 10px;
 }
 .tile h3 { font-size: 19px; font-weight: 600; line-height: 1.2; }
-.tile .desc { font-size: 13px; line-height: 1.35; color: var(--tile-text); flex-grow: 1; }
 .tile .actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .tile .dismiss { position: absolute; top: 6px; right: 6px; color: var(--tile-text); }
 .badge {
@@ -496,6 +495,7 @@ button.stat { width: 100%; }
 
 /* ---------- today: walk / water tiles ---------- */
 .small-tile { min-width: 0; gap: 6px; }
+.small-tile .actions { margin-top: 6px; }
 .tile-top { display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-bottom: 4px; }
 .tile-controls { display: flex; gap: 6px; }
 .tile-amount { font-size: 15px; color: var(--tile-text); font-variant-numeric: tabular-nums; }
