@@ -37,14 +37,9 @@ export default function Today({ store, date, setDate }: { store: Store; date: st
               <WaterTile key={t.id} task={t} done={done} onSet={(n) => store.setWater(date, t, n)} />
             ))}
             {mainWorkout && (
-              <section className={`tile tone-${CAT_STYLE.WORKOUT.tone} solo ${done.has(mainWorkout.id) ? 'is-done' : ''}`}>
-                <Badge name="dumbbell" />
-                <h3>Workout</h3>
-                <p className="desc">{[mainWorkout.title, mainWorkout.details].filter(Boolean).join(' · ')}</p>
-                <div className="actions">
-                  {mainWorkout.steps?.length ? (
-                    <button className="btn btn-white" onClick={() => setExercisesFor(mainWorkout)}>Exercises</button>
-                  ) : null}
+              <section className={`tile tone-${CAT_STYLE.WORKOUT.tone} small-tile solo ${done.has(mainWorkout.id) ? 'is-done' : ''}`}>
+                <div className="tile-top">
+                  <Badge name="dumbbell" />
                   <button
                     className={`check check-round ${done.has(mainWorkout.id) ? 'on' : ''}`}
                     aria-pressed={done.has(mainWorkout.id)}
@@ -54,6 +49,13 @@ export default function Today({ store, date, setDate }: { store: Store; date: st
                     {done.has(mainWorkout.id) && <Icon name="tick" size={18} strokeWidth={3} />}
                   </button>
                 </div>
+                <h3>Workout</h3>
+                <p className="tile-amount">{[mainWorkout.title, mainWorkout.details].filter(Boolean).join(' · ')}</p>
+                {mainWorkout.steps?.length ? (
+                  <div className="actions">
+                    <button className="btn btn-white" onClick={() => setExercisesFor(mainWorkout)}>Exercises</button>
+                  </div>
+                ) : null}
               </section>
             )}
           </div>
