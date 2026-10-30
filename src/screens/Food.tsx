@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ChangeEvent, type ReactNode } from 'react'
 import type { Store } from '../store'
 import { todayIso } from '../dates'
 import { Badge, CAT_STYLE, Icon } from '../icons'
@@ -27,6 +27,42 @@ function rankSaved(saved: SavedFood[], food: FoodEntry[]) {
 }
 
 /** Shrinks a photo to at most PHOTO_MAX_SIDE px and re-encodes it as JPEG, so uploads stay small. */
+// The browser's own speech-to-text (Chrome on Android, Safari on iPhone). Not in every browser,
+// so the mic only shows where it's there.
+type Recognition = {
+  lang: string; interimResults: boolean; continuous: boolean
+  onresult: ((e: { results: ArrayLike<ArrayLike<{ transcript: string }>> }) => void) | null
+  onend: (() => void) | null; onerror: (() => void) | null
+  start: () => void; stop: () => void
+}
+const RecognitionCtor = (window as unknown as Record<string, (new () => Recognition) | undefined>).SpeechRecognition
+  ?? (window as unknown as Record<string, (new () => Recognition) | undefined>).webkitSpeechRecognition
+
+/** Speak into the text box: what you say is added after what's already typed, live as you talk. */
+function useDictation(text: string, setText: (t: string) => void) {
+  const [listening, setListening] = useState(false)
+  const rec = useRef<Recognition | null>(null)
+  useEffect(() => () => rec.current?.stop(), [])
+  function startListening() {
+    if (!RecognitionCtor || rec.current) return
+    const r = new RecognitionCtor()
+    const before = text.trim()
+    // Hebrew when it's one of the phone's languages (meal names are mostly Hebrew), else the phone's own.
+    r.lang = navigator.languages.find((l) => l.startsWith('he')) ?? navigator.language
+    r.interimResults = true
+    r.continuous = false
+    r.onresult = (e) => {
+      const said = Array.from(e.results, (res) => res[0].transcript).join('').trim()
+      setText([before, said].filter(Boolean).join(' ').slice(0, 300))
+    }
+    r.onend = r.onerror = () => { rec.current = null; setListening(false) }
+    rec.current = r
+    setListening(true)
+    r.start()
+  }
+  return { canListen: Boolean(RecognitionCtor), listening, startListening, stopListening: () => rec.current?.stop() }
+}
+
 async function shrinkPhoto(file: File): Promise<FoodPhoto> {
   const img = await createImageBitmap(file)
   const scale = Math.min(1, PHOTO_MAX_SIDE / Math.max(img.width, img.height))
@@ -167,7 +203,18 @@ function AddSheet({ store, date, onClose }: { store: Store; date: string; onClos
     const ia = order.indexOf(a.id), ib = order.indexOf(b.id)
     return (ia < 0 ? -1 : ia) - (ib < 0 ? -1 : ib) // newly saved ones first
   })
-  const photoInput = useRef<HTMLInputElement>(null)
+  const cameraInput = useRef<HTMLInputElement>(null)
+  const galleryInput = useRef<HTMLInputElement>(null)
+  const { canListen, listening, startListening, stopListening } = useDictation(text, (t) => { setText(t); setShowAll(false) })
+
+  function onPhoto(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    e.target.value = '' // so picking the same photo again still fires
+    if (!file) return
+    shrinkPhoto(file).then((p) => estimate(p), () => setDraft({
+      name: text.trim(), kcal: '', protein: '', note: "Couldn't read that photo, so fill in the numbers yourself.",
+    }))
+  }
   const q = text.trim().toLowerCase()
   const [letter, setLetter] = useState<string | null>(null)
   // Hebrew first letters your saved meals start with, in alphabet order.
@@ -244,30 +291,34 @@ function AddSheet({ store, date, onClose }: { store: Store; date: string; onClos
         <h2 className="grow">Add food</h2>
         <button className="icon-btn" aria-label="Close" onClick={onClose}><Icon name="x" /></button>
       </div>
-      <form className="add-form sheet-form" onSubmit={(e) => { e.preventDefault(); void estimate() }}>
-        <label className="sr-only" htmlFor="food-input">What did you eat?</label>
-        <input id="food-input" dir="auto" value={text} onChange={(e) => { setText(e.target.value); setShowAll(false) }}
-          placeholder="What did you eat?" maxLength={300} enterKeyHint="send" autoComplete="off" autoFocus disabled={busy} />
-        <button className="add-btn" aria-label="Estimate calories and protein" disabled={!q || busy}>
-          {busy ? <span className="spinner" aria-hidden="true" /> : <Icon name="sparkle" />}
+      <form className="add-form food-bar" onSubmit={(e) => { e.preventDefault(); stopListening(); void estimate() }}>
+        <button type="button" className="bar-icon" aria-label="Enter the numbers myself" disabled={busy}
+          onClick={() => setDraft({ name: text.trim(), kcal: '', protein: '' })}>
+          <Icon name="plus" />
         </button>
-        <button type="button" className="add-btn add-btn-soft" aria-label="Estimate from a photo" disabled={busy}
-          onClick={() => photoInput.current?.click()}>
+        <button type="button" className="bar-icon" aria-label="Take a photo" disabled={busy}
+          onClick={() => cameraInput.current?.click()}>
           <Icon name="camera" />
         </button>
-        <button type="button" className="add-btn add-btn-soft" aria-label="Enter the numbers myself" disabled={busy}
-          onClick={() => setDraft({ name: text.trim(), kcal: '', protein: '' })}>
-          <Icon name="pencil" />
+        <button type="button" className="bar-icon" aria-label="Pick a photo from the gallery" disabled={busy}
+          onClick={() => galleryInput.current?.click()}>
+          <Icon name="image" />
         </button>
-        <input ref={photoInput} type="file" accept="image/*" capture="environment" hidden
-          onChange={(e) => {
-            const file = e.target.files?.[0]
-            e.target.value = '' // so picking the same photo again still fires
-            if (!file) return
-            shrinkPhoto(file).then((p) => estimate(p), () => setDraft({
-              name: text.trim(), kcal: '', protein: '', note: "Couldn't read that photo, so fill in the numbers yourself.",
-            }))
-          }} />
+        {canListen && (
+          <button type="button" className={`bar-icon ${listening ? 'listening' : ''}`} aria-pressed={listening}
+            aria-label={listening ? 'Stop listening' : 'Say what you ate'} disabled={busy}
+            onClick={() => (listening ? stopListening() : startListening())}>
+            <Icon name="mic" />
+          </button>
+        )}
+        <label className="sr-only" htmlFor="food-input">What did you eat?</label>
+        <input id="food-input" dir="auto" value={text} onChange={(e) => { setText(e.target.value); setShowAll(false) }}
+          placeholder={listening ? 'Listening…' : 'What did you eat?'} maxLength={300} enterKeyHint="send" autoComplete="off" autoFocus disabled={busy} />
+        <button className="bar-icon" aria-label="Estimate calories and protein" disabled={!q || busy}>
+          {busy ? <span className="spinner" aria-hidden="true" /> : <Icon name="sparkle" />}
+        </button>
+        <input ref={cameraInput} type="file" accept="image/*" capture="environment" hidden onChange={onPhoto} />
+        <input ref={galleryInput} type="file" accept="image/*" hidden onChange={onPhoto} />
       </form>
       {busy && <p className="muted small" role="status">Estimating…</p>}
 
