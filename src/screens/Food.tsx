@@ -175,11 +175,12 @@ export default function Food({ store, date, setDate }: { store: Store; date: str
   )
 }
 
-function Sheet({ label, onClose, children }: { label: string; onClose: () => void; children: ReactNode }) {
+/** With a footer the sheet is a fixed 90% of the screen: the middle scrolls, the footer stays at the bottom. */
+function Sheet({ label, onClose, footer, children }: { label: string; onClose: () => void; footer?: ReactNode; children: ReactNode }) {
   return (
     <div className="overlay" onClick={onClose}>
-      <div className="dialog stack" role="dialog" aria-modal="true" aria-label={label} onClick={(e) => e.stopPropagation()}>
-        {children}
+      <div className={`dialog ${footer ? 'sheet-tall' : 'stack'}`} role="dialog" aria-modal="true" aria-label={label} onClick={(e) => e.stopPropagation()}>
+        {footer ? <><div className="sheet-body stack">{children}</div><div className="sheet-footer">{footer}</div></> : children}
       </div>
     </div>
   )
@@ -286,7 +287,7 @@ function AddSheet({ store, date, onClose }: { store: Store; date: string; onClos
   }
 
   return (
-    <Sheet label="Add food" onClose={onClose}>
+    <Sheet label="Add food" onClose={onClose} footer={<button className="btn-primary" onClick={onClose}>Done</button>}>
       <div className="row">
         <h2 className="grow">Add food</h2>
         <button className="icon-btn" aria-label="Close" onClick={onClose}><Icon name="x" /></button>
@@ -336,9 +337,7 @@ function AddSheet({ store, date, onClose }: { store: Store; date: string; onClos
         )}
         {store.savedFoods.length === 0 ? (
           <p className="empty-line">Meals you add are kept here, so next time it's one tap.</p>
-        ) : matches.length === 0 ? (
-          <p className="empty-line">No saved meal matches. Tap the sparkle to estimate it.</p>
-        ) : (
+        ) : matches.length === 0 ? null : (
           <>
             {shown.map((s) => {
               const isAdded = added.has(s.name)
@@ -372,7 +371,6 @@ function AddSheet({ store, date, onClose }: { store: Store; date: string; onClos
           </>
         )}
       </div>
-      {added.size > 0 && <button className="btn-primary" onClick={onClose}>Done</button>}
     </Sheet>
   )
 }
