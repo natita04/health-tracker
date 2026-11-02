@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
-import { tasksFor, type Store } from '../store'
 import { addDays, dayIndex, fmt, todayIso } from '../dates'
 import { CATEGORIES, TRACKED, waterLitres, type Category } from '../types'
 import { Badge, CAT_STYLE, Icon } from '../icons'
 import { dayStat, insights, startDate, streaks, waterAverage } from '../stats'
+import { isOn, tasksFor, type Store } from '../store'
 import FoodHistory from './FoodHistory'
 
 const WEEKDAYS = ['M', 'T', 'W', 'T', 'F', 'S', 'S']
@@ -99,11 +99,11 @@ export default function History({ store, openDay }: { store: Store; openDay: (d:
             </button>
           )
         })}
-        <button className={`stat streak tone-${CAT_STYLE.FOOD.tone}`} aria-pressed={open === 'FOOD'} onClick={() => toggle('FOOD')}>
+        {isOn(store, 'FOOD') && <button className={`stat streak tone-${CAT_STYLE.FOOD.tone}`} aria-pressed={open === 'FOOD'} onClick={() => toggle('FOOD')}>
           <span className="row"><Badge name="apple" /><span className="label">Food</span></span>
           {/* Average over the last 7 days, in one line so the tile matches the others' height. */}
           <span className="value">{avgKcal != null ? <>{avgKcal.toLocaleString('en-US')}<small>kcal/day</small></> : '-'}</span>
-        </button>
+        </button>}
       </div>
 
       <div ref={detail} className="detail-anchor">
@@ -187,7 +187,7 @@ function WaterDetail({ store, range, onClose }: { store: Store; range: string[];
   const month = waterAverage(store, range)
   const week = waterAverage(store, range.slice(-7))
   const water = store.tasks.find((t) => t.category === 'WATER')
-  const goal = month?.goal ?? 4
+  const goal = store.waterGoal
   const daily = water ? range.filter((d) => tasksFor([water], d).length).map((d) => ({ d, l: waterLitres(store.done[d], water.id) })) : []
   return (
     <section className={`section tone-${tone}`} aria-label="Water">

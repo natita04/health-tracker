@@ -1,14 +1,22 @@
 import { useState } from 'react'
 import { supabase } from '../supabase'
-import { Icon } from '../icons'
+import { Badge, CAT_STYLE, Icon, type IconName } from '../icons'
+
+const FEATURES: { icon: IconName; tone: string; title: string; text: string }[] = [
+  { icon: 'check-circle', tone: CAT_STYLE.WALK.tone, title: 'Daily habits', text: 'Water, supplements, skincare, workouts and steps, ticked off in a tap.' },
+  { icon: 'apple', tone: CAT_STYLE.FOOD.tone, title: 'Food without the math', text: 'Snap a photo, say it or type it. Calories and protein are estimated for you.' },
+  { icon: 'scale', tone: CAT_STYLE.BEAUTY.tone, title: 'Weight', text: 'Log a weigh-in and see the trend toward your goal.' },
+  { icon: 'chart', tone: CAT_STYLE.THANKS.tone, title: 'Insights', text: 'Streaks, averages and what slips on weekends, from your own data.' },
+]
 
 export default function Login({ onGuest }: { onGuest: () => void }) {
+  const [mode, setMode] = useState<'in' | 'up'>('up')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [msg, setMsg] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
 
-  async function submit(e: { preventDefault(): void }, mode: 'in' | 'up') {
+  async function submit(e: { preventDefault(): void }) {
     e.preventDefault()
     if (!email.trim()) return setMsg('Type your email first.')
     if (password.length < 6) return setMsg('The password needs at least 6 characters.')
@@ -23,18 +31,39 @@ export default function Login({ onGuest }: { onGuest: () => void }) {
 
   return (
     <main className="page login">
-      <div className="hero-badge"><Icon name="heart" size={28} /></div>
-      <h1 className="plain-title center">Health Tracker</h1>
-      <p className="muted center">Your daily plan, weight and streaks.</p>
-      <form className="login-card" onSubmit={(e) => submit(e, 'in')}>
+      <header className="login-hero">
+        <div className="hero-badge"><Icon name="heart" size={28} /></div>
+        <h1 className="plain-title center">Health Tracker</h1>
+        <p className="center login-tagline">The small things that keep you well, all in one calm place.</p>
+      </header>
+
+      <ul className="features">
+        {FEATURES.map((f) => (
+          <li key={f.title} className={`feature tone-${f.tone}`}>
+            <Badge name={f.icon} />
+            <div>
+              <h2>{f.title}</h2>
+              <p>{f.text}</p>
+            </div>
+          </li>
+        ))}
+      </ul>
+
+      <form className="login-card" onSubmit={submit}>
+        <div className="chips login-switch" role="tablist" aria-label="Account">
+          <button type="button" role="tab" aria-selected={mode === 'up'} className={mode === 'up' ? 'chip on' : 'chip'}
+            onClick={() => { setMode('up'); setMsg(null) }}>Create account</button>
+          <button type="button" role="tab" aria-selected={mode === 'in'} className={mode === 'in' ? 'chip on' : 'chip'}
+            onClick={() => { setMode('in'); setMsg(null) }}>Sign in</button>
+        </div>
         <label>Email<input type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} /></label>
-        <label>Password<input type="password" autoComplete="current-password" placeholder="at least 6 characters" value={password} onChange={(e) => setPassword(e.target.value)} /></label>
-        <button className="btn-primary" disabled={busy}>Sign in</button>
-        <button type="button" className="btn btn-muted" disabled={busy} onClick={(e) => submit(e, 'up')}>
-          First time? Create account
-        </button>
-        {msg && <p className="muted small">{msg}</p>}
+        <label>Password<input type="password" autoComplete={mode === 'in' ? 'current-password' : 'new-password'} placeholder="at least 6 characters"
+          value={password} onChange={(e) => setPassword(e.target.value)} /></label>
+        <button className="btn-primary" disabled={busy}>{mode === 'in' ? 'Sign in' : 'Create account'}</button>
+        {mode === 'up' && <p className="muted small center">You start with a clean slate and pick what to track in a quick setup.</p>}
+        {msg && <p className="muted small" role="status">{msg}</p>}
       </form>
+
       <button className="btn btn-white guest-btn" onClick={onGuest}>View as guest</button>
       <p className="muted small center">See how it works with sample data. Nothing you do is saved.</p>
     </main>

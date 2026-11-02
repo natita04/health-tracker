@@ -105,6 +105,13 @@ alter table public.saved_foods  enable row level security;
 alter table public.user_settings add column if not exists kcal_goal    int;
 alter table public.user_settings add column if not exists protein_goal numeric(5, 1);
 
+-- Sharing the app: new accounts start empty and get a quick setup; parts they skip stay hidden.
+alter table public.user_settings add column if not exists onboarded    boolean not null default false;
+alter table public.user_settings add column if not exists hidden       text[]  not null default '{}'; -- e.g. {FOOD,BEAUTY}
+alter table public.user_settings add column if not exists water_goal_l numeric(3, 1) check (water_goal_l between 0.5 and 8);
+-- Accounts that already have the built-in plan count as set up.
+update public.user_settings set onboarded = true where defaults_version > 0 and not onboarded;
+
 do $$
 declare t text;
 begin

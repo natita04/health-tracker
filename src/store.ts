@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { supabase } from './supabase'
 import { newSince, UPGRADES, VERSION } from './defaults'
 import { addDays, isScheduled, todayIso } from './dates'
-import { isReminder, partRank, KCAL_GOAL, PROTEIN_GOAL, WATER_MAX, WATER_PORTIONS, type FoodEntry, type FoodEstimate, type FoodGoals, type FoodIdea, type FoodInput, type FoodPhoto, type SavedFood, type Task, type Weight } from './types'
+import { areaOf, isReminder, partRank, KCAL_GOAL, PROTEIN_GOAL, WATER_MAX, WATER_PORTION_L, WATER_PORTIONS, type Area, type FoodEntry, type FoodEstimate, type FoodGoals, type FoodIdea, type FoodInput, type FoodPhoto, type SavedFood, type Task, type Weight } from './types'
 
 const HISTORY_DAYS = 120
 
@@ -17,11 +17,15 @@ async function fetchAll<T>(make: (from: number, to: number) => PromiseLike<{ dat
   }
 }
 
+/**
+ * Keeps the built-in plan up to date in accounts that have it (the original one).
+ * New accounts start empty (version 0) and set themselves up in onboarding instead.
+ */
 async function seedDefaults(userId: string) {
   const { data, error } = await supabase.from('user_settings').select('defaults_version').maybeSingle()
   if (error) throw error
   const have = data?.defaults_version ?? 0
-  if (have >= VERSION) return
+  if (have === 0 || have >= VERSION) return
   const rows = newSince(have).map((t) => ({ ...t, user_id: userId }))
   const ins = await supabase.from('tasks').upsert(rows, { onConflict: 'user_id,id', ignoreDuplicates: true })
   if (ins.error) throw ins.error
@@ -72,6 +76,10 @@ export function useStore(userId: string) {
   /** false until the food tables exist (see supabase/schema.sql) */
   const [foodReady, setFoodReady] = useState(true)
   const [foodGoals, setFoodGoalsState] = useState<FoodGoals>({ kcal: KCAL_GOAL, protein: PROTEIN_GOAL })
+  /** parts of the app turned off */
+  const [hidden, setHiddenState] = useState<Area[]>([])
+  const [waterGoal, setWaterGoalState] = useState(WATER_PORTIONS * WATER_PORTION_L)
+  const [needsOnboarding, setNeedsOnboarding] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const fail = (e: unknown) => setError(e instanceof Error ? e.message : (e as { message?: string })?.message ?? String(e))
@@ -127,6 +135,13 @@ export function useStore(userId: string) {
       }
       const g = await supabase.from('user_settings').select('goal_kg').maybeSingle()
       setGoalState(!g.error && g.data?.goal_kg != null ? Number(g.data.goal_kg) : null)
+      // Until these columns exist everything shows and nobody is sent to onboarding.
+      const o = await supabase.from('user_settings').select('onboarded,hidden,water_goal_l,defaults_version').maybeSingle()
+      if (!o.error) {
+        setHiddenState((o.data?.hidden ?? []) as Area[])
+        if (o.data?.water_goal_l != null) setWaterGoalState(Number(o.data.water_goal_l))
+        setNeedsOnboarding(!o.data?.onboarded && !((o.data?.defaults_version ?? 0) > 0))
+      }
     } catch (e) {
       fail(e)
     } finally {
@@ -136,7 +151,8 @@ export function useStore(userId: string) {
 
   useEffect(() => { void load() }, [load])
 
-  const active = tasks.filter((t) => !t.archived)
+  // Items of parts you turned off stay in the database, they just don't show anywhere.
+  const active = tasks.filter((t) => { const a = areaOf(t.category); return !t.archived && !(a && hidden.includes(a)) })
 
   const setDoneLocal = (date: string, id: string, on: boolean) =>
     setDone((prev) => {
@@ -153,12 +169,12 @@ export function useStore(userId: string) {
     if (res.error) { setDoneLocal(date, task.id, !on); fail(res.error) }
   }
 
-  /** Water portions are stored as completions "<task id>#1".."#16"; the task itself is marked at the goal (8). */
+  /** Water portions are stored as completions "<task id>#1".."#16"; the task itself is marked at the goal. */
   async function setWater(date: string, task: Task, count: number) {
     const part = (n: number) => `${task.id}#${n}`
     const all = Array.from({ length: WATER_MAX }, (_, i) => part(i + 1))
     const want = new Set(all.slice(0, count))
-    if (count >= WATER_PORTIONS) want.add(task.id)
+    if (count >= Math.round(waterGoal / WATER_PORTION_L)) want.add(task.id)
     const before = new Set(done[date] ?? [])
     setDone((prev) => {
       const s = new Set(prev[date] ?? [])
@@ -280,6 +296,37 @@ export function useStore(userId: string) {
     setFoodGoalsState(g)
   }
 
+  async function setHidden(area: Area, off: boolean) {
+    const next = off ? [...new Set([...hidden, area])] : hidden.filter((a) => a !== area)
+    const before = hidden
+    setHiddenState(next)
+    const { error } = await supabase.from('user_settings').upsert({ user_id: userId, hidden: next })
+    if (error) { setHiddenState(before); fail(error) }
+  }
+
+  async function setWaterGoal(l: number) {
+    const { error } = await supabase.from('user_settings').upsert({ user_id: userId, water_goal_l: l })
+    if (error) return fail(error)
+    setWaterGoalState(l)
+  }
+
+  /** Saves what onboarding picked: items to add, parts turned off, and goals. */
+  async function finishOnboarding(o: Onboarding) {
+    if (o.tasks.length) {
+      const res = await supabase.from('tasks').upsert(o.tasks.map((t) => ({ ...t, user_id: userId })))
+      if (res.error) return fail(res.error)
+    }
+    const { error } = await supabase.from('user_settings').upsert({
+      user_id: userId, onboarded: true, hidden: o.hidden,
+      ...(o.food && { kcal_goal: o.food.kcal, protein_goal: o.food.protein }),
+      ...(o.waterGoal && { water_goal_l: o.waterGoal }),
+      ...(o.goalKg !== undefined && { goal_kg: o.goalKg }),
+    })
+    if (error) return fail(error)
+    setNeedsOnboarding(false)
+    await load()
+  }
+
   /** Calls the food-estimate edge function; it answers errors as { error: "..." }, surfaced instead of a generic status. */
   async function callFood<T>(body: object): Promise<T> {
     const { data, error } = await supabase.functions.invoke('food-estimate', { body })
@@ -322,12 +369,25 @@ export function useStore(userId: string) {
 
   return {
     userId, isGuest: false, signOut: async (): Promise<void> => { await supabase.auth.signOut() },
-    tasks: active, done, weights, thoughts, thoughtsReady, goal, food, savedFoods, foodReady, foodGoals,
+    tasks: active, allTasks: tasks.filter((t) => !t.archived), done, weights, thoughts, thoughtsReady, goal, food, savedFoods, foodReady, foodGoals,
+    hidden, waterGoal, needsOnboarding, setHidden, setWaterGoal, finishOnboarding, restartOnboarding: () => setNeedsOnboarding(true),
     loading, error, clearError: () => setError(null), reload: load,
     toggle, setWater, addThought, removeThought, setGoal, saveWeight, deleteWeight, saveTask, archiveTask, exportBackup,
     addFood, updateFood, removeFood, updateSavedFood, removeSavedFood, estimateFood, suggestFood, setFoodGoals,
   }
 }
+
+/** What onboarding hands to the store. */
+export interface Onboarding {
+  tasks: Task[]
+  hidden: Area[]
+  food?: FoodGoals
+  waterGoal?: number
+  goalKg?: number | null
+}
+
+/** Shown or not: an area is on unless it was turned off. */
+export const isOn = (store: { hidden: Area[] }, a: Area) => !store.hidden.includes(a)
 
 /** What's on the plan for a day. Reminders are left out: they only send a notification. */
 export const tasksFor = (tasks: Task[], date: string) =>

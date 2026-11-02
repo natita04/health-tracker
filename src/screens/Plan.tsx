@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
 import { disablePush, enablePush, readPush, sendTestPush, syncTimeZone, type PushStatus } from '../push'
-import type { Store } from '../store'
+import { isOn, type Store } from '../store'
 import { fmt, formatTime, parseTime, todayIso } from '../dates'
 import { MORE_WORKOUTS_URL } from '../defaults'
-import { ALL_DAYS, CATEGORIES, PARTS, partRank, type Category, type PartOfDay, type Task } from '../types'
-import { Badge, CAT_STYLE, Icon } from '../icons'
+import { ALL_DAYS, AREAS, areaOf, CATEGORIES, PARTS, partRank, type Category, type PartOfDay, type Task } from '../types'
+import { areaStyle, Badge, CAT_STYLE, Icon } from '../icons'
 
 // Display order Sun..Sat, with their days_mask bit (Monday = bit 0).
 const WEEK: [string, number][] = [['Sun', 6], ['Mon', 0], ['Tue', 1], ['Wed', 2], ['Thu', 3], ['Fri', 4], ['Sat', 5]]
@@ -34,7 +34,8 @@ export default function Plan({ store }: { store: Store }) {
 
       {/* Every group is the same white card: icon, title and subtitle, then grey rows. */}
       <div className="settings stack-section">
-        <FoodGoalsCard store={store} />
+        <TrackCard store={store} />
+        {isOn(store, 'FOOD') && <FoodGoalsCard store={store} />}
 
         {CATEGORIES.map((c) => {
           const items = store.tasks
@@ -78,6 +79,7 @@ export default function Plan({ store }: { store: Store }) {
             <div><h2>Account</h2></div>
           </div>
           <div className="row wrap settings-actions">
+            <button className="btn btn-muted" onClick={store.restartOnboarding}>Run setup again</button>
             <button className="btn btn-muted" onClick={() => void store.exportBackup()}>Download backup</button>
             <button className="btn btn-muted" onClick={() => void store.signOut()}>{store.isGuest ? 'Exit guest view' : 'Sign out'}</button>
           </div>
@@ -89,6 +91,7 @@ export default function Plan({ store }: { store: Store }) {
       {editing && (
         <EditDialog
           task={editing.task}
+          categories={CATEGORIES.filter((c) => { const a = areaOf(c.id); return !a || isOn(store, a) })}
           isNew={editing.isNew}
           onClose={() => setEditing(null)}
           onSave={(t) => { void store.saveTask(t); setEditing(null) }}
@@ -96,6 +99,52 @@ export default function Plan({ store }: { store: Store }) {
         />
       )}
     </>
+  )
+}
+
+/** Parts of the app you use. Off hides them everywhere; their items and history are kept for when you turn them back on. */
+function TrackCard({ store }: { store: Store }) {
+  const [water, setWater] = useState(String(store.waterGoal))
+  const litres = Number(water.replace(',', '.'))
+  const waterOk = litres >= 0.5 && litres <= 8
+
+  function saveWater() {
+    if (!waterOk) return
+    const l = Math.round(litres * 2) / 2 // the tile counts in 0.5 L glasses
+    setWater(String(l))
+    if (l !== store.waterGoal) void store.setWaterGoal(l)
+  }
+
+  return (
+    <section className="section">
+      <div className="section-head">
+        <Badge name="sliders" />
+        <div>
+          <h2>What you track</h2>
+          <div className="sub">Turned off parts are hidden, nothing is deleted.</div>
+        </div>
+      </div>
+      {AREAS.map((a) => {
+        const on = isOn(store, a.id)
+        return (
+          <button key={a.id} role="switch" aria-checked={on} className="task-row planrow"
+            onClick={() => void store.setHidden(a.id, on)}>
+            <span className={`tone-${areaStyle(a.id).tone} area-icon`}><Icon name={areaStyle(a.id).icon} /></span>
+            <span className="task-body"><span className="task-title">{a.label}</span></span>
+            <span className="switch" aria-hidden />
+          </button>
+        )
+      })}
+      {isOn(store, 'WATER') && (
+        <div className="notify-body">
+          <label className="time-row goal-row">Water goal, a day
+            <input inputMode="decimal" value={water} className={waterOk ? '' : 'invalid'}
+              onChange={(e) => setWater(e.target.value)} onBlur={saveWater} />
+            <span>L</span>
+          </label>
+        </div>
+      )}
+    </section>
   )
 }
 
@@ -214,8 +263,8 @@ const WHEN: { id: When; label: string }[] = [{ id: 'any', label: 'Any time' }, .
 const whenLabel = (t: Task) =>
   t.time_minutes != null ? formatTime(t.time_minutes) : PARTS.find((p) => p.id === t.day_part)?.label
 
-function EditDialog({ task, isNew, onClose, onSave, onRemove }: {
-  task: Task; isNew: boolean; onClose: () => void; onSave: (t: Task) => void; onRemove: () => void
+function EditDialog({ task, isNew, categories, onClose, onSave, onRemove }: {
+  task: Task; isNew: boolean; categories: typeof CATEGORIES; onClose: () => void; onSave: (t: Task) => void; onRemove: () => void
 }) {
   const [title, setTitle] = useState(task.title)
   const [details, setDetails] = useState(task.details)
@@ -273,7 +322,7 @@ function EditDialog({ task, isNew, onClose, onSave, onRemove }: {
 
         <span className="label">{isNew && !category ? 'What kind of item?' : 'Category'}</span>
         <div className="chips">
-          {CATEGORIES.map((c) => (
+          {categories.map((c) => (
             <button type="button" key={c.id} className={category === c.id ? 'chip on' : 'chip'} onClick={() => setCategory(c.id)}>
               <Icon name={CAT_STYLE[c.id].icon} size={16} />{c.label}
             </button>
