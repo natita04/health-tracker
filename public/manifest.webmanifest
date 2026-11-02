@@ -1,6 +1,6 @@
 {
-  "name": "Health Tracker",
-  "short_name": "Health",
+  "name": "Tend",
+  "short_name": "Tend",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#EDF0EE",
