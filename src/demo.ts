@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { newSince, UPGRADES } from './defaults'
 import { addDays, todayIso } from './dates'
 import { tasksFor, type Store, type Thought } from './store'
-import { KCAL_GOAL, PROTEIN_GOAL, WATER_PORTIONS, type FoodEntry, type FoodGoals, type SavedFood, type Task, type Weight } from './types'
+import { KCAL_GOAL, PROTEIN_GOAL, WATER_MAX, WATER_PORTIONS, type FoodEntry, type FoodGoals, type SavedFood, type Task, type Weight } from './types'
 
 // Guest preview: same screens, made-up data kept in memory only. Nothing is read from or written to Supabase.
 
@@ -40,10 +40,12 @@ function demoData(tasks: Task[]) {
     const d = addDays(today, -i)
     const s = new Set<string>()
     tasksFor(tasks, d).forEach((t, j) => {
-      if (pseudo(i * 31 + j) < 0.75) {
-        s.add(t.id)
-        if (t.category === 'WATER') for (let k = 1; k <= WATER_PORTIONS; k++) s.add(`${t.id}#${k}`)
-      }
+      if (t.category === 'WATER') {
+        // Somewhere between 1.5 and 4.5 L, so the average sits under the 4 L goal.
+        const n = 3 + Math.floor(pseudo(i * 31 + j) * 7)
+        for (let k = 1; k <= n; k++) s.add(`${t.id}#${k}`)
+        if (n >= WATER_PORTIONS) s.add(t.id)
+      } else if (pseudo(i * 31 + j) < 0.75) s.add(t.id)
     })
     done[d] = s
   }
@@ -110,7 +112,7 @@ export function useDemoStore(onExit: () => void): Store {
     loading: false, error: null, clearError: () => {}, reload: async () => {},
     toggle: async (date, task, on) => setIds(date, [task.id], on),
     setWater: async (date, task, count) => {
-      const all = Array.from({ length: WATER_PORTIONS }, (_, i) => `${task.id}#${i + 1}`)
+      const all = Array.from({ length: WATER_MAX }, (_, i) => `${task.id}#${i + 1}`)
       setIds(date, [...all, task.id], false)
       setIds(date, [...all.slice(0, count), ...(count >= WATER_PORTIONS ? [task.id] : [])], true)
     },

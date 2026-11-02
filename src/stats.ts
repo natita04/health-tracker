@@ -1,6 +1,6 @@
 import { tasksFor, type Store } from './store'
 import { addDays, dayIndex, todayIso } from './dates'
-import { TRACKED, WATER_PORTIONS, WATER_PORTION_L, type Category } from './types'
+import { TRACKED, WATER_PORTIONS, WATER_PORTION_L, waterLitres, type Category } from './types'
 import type { IconName } from './icons'
 import { CAT_STYLE } from './icons'
 
@@ -12,8 +12,9 @@ export function startDate(store: Store) {
   return store.tasks.reduce((m, t) => (t.created_at && t.created_at.slice(0, 10) < m ? t.created_at.slice(0, 10) : m), today)
 }
 
+/** Checked-off items on a day. Water isn't one: it's an amount against a goal, see waterAverage. */
 export function dayStat(store: Store, date: string, cat?: Category): DayStat {
-  const scheduled = tasksFor(store.tasks, date).filter((t) => !cat || t.category === cat)
+  const scheduled = tasksFor(store.tasks, date).filter((t) => t.category !== 'WATER' && (!cat || t.category === cat))
   const done = store.done[date] ?? new Set<string>()
   return { date, done: scheduled.filter((t) => done.has(t.id)).length, total: scheduled.length }
 }
@@ -62,7 +63,7 @@ export function insights(store: Store): Insight[] {
   const past30 = last30.filter((d) => d < today)
   if (past30.length < 3) return []
 
-  const cats = TRACKED.filter((c) => store.tasks.some((t) => t.category === c.id))
+  const cats = TRACKED.filter((c) => c.id !== 'WATER' && store.tasks.some((t) => t.category === c.id))
   const out: Insight[] = []
   const style = (c: Category) => ({ tone: CAT_STYLE[c].tone, icon: CAT_STYLE[c].icon })
 
@@ -80,6 +81,12 @@ export function insights(store: Store): Insight[] {
     out.push({ id: 'best', text: `${best.c.label}: ${best.r.pct}% this month. Rock solid.`, ...style(best.c.id) })
   }
 
+  // Water average over the last 7 full days.
+  const water = waterAverage(store, past30.slice(-7))
+  if (water && water.days >= 3) {
+    out.push({ id: 'water', text: `Water: ${water.litres.toFixed(1)} L a day on average this week (goal ${water.goal} L).`, ...style('WATER') })
+  }
+
   out.push(...foodInsights(store, past30))
 
   // Weekend dip.
@@ -92,7 +99,7 @@ export function insights(store: Store): Insight[] {
   }
 
   // Most skipped single item.
-  const items = store.tasks.map((t) => {
+  const items = store.tasks.filter((t) => t.category !== 'WATER').map((t) => {
     let sched = 0, done = 0
     for (const d of past30) {
       if (!tasksFor([t], d).length) continue
@@ -106,19 +113,6 @@ export function insights(store: Store): Insight[] {
     out.push({ id: 'skipped', text: `Most skipped: ${t.title} (done ${done} of ${sched} days). The one to give some love.`, ...style(t.category) })
   }
 
-  // Water average over the last 7 full days.
-  const water = store.tasks.find((t) => t.category === 'WATER')
-  if (water) {
-    const days = past30.slice(-7).filter((d) => tasksFor([water], d).length)
-    if (days.length >= 3) {
-      const litres = days.reduce((sum, d) => {
-        let n = 0
-        while (n < WATER_PORTIONS && store.done[d]?.has(`${water.id}#${n + 1}`)) n++
-        return sum + n * WATER_PORTION_L
-      }, 0) / days.length
-      out.push({ id: 'water', text: `You've averaged ${litres.toFixed(1)} L of water a day this week.`, ...style('WATER') })
-    }
-  }
 
   // Weight over 30 days.
   const w = store.weights.filter((x) => x.date >= addDays(today, -30))
@@ -135,6 +129,15 @@ export function insights(store: Store): Insight[] {
   if (thanks > 0) out.push({ id: 'thanks', text: `${thanks} thank you thought${thanks === 1 ? '' : 's'} this week.`, ...CAT_STYLE.THANKS })
 
   return out.slice(0, 5)
+}
+
+/** Average litres a day over the given days the water item was on, with the goal. Null with no water item. */
+export function waterAverage(store: Store, days: string[]) {
+  const water = store.tasks.find((t) => t.category === 'WATER')
+  const on = water ? days.filter((d) => tasksFor([water], d).length) : []
+  if (!water || !on.length) return null
+  const total = on.reduce((sum, d) => sum + waterLitres(store.done[d], water.id), 0)
+  return { litres: total / on.length, days: on.length, goal: WATER_PORTIONS * WATER_PORTION_L }
 }
 
 /** Calories and protein per logged day. */

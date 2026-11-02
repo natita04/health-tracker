@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { supabase } from './supabase'
 import { newSince, UPGRADES, VERSION } from './defaults'
 import { addDays, isScheduled, todayIso } from './dates'
-import { isReminder, partRank, KCAL_GOAL, PROTEIN_GOAL, WATER_PORTIONS, type FoodEntry, type FoodEstimate, type FoodGoals, type FoodIdea, type FoodInput, type FoodPhoto, type SavedFood, type Task, type Weight } from './types'
+import { isReminder, partRank, KCAL_GOAL, PROTEIN_GOAL, WATER_MAX, WATER_PORTIONS, type FoodEntry, type FoodEstimate, type FoodGoals, type FoodIdea, type FoodInput, type FoodPhoto, type SavedFood, type Task, type Weight } from './types'
 
 const HISTORY_DAYS = 120
 
@@ -153,10 +153,10 @@ export function useStore(userId: string) {
     if (res.error) { setDoneLocal(date, task.id, !on); fail(res.error) }
   }
 
-  /** Water portions are stored as completions "<task id>#1".."#8"; the task itself is done at 8. */
+  /** Water portions are stored as completions "<task id>#1".."#16"; the task itself is marked at the goal (8). */
   async function setWater(date: string, task: Task, count: number) {
     const part = (n: number) => `${task.id}#${n}`
-    const all = Array.from({ length: WATER_PORTIONS }, (_, i) => part(i + 1))
+    const all = Array.from({ length: WATER_MAX }, (_, i) => part(i + 1))
     const want = new Set(all.slice(0, count))
     if (count >= WATER_PORTIONS) want.add(task.id)
     const before = new Set(done[date] ?? [])

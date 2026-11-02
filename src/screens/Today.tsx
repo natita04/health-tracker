@@ -3,7 +3,7 @@ import { tasksFor, type Store } from '../store'
 import { formatTime } from '../dates'
 import { Badge, CAT_STYLE, Icon } from '../icons'
 import DayHeader from './DayHeader'
-import { PARTS, partOf, WATER_PORTIONS, WATER_PORTION_L, type Category, type Task } from '../types'
+import { PARTS, partOf, WATER_MAX, WATER_PORTIONS, WATER_PORTION_L, type Category, type Task } from '../types'
 
 // Sections in page order (after the tiles). Walk and water are tiles of their own.
 const SECTIONS: { cat: Category; title: string }[] = [
@@ -172,10 +172,10 @@ function WalkTile({ task, done, onToggle }: { task: Task; done: boolean; onToggl
   )
 }
 
-/** Water tile: icon and -/+ (0.5 L steps) on top, then litres so far. Done at the full amount. */
+/** Water tile: icon and -/+ (0.5 L steps) on top, then litres so far against the goal. */
 function WaterTile({ task, done, onSet }: { task: Task; done: Set<string>; onSet: (n: number) => void }) {
   let count = 0
-  while (count < WATER_PORTIONS && done.has(`${task.id}#${count + 1}`)) count++
+  while (count < WATER_MAX && done.has(`${task.id}#${count + 1}`)) count++
   const litres = (n: number) => (n * WATER_PORTION_L).toFixed(1)
   return (
     <section className={`tile tone-${CAT_STYLE.WATER.tone} small-tile ${count >= WATER_PORTIONS ? 'is-done' : ''}`}>
@@ -185,14 +185,14 @@ function WaterTile({ task, done, onSet }: { task: Task; done: Set<string>; onSet
           <button className="round-btn" aria-label={`Less water, ${WATER_PORTION_L} L`} disabled={count === 0} onClick={() => onSet(count - 1)}>
             <Icon name="minus" />
           </button>
-          <button className="round-btn round-ink" aria-label={`More water, ${WATER_PORTION_L} L`} disabled={count >= WATER_PORTIONS} onClick={() => onSet(count + 1)}>
+          <button className="round-btn round-ink" aria-label={`More water, ${WATER_PORTION_L} L`} disabled={count >= WATER_MAX} onClick={() => onSet(count + 1)}>
             <Icon name="plus" />
           </button>
         </span>
       </div>
       <h3>Water</h3>
       <p className="tile-amount" aria-live="polite">
-        <strong>{litres(count)}</strong> / {(WATER_PORTIONS * WATER_PORTION_L).toFixed(0)} L
+        <strong>{litres(count)}</strong> L · goal {(WATER_PORTIONS * WATER_PORTION_L).toFixed(0)} L
       </p>
     </section>
   )

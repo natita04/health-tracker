@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { tasksFor, type Store } from '../store'
 import { addDays, dayIndex, fmt, todayIso } from '../dates'
-import { CATEGORIES, TRACKED, WATER_PORTIONS, WATER_PORTION_L, type Category } from '../types'
+import { CATEGORIES, TRACKED, waterLitres, type Category } from '../types'
 import { Badge, CAT_STYLE, Icon } from '../icons'
-import { dayStat, insights, startDate, streaks } from '../stats'
+import { dayStat, insights, startDate, streaks, waterAverage } from '../stats'
 import FoodHistory from './FoodHistory'
 
 const WEEKDAYS = ['M', 'T', 'W', 'T', 'F', 'S', 'S']
@@ -33,6 +33,8 @@ export default function History({ store, openDay }: { store: Store; openDay: (d:
   for (const f of store.food) foodDays[f.date] = (foodDays[f.date] ?? 0) + f.kcal
   const last7 = Array.from({ length: 7 }, (_, i) => addDays(today, -i - 1)).filter((d) => foodDays[d] != null)
   const avgKcal = last7.length ? Math.round(last7.reduce((s, d) => s + foodDays[d], 0) / last7.length) : null
+  // Water tile: average litres a day over the last 7 full days.
+  const water7 = waterAverage(store, Array.from({ length: 7 }, (_, i) => addDays(today, -i - 1)).filter((d) => d >= start))
 
   return (
     <>
@@ -81,6 +83,14 @@ export default function History({ store, openDay }: { store: Store; openDay: (d:
 
       <div className="stats">
         {cats.map((c) => {
+          if (c.id === 'WATER') {
+            return (
+              <button key={c.id} className={`stat streak tone-${CAT_STYLE.WATER.tone}`} aria-pressed={open === c.id} onClick={() => toggle(c.id)}>
+                <span className="row"><Badge name={CAT_STYLE.WATER.icon} /><span className="label">{c.label}</span></span>
+                <span className="value">{water7 ? <>{water7.litres.toFixed(1)}<small>L/day</small></> : '-'}</span>
+              </button>
+            )
+          }
           const s = streaks(store, c.id)
           return (
             <button key={c.id} className={`stat streak tone-${CAT_STYLE[c.id].tone}`} aria-pressed={open === c.id} onClick={() => toggle(c.id)}>
@@ -125,18 +135,9 @@ function CategoryDetail({ store, cat, onClose }: { store: Store; cat: Category; 
     .filter((x) => x.sched > 0)
   const s = streaks(store, cat)
 
+  if (cat === 'WATER') return <WaterDetail store={store} range={range} onClose={onClose} />
+
   const extra = (() => {
-    if (cat === 'WATER') {
-      const water = store.tasks.find((t) => t.category === 'WATER')
-      const ds = water ? range.slice(-7).filter((d) => tasksFor([water], d).length) : []
-      if (!water || !ds.length) return null
-      const litres = ds.reduce((sum, d) => {
-        let n = 0
-        while (n < WATER_PORTIONS && store.done[d]?.has(`${water.id}#${n + 1}`)) n++
-        return sum + n * WATER_PORTION_L
-      }, 0) / ds.length
-      return `${litres.toFixed(1)} L a day on average, last 7 days`
-    }
     if (cat === 'WEIGH') {
       const w = store.weights.filter((x) => x.date >= from)
       if (w.length < 2) return w.length ? '1 weigh-in in the last 30 days' : null
@@ -172,6 +173,47 @@ function CategoryDetail({ store, cat, onClose }: { store: Store; cat: Category; 
                 <span className="food-meta">Done {d} of {days(sched)}</span>
               </span>
               <span className="detail-bar" aria-hidden="true"><span style={{ width: `${(d / sched) * 100}%` }} /></span>
+            </div>
+          ))}
+        </>
+      )}
+    </section>
+  )
+}
+
+/** Water is an amount against a goal: averages and a bar per day, no checked-off rate or streak. */
+function WaterDetail({ store, range, onClose }: { store: Store; range: string[]; onClose: () => void }) {
+  const { tone, icon } = CAT_STYLE.WATER
+  const month = waterAverage(store, range)
+  const week = waterAverage(store, range.slice(-7))
+  const water = store.tasks.find((t) => t.category === 'WATER')
+  const goal = month?.goal ?? 4
+  const daily = water ? range.filter((d) => tasksFor([water], d).length).map((d) => ({ d, l: waterLitres(store.done[d], water.id) })) : []
+  return (
+    <section className={`section tone-${tone}`} aria-label="Water">
+      <div className="section-head">
+        <Badge name={icon} />
+        <div>
+          <h2>Water</h2>
+          <div className="sub">Last {DETAIL_DAYS} days · goal {goal} L a day</div>
+        </div>
+        <button className="icon-btn detail-close" aria-label="Close" onClick={onClose}><Icon name="x" /></button>
+      </div>
+      {!month ? (
+        <p className="empty-line">Nothing to show yet. Log your water on Today and it fills in here.</p>
+      ) : (
+        <>
+          <div className="detail-stats">
+            <div><span className="big">{week!.litres.toFixed(1)} L</span><span className="small">a day, last 7 days</span></div>
+            <div><span className="big">{month.litres.toFixed(1)} L</span><span className="small">a day, last {days(month.days)}</span></div>
+          </div>
+          {[...daily].reverse().slice(0, 7).map(({ d, l }) => (
+            <div key={d} className="food-row detail-row">
+              <span className="food-body">
+                <span className="food-name">{fmt(d, { weekday: 'long', day: 'numeric', month: 'short' })}</span>
+                <span className="food-meta">{l.toFixed(1)} L</span>
+              </span>
+              <span className="detail-bar" aria-hidden="true"><span style={{ width: `${Math.min(1, l / goal) * 100}%` }} /></span>
             </div>
           ))}
         </>
