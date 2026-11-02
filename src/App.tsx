@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { configured, supabase } from './supabase'
 import { isOn, useStore, type Store } from './store'
 import { useDemoStore } from './demo'
 import { todayIso } from './dates'
 import Login from './screens/Login'
+import Landing from './screens/Landing'
 import Today from './screens/Today'
 import WeightScreen from './screens/Weight'
 import History from './screens/History'
@@ -31,10 +32,15 @@ export default function App() {
   const [session, setSession] = useState<Session | null>(null)
   const [ready, setReady] = useState(false)
   const [guest, setGuest] = useState(false)
+  const auth = useAuthRoute()
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => { setSession(data.session); setReady(true) })
-    const { data } = supabase.auth.onAuthStateChange((_e, s) => setSession(s))
+    const { data } = supabase.auth.onAuthStateChange((_e, s) => {
+      setSession(s)
+      // Signed in: leave #login behind, so signing out lands on the front page.
+      if (s && /^#(login|signup)$/.test(location.hash)) history.replaceState(null, '', location.pathname + location.search)
+    })
     return () => data.subscription.unsubscribe()
   }, [])
 
@@ -48,8 +54,34 @@ export default function App() {
     )
   }
   if (!ready) return <main className="page center muted">Loading…</main>
-  if (!session) return <Login onGuest={() => setGuest(true)} />
+  if (!session) {
+    return auth.mode
+      ? <Login key={auth.mode} mode={auth.mode} onBack={auth.close} />
+      : <Landing onAuth={auth.open} onGuest={() => setGuest(true)} />
+  }
   return <Signed userId={session.user.id} />
+}
+
+/** The sign in screen lives at #login / #signup, so the phone's back button returns to the landing page. */
+function useAuthRoute() {
+  const read = () => (location.hash === '#login' ? 'in' : location.hash === '#signup' ? 'up' : null)
+  const [mode, setMode] = useState<'in' | 'up' | null>(read)
+  const opened = useRef(false)
+  useEffect(() => {
+    const on = () => { setMode(read()); window.scrollTo(0, 0) }
+    window.addEventListener('hashchange', on)
+    return () => window.removeEventListener('hashchange', on)
+  }, [])
+  return {
+    mode,
+    open: (m: 'in' | 'up') => { opened.current = true; location.hash = m === 'in' ? 'login' : 'signup' },
+    // Opened from the landing page: step back in history. Arrived on #login directly: just drop the hash.
+    close: () => {
+      if (opened.current) { opened.current = false; history.back(); return }
+      history.replaceState(null, '', location.pathname + location.search)
+      setMode(null)
+    },
+  }
 }
 
 function Signed({ userId }: { userId: string }) {

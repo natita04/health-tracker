@@ -1,4 +1,4 @@
-# Health Tracker
+# Tend
 
 A mobile-friendly website for your daily health plan: check-offs, a basic daily workout,
 Heather Robertson workouts 4x a week, meds schedule, beauty routine, weight log with a trend
@@ -22,8 +22,9 @@ chart, and history/streaks. Data lives in Supabase, the site is hosted on Vercel
 3. Click **Deploy**. Every push to the production branch redeploys automatically.
 
 ### 3. On your phone
-1. Open the Vercel URL, tap **First time? Create account**, then sign in.
-2. Lock the door behind you: in Supabase, **Authentication → Sign In / Providers**, turn off **Allow new users to sign up**.
+1. Open the Vercel URL, tap **Get started**, and create your account.
+2. Sign-ups are open, so friends and family can make their own accounts too. Each person only sees their own data.
+   To close them again: in Supabase, **Authentication → Sign In / Providers**, turn off **Allow new users to sign up**.
 3. In Chrome: **⋮ → Add to Home screen**, so it opens like an app.
 
 ## How your data stays safe when things change
