@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { configured, supabase } from './supabase'
-import { useStore, type Store } from './store'
+import { isOn, useStore, type Store } from './store'
 import { useDemoStore } from './demo'
 import { todayIso } from './dates'
 import Login from './screens/Login'
@@ -11,7 +11,9 @@ import History from './screens/History'
 import Plan from './screens/Plan'
 import Food from './screens/Food'
 import Thanks from './screens/Thanks'
+import Onboarding from './screens/Onboarding'
 import { Icon, type IconName } from './icons'
+import type { Area } from './types'
 
 type Tab = 'today' | 'food' | 'weight' | 'thanks' | 'history' | 'plan'
 const TABS: { id: Tab; label: string; icon: IconName }[] = [
@@ -22,6 +24,8 @@ const TABS: { id: Tab; label: string; icon: IconName }[] = [
   { id: 'history', label: 'History', icon: 'chart' },
   { id: 'plan', label: 'Settings', icon: 'sliders' },
 ]
+/** Tabs that belong to a part of the app you can turn off. */
+const TAB_AREA: Partial<Record<Tab, Area>> = { food: 'FOOD', weight: 'WEIGHT', thanks: 'THANKS' }
 
 export default function App() {
   const [session, setSession] = useState<Session | null>(null)
@@ -59,6 +63,9 @@ function Guest({ onExit }: { onExit: () => void }) {
 function Shell({ store }: { store: Store }) {
   const [tab, setTab] = useState<Tab>('today')
   const [date, setDate] = useState(todayIso())
+  const tabs = TABS.filter((t) => { const a = TAB_AREA[t.id]; return !a || isOn(store, a) })
+  // A tab you just turned off falls back to Habits.
+  const shown = tabs.some((t) => t.id === tab) ? tab : 'today'
 
   // Coming back to the tab on a new day should show that day.
   useEffect(() => {
@@ -84,33 +91,35 @@ function Shell({ store }: { store: Store }) {
         )}
         {store.loading && store.tasks.length === 0 ? (
           <p className="center muted">Loading your plan…</p>
+        ) : store.needsOnboarding ? (
+          <Onboarding store={store} onDone={() => setTab('today')} />
         ) : (
           <>
-            {tab === 'today' && <Today store={store} date={date} setDate={setDate} />}
-            {tab === 'food' && <Food store={store} date={date} setDate={setDate} />}
-            {tab === 'weight' && <WeightScreen store={store} date={date} setDate={setDate} />}
-            {tab === 'thanks' && <Thanks store={store} date={date} setDate={setDate} />}
-            {tab === 'history' && <History store={store} openDay={(d) => { setDate(d); setTab('today') }} />}
-            {tab === 'plan' && <Plan store={store} />}
+            {shown === 'today' && <Today store={store} date={date} setDate={setDate} onSettings={() => setTab('plan')} />}
+            {shown === 'food' && <Food store={store} date={date} setDate={setDate} />}
+            {shown === 'weight' && <WeightScreen store={store} date={date} setDate={setDate} />}
+            {shown === 'thanks' && <Thanks store={store} date={date} setDate={setDate} />}
+            {shown === 'history' && <History store={store} openDay={(d) => { setDate(d); setTab('today') }} />}
+            {shown === 'plan' && <Plan store={store} />}
           </>
         )}
       </main>
-      <nav className="nav" aria-label="Main">
-        {TABS.map((t) => (
+      {!store.needsOnboarding && <nav className="nav" aria-label="Main">
+        {tabs.map((t) => (
           <button
             key={t.id}
             aria-label={t.label}
-            aria-current={tab === t.id ? 'page' : undefined}
+            aria-current={shown === t.id ? 'page' : undefined}
             onClick={() => {
               // Tapping the tab you're on jumps back to today; Food and Weight never show a future day.
-              if (t.id === tab || date > todayIso()) setDate(todayIso())
+              if (t.id === shown || date > todayIso()) setDate(todayIso())
               setTab(t.id)
             }}
           >
             <Icon name={t.icon} size={24} />
           </button>
         ))}
-      </nav>
+      </nav>}
     </>
   )
 }

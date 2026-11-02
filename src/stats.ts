@@ -1,6 +1,6 @@
-import { tasksFor, type Store } from './store'
+import { isOn, tasksFor, type Store } from './store'
 import { addDays, dayIndex, todayIso } from './dates'
-import { TRACKED, WATER_PORTIONS, WATER_PORTION_L, waterLitres, type Category } from './types'
+import { TRACKED, waterLitres, type Category } from './types'
 import type { IconName } from './icons'
 import { CAT_STYLE } from './icons'
 
@@ -87,7 +87,7 @@ export function insights(store: Store): Insight[] {
     out.push({ id: 'water', text: `Water: ${water.litres.toFixed(1)} L a day on average this week (goal ${water.goal} L).`, ...style('WATER') })
   }
 
-  out.push(...foodInsights(store, past30))
+  if (isOn(store, 'FOOD')) out.push(...foodInsights(store, past30))
 
   // Weekend dip.
   for (const c of cats) {
@@ -116,7 +116,7 @@ export function insights(store: Store): Insight[] {
 
   // Weight over 30 days.
   const w = store.weights.filter((x) => x.date >= addDays(today, -30))
-  if (w.length >= 2) {
+  if (isOn(store, 'WEIGHT') && w.length >= 2) {
     const diff = w[w.length - 1].kg - w[0].kg
     if (Math.abs(diff) >= 0.1) {
       out.push({ id: 'weight', text: `Weight: ${diff < 0 ? 'down' : 'up'} ${Math.abs(diff).toFixed(1)} kg over the last 30 days.`, ...style('WEIGH') })
@@ -126,7 +126,7 @@ export function insights(store: Store): Insight[] {
   // Thank you thoughts this week.
   const week = Array.from({ length: 7 }, (_, i) => addDays(today, -i))
   const thanks = week.reduce((n, d) => n + (store.thoughts[d]?.length ?? 0), 0)
-  if (thanks > 0) out.push({ id: 'thanks', text: `${thanks} thank you thought${thanks === 1 ? '' : 's'} this week.`, ...CAT_STYLE.THANKS })
+  if (isOn(store, 'THANKS') && thanks > 0) out.push({ id: 'thanks', text: `${thanks} thank you thought${thanks === 1 ? '' : 's'} this week.`, ...CAT_STYLE.THANKS })
 
   return out.slice(0, 5)
 }
@@ -137,7 +137,7 @@ export function waterAverage(store: Store, days: string[]) {
   const on = water ? days.filter((d) => tasksFor([water], d).length) : []
   if (!water || !on.length) return null
   const total = on.reduce((sum, d) => sum + waterLitres(store.done[d], water.id), 0)
-  return { litres: total / on.length, days: on.length, goal: WATER_PORTIONS * WATER_PORTION_L }
+  return { litres: total / on.length, days: on.length, goal: store.waterGoal }
 }
 
 /** Calories and protein per logged day. */

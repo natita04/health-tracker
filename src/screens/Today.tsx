@@ -3,7 +3,7 @@ import { tasksFor, type Store } from '../store'
 import { formatTime } from '../dates'
 import { Badge, CAT_STYLE, Icon } from '../icons'
 import DayHeader from './DayHeader'
-import { PARTS, partOf, WATER_MAX, WATER_PORTIONS, WATER_PORTION_L, type Category, type Task } from '../types'
+import { PARTS, partOf, WATER_MAX, WATER_PORTION_L, type Category, type Task } from '../types'
 
 // Sections in page order (after the tiles). Walk and water are tiles of their own.
 const SECTIONS: { cat: Category; title: string }[] = [
@@ -11,7 +11,9 @@ const SECTIONS: { cat: Category; title: string }[] = [
   { cat: 'BEAUTY', title: 'Beauty' },
 ]
 
-export default function Today({ store, date, setDate }: { store: Store; date: string; setDate: (d: string) => void }) {
+export default function Today({ store, date, setDate, onSettings }: {
+  store: Store; date: string; setDate: (d: string) => void; onSettings: () => void
+}) {
   const [exercisesFor, setExercisesFor] = useState<Task | null>(null)
   const list = tasksFor(store.tasks, date)
   const done = store.done[date] ?? new Set<string>()
@@ -28,13 +30,27 @@ export default function Today({ store, date, setDate }: { store: Store; date: st
       <DayHeader title="Habits" date={date} setDate={setDate} allowFuture />
 
       <div key={date} className="stack-section fade">
+        {list.length === 0 && (
+          <section className="section tone-sage">
+            <div className="section-head">
+              <Badge name="check-circle" />
+              <div>
+                <h2>Nothing planned{store.tasks.length ? ' this day' : ' yet'}</h2>
+                <div className="sub">Add habits like water, supplements or a walk in Settings.</div>
+              </div>
+            </div>
+            <div className="row settings-actions">
+              <button className="btn btn-white" onClick={onSettings}>Go to Settings</button>
+            </div>
+          </section>
+        )}
         {(mainWorkout || walks.length > 0 || waters.length > 0) && (
           <div className="grid2">
             {walks.map((t) => (
               <WalkTile key={t.id} task={t} done={done.has(t.id)} onToggle={() => store.toggle(date, t, !done.has(t.id))} />
             ))}
             {waters.map((t) => (
-              <WaterTile key={t.id} task={t} done={done} onSet={(n) => store.setWater(date, t, n)} />
+              <WaterTile key={t.id} task={t} done={done} goal={store.waterGoal} onSet={(n) => store.setWater(date, t, n)} />
             ))}
             {mainWorkout && (
               <section className={`tile tone-${CAT_STYLE.WORKOUT.tone} small-tile solo ${done.has(mainWorkout.id) ? 'is-done' : ''}`}>
@@ -173,12 +189,12 @@ function WalkTile({ task, done, onToggle }: { task: Task; done: boolean; onToggl
 }
 
 /** Water tile: icon and -/+ (0.5 L steps) on top, then litres so far. */
-function WaterTile({ task, done, onSet }: { task: Task; done: Set<string>; onSet: (n: number) => void }) {
+function WaterTile({ task, done, goal, onSet }: { task: Task; done: Set<string>; goal: number; onSet: (n: number) => void }) {
   let count = 0
   while (count < WATER_MAX && done.has(`${task.id}#${count + 1}`)) count++
   const litres = (n: number) => (n * WATER_PORTION_L).toFixed(1)
   return (
-    <section className={`tile tone-${CAT_STYLE.WATER.tone} small-tile ${count >= WATER_PORTIONS ? 'is-done' : ''}`}>
+    <section className={`tile tone-${CAT_STYLE.WATER.tone} small-tile ${count * WATER_PORTION_L >= goal ? 'is-done' : ''}`}>
       <div className="tile-top">
         <Badge name="droplet" />
         <span className="tile-controls">

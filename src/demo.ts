@@ -2,7 +2,8 @@ import { useState } from 'react'
 import { newSince, UPGRADES } from './defaults'
 import { addDays, todayIso } from './dates'
 import { tasksFor, type Store, type Thought } from './store'
-import { KCAL_GOAL, PROTEIN_GOAL, WATER_MAX, WATER_PORTIONS, type FoodEntry, type FoodGoals, type SavedFood, type Task, type Weight } from './types'
+import { areaOf } from './types'
+import { KCAL_GOAL, PROTEIN_GOAL, WATER_MAX, WATER_PORTION_L, WATER_PORTIONS, type Area, type FoodEntry, type FoodGoals, type SavedFood, type Task, type Weight } from './types'
 
 // Guest preview: same screens, made-up data kept in memory only. Nothing is read from or written to Supabase.
 
@@ -97,6 +98,10 @@ export function useDemoStore(onExit: () => void): Store {
   const [food, setFood] = useState(initial.food)
   const [savedFoods, setSavedFoods] = useState(initial.savedFoods)
   const [foodGoals, setFoodGoals] = useState<FoodGoals>({ kcal: KCAL_GOAL, protein: PROTEIN_GOAL })
+  const [hidden, setHidden] = useState<Area[]>([])
+  const [waterGoal, setWaterGoal] = useState(WATER_PORTIONS * WATER_PORTION_L)
+  const [needsOnboarding, setNeedsOnboarding] = useState(false)
+  const visible = tasks.filter((t) => { const a = areaOf(t.category); return !t.archived && !(a && hidden.includes(a)) })
 
   const setIds = (date: string, ids: string[], on: boolean) =>
     setDone((p) => {
@@ -108,13 +113,25 @@ export function useDemoStore(onExit: () => void): Store {
   return {
     userId: 'guest', isGuest: true,
     signOut: async () => onExit(),
-    tasks: tasks.filter((t) => !t.archived), done, weights, thoughts, thoughtsReady: true, goal, food, savedFoods, foodReady: true, foodGoals,
+    tasks: visible, allTasks: tasks.filter((t) => !t.archived), done, weights, thoughts, thoughtsReady: true, goal, food, savedFoods, foodReady: true, foodGoals,
+    hidden, waterGoal, needsOnboarding,
+    setHidden: async (a, off) => setHidden((p) => (off ? [...new Set([...p, a])] : p.filter((x) => x !== a))),
+    setWaterGoal: async (l) => setWaterGoal(l),
+    finishOnboarding: async (o) => {
+      setTasks((p) => [...p.filter((t) => !o.tasks.some((n) => n.id === t.id)), ...o.tasks])
+      setHidden(o.hidden)
+      if (o.food) setFoodGoals(o.food)
+      if (o.waterGoal) setWaterGoal(o.waterGoal)
+      if (o.goalKg !== undefined) setGoalState(o.goalKg)
+      setNeedsOnboarding(false)
+    },
+    restartOnboarding: () => setNeedsOnboarding(true),
     loading: false, error: null, clearError: () => {}, reload: async () => {},
     toggle: async (date, task, on) => setIds(date, [task.id], on),
     setWater: async (date, task, count) => {
       const all = Array.from({ length: WATER_MAX }, (_, i) => `${task.id}#${i + 1}`)
       setIds(date, [...all, task.id], false)
-      setIds(date, [...all.slice(0, count), ...(count >= WATER_PORTIONS ? [task.id] : [])], true)
+      setIds(date, [...all.slice(0, count), ...(count >= Math.round(waterGoal / WATER_PORTION_L) ? [task.id] : [])], true)
     },
     addThought: async (date, text) =>
       setThoughts((p) => ({ ...p, [date]: [...(p[date] ?? []), { id: `g-${Date.now()}`, date, text, created_at: new Date().toISOString() }] })),

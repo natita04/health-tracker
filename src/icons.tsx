@@ -1,4 +1,4 @@
-import type { Category } from './types'
+import type { Area, Category } from './types'
 
 // Line icons, 24x24, stroke-based (see redesign handoff, section 4).
 const PATHS = {
@@ -64,6 +64,9 @@ export const CAT_STYLE: Record<Category | 'THANKS' | 'FOOD', { tone: Tone; icon:
   CHORE: { tone: 'plain', icon: 'bell' },
   THANKS: { tone: 'butter', icon: 'heart' },
 }
+
+/** Style of a part of the app (see AREAS); weight shares the weigh-in look. */
+export const areaStyle = (a: Area) => CAT_STYLE[a === 'WEIGHT' ? 'WEIGH' : a]
 
 export function Badge({ name }: { name: IconName }) {
   return <span className="badge"><Icon name={name} /></span>

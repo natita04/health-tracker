@@ -19,7 +19,25 @@ export const TRACKED = CATEGORIES.filter((c) => c.id !== 'CHORE')
 
 export const catInfo = (c: string) => CATEGORIES.find((x) => x.id === c) ?? TRACKED[TRACKED.length - 1]
 
-/** Water is tracked in 0.5 L portions. 8 portions = 4 L is the goal, not a must: you can log up to 8 L. */
+/**
+ * Parts of the app you can turn off (in onboarding or Settings). Off means hidden everywhere:
+ * its tab, its items on Habits, History, insights and Settings. Nothing is deleted.
+ */
+export type Area = 'FOOD' | 'WATER' | 'MEDS' | 'BEAUTY' | 'WORKOUT' | 'WALK' | 'WEIGHT' | 'THANKS'
+export const AREAS: { id: Area; label: string }[] = [
+  { id: 'FOOD', label: 'Food' },
+  { id: 'WATER', label: 'Water' },
+  { id: 'MEDS', label: 'Meds & supplements' },
+  { id: 'BEAUTY', label: 'Beauty' },
+  { id: 'WORKOUT', label: 'Workout' },
+  { id: 'WALK', label: 'Steps' },
+  { id: 'WEIGHT', label: 'Weight' },
+  { id: 'THANKS', label: 'Thank you' },
+]
+/** The area a category belongs to; reminders are always on. */
+export const areaOf = (c: Category): Area | null => (c === 'WEIGH' ? 'WEIGHT' : c === 'CHORE' ? null : c)
+
+/** Water is tracked in 0.5 L portions. The goal (4 L unless you set another) is a target, not a must: you can log up to 8 L. */
 export const WATER_PORTIONS = 8
 export const WATER_MAX = 16
 export const WATER_PORTION_L = 0.5
