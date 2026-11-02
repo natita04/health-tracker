@@ -172,7 +172,7 @@ function WalkTile({ task, done, onToggle }: { task: Task; done: boolean; onToggl
   )
 }
 
-/** Water tile: icon and -/+ (0.5 L steps) on top, then litres so far against the goal. */
+/** Water tile: icon and -/+ (0.5 L steps) on top, then litres so far. */
 function WaterTile({ task, done, onSet }: { task: Task; done: Set<string>; onSet: (n: number) => void }) {
   let count = 0
   while (count < WATER_MAX && done.has(`${task.id}#${count + 1}`)) count++
@@ -192,7 +192,7 @@ function WaterTile({ task, done, onSet }: { task: Task; done: Set<string>; onSet
       </div>
       <h3>Water</h3>
       <p className="tile-amount" aria-live="polite">
-        <strong>{litres(count)}</strong> L · goal {(WATER_PORTIONS * WATER_PORTION_L).toFixed(0)} L
+        <strong>{litres(count)}</strong> L
       </p>
     </section>
   )
