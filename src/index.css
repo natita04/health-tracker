@@ -603,6 +603,10 @@ button.stat { width: 100%; }
 .onboarding-actions { gap: 10px; }
 .onboarding-actions .btn { min-height: 52px; }
 .btn-primary:disabled { opacity: .5; }
+/* Weight is grey everywhere else; on the grey page its setup card goes white, with grey controls. */
+.onboarding .tone-plain { --tile: var(--surface); }
+.onboarding .tone-plain .badge, .onboarding .tone-plain .chip:not(.on), .onboarding .tone-plain input { background: var(--surface-muted); }
+.onboarding .goal-row { color: var(--tile-text); }
 
 /* ---------- landing page ---------- */
 .landing {
