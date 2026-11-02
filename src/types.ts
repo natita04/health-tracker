@@ -19,9 +19,17 @@ export const TRACKED = CATEGORIES.filter((c) => c.id !== 'CHORE')
 
 export const catInfo = (c: string) => CATEGORIES.find((x) => x.id === c) ?? TRACKED[TRACKED.length - 1]
 
-/** Water is tracked in 0.5 L portions; 8 portions = 4 L. */
+/** Water is tracked in 0.5 L portions. 8 portions = 4 L is the goal, not a must: you can log up to 8 L. */
 export const WATER_PORTIONS = 8
+export const WATER_MAX = 16
 export const WATER_PORTION_L = 0.5
+
+/** Litres logged on a day, from the completions "<task id>#1".."#16". */
+export const waterLitres = (done: Set<string> | undefined, taskId: string) => {
+  let n = 0
+  while (n < WATER_MAX && done?.has(`${taskId}#${n + 1}`)) n++
+  return n * WATER_PORTION_L
+}
 
 export interface Task {
   id: string
