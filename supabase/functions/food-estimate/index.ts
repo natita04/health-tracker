@@ -21,12 +21,15 @@ const CORS = {
 const SYSTEM = `You estimate calories and protein for a food diary. The user writes what they ate, usually in Hebrew, sometimes in English, often informally.
 
 - Split the text into separate foods or drinks and estimate each one.
-- When no amount is given, assume a typical single portion as served in Israel (e.g. a slice of bread ~30 g, a tub of cottage ~250 g, a pita ~80 g).
-- Use typical home or cafe preparation, including the usual oil, unless the text says otherwise.
-- kcal is a whole number; protein is grams, rounded to 0.5.
+- For every item give "grams" (its weight as eaten) and the nutrition PER 100 g of that food ("per100_kcal", "per100_protein"). Do NOT multiply: the server computes the item's calories and protein from these.
+- A weight the user writes is EXACT. Use it as "grams" and never swap it for a typical portion. Units: g, gr, gram, grams, גרם, גר', ג' are grams; kg / ק"ג is 1000 g; ml / מ"ל is about 1 g per ml (use the drink's real density if it is clearly different, e.g. oil, honey). "Cup", "tbsp", "tsp" and the like are not weights, so convert them to grams for that food.
+- Weights are for the food as eaten: cooked or ready to eat (cooked rice, grilled chicken, boiled pasta), never raw or dry, unless the text says otherwise (e.g. "raw", "dry", "לא מבושל", "יבש", "נא", "לפני בישול"). Take per-100 g values for that same state.
+- When the amount is vague or counted (e.g. "a small potato", "2 eggs", "a slice of bread"), estimate the weight from typical Israeli sizes (a slice of bread ~30 g, a pita ~80 g, a tub of cottage ~250 g, a medium egg ~55 g, a small potato ~100 g). This is the only case where you may be approximate.
+- When no amount is given at all, assume a typical single portion as served in Israel.
+- Use typical home or cafe preparation, including the usual oil, unless the text says otherwise. Reflect it in the per-100 g values.
+- Per-100 g values must be realistic for the specific food and variant named (e.g. cottage 5% vs 3%, chicken breast vs thigh, Greek vs regular yogurt). Prefer standard published values (USDA, Israeli Ministry of Health tables, or the package label if the brand is named).
 - "name" is a short label for the whole meal in the user's own language and wording, at most 60 characters. Item names also stay in the user's language.
-- The totals must equal the sum of the items.
-- If the text isn't food at all, return an empty items list and zeros.
+- If the text isn't food at all, return an empty items list.
 - If there's a photo, identify the foods in it and estimate portions from what you see (plate size, utensils, packaging). Any text is extra context, like the portion eaten. With no text, write names in Hebrew.`
 
 const IDEAS_SYSTEM = `You help someone close today's protein gap in their food diary. You get how much protein they still want (grams), how many calories they have left, and a list of their own saved meals (most eaten first), usually named in Hebrew.
@@ -36,14 +39,17 @@ const IDEAS_SYSTEM = `You help someone close today's protein gap in their food d
 - Otherwise suggest everyday foods easy to get in Israel (cottage, yogurt, eggs, tuna, chicken, tofu, protein shake...), with a typical portion in the name, written in Hebrew, and set mine to false.
 - kcal is a whole number; protein is grams, rounded to 0.5. Order from best fit to least.`
 
-const ITEM = {
+// What the model returns for text/photo: per-100 g values and a weight. The server does the multiplication
+// (models are unreliable at it), so the totals are always the exact sum of the items.
+const RAW_ITEM = {
   type: 'object' as const,
   properties: {
     name: { type: 'string' },
-    kcal: { type: 'integer' },
-    protein: { type: 'number' },
+    grams: { type: 'number' },
+    per100_kcal: { type: 'number' },
+    per100_protein: { type: 'number' },
   },
-  required: ['name', 'kcal', 'protein'],
+  required: ['name', 'grams', 'per100_kcal', 'per100_protein'],
   additionalProperties: false,
 }
 
@@ -51,12 +57,30 @@ const SCHEMA = {
   type: 'object' as const,
   properties: {
     name: { type: 'string' },
-    kcal: { type: 'integer' },
-    protein: { type: 'number' },
-    items: { type: 'array' as const, items: ITEM },
+    items: { type: 'array' as const, items: RAW_ITEM },
   },
-  required: ['name', 'kcal', 'protein', 'items'],
+  required: ['name', 'items'],
   additionalProperties: false,
+}
+
+type RawEstimate = { name: string; items: { name: string; grams: number; per100_kcal: number; per100_protein: number }[] }
+
+/** grams x per-100 g -> the { name, kcal, protein, items } shape the app expects. kcal whole, protein to 0.5. */
+function compute(raw: RawEstimate) {
+  const items = raw.items.map((i) => {
+    const f = Math.max(0, Number(i.grams) || 0) / 100
+    return {
+      name: i.name,
+      kcal: Math.round(f * Math.max(0, Number(i.per100_kcal) || 0)),
+      protein: Math.round(f * Math.max(0, Number(i.per100_protein) || 0) * 2) / 2,
+    }
+  })
+  return {
+    name: raw.name,
+    kcal: items.reduce((s, i) => s + i.kcal, 0),
+    protein: items.reduce((s, i) => s + i.protein, 0),
+    items,
+  }
 }
 
 const IDEAS_SCHEMA = {
@@ -122,14 +146,15 @@ Deno.serve(async (req) => {
       model: 'claude-haiku-5-5',
       max_tokens: 4000,
       system,
-      // A quick lookup-style task: low effort keeps it fast and cheap.
-      output_config: { effort: 'low', format: { type: 'json_schema', schema } },
+      // Medium effort: low made per-100 g recall sloppy; high isn't needed for a lookup-style task.
+      output_config: { effort: 'medium', format: { type: 'json_schema', schema } },
       messages: [{ role: 'user', content }],
     })
     if (response.stop_reason === 'refusal') return json({ error: 'Could not estimate this one' }, 422)
     const block = response.content.find((b) => b.type === 'text')
     if (!block || block.type !== 'text') return json({ error: 'No estimate came back' }, 502)
-    return json(JSON.parse(block.text))
+    const parsed = JSON.parse(block.text)
+    return json(body.mode === 'ideas' ? parsed : compute(parsed as RawEstimate))
   } catch (e) {
     if (e instanceof Anthropic.AuthenticationError) return json({ error: 'The Anthropic API key is missing or wrong' }, 500)
     if (e instanceof Anthropic.RateLimitError) return json({ error: 'Too many requests, try again in a moment' }, 429)
