@@ -8,7 +8,6 @@ import Login from './screens/Login'
 import Landing from './screens/Landing'
 import Today from './screens/Today'
 import WeightScreen from './screens/Weight'
-import History from './screens/History'
 import Plan from './screens/Plan'
 import Food from './screens/Food'
 import Thanks from './screens/Thanks'
@@ -16,13 +15,12 @@ import Onboarding from './screens/Onboarding'
 import { Icon, type IconName } from './icons'
 import type { Area } from './types'
 
-type Tab = 'today' | 'food' | 'weight' | 'thanks' | 'history' | 'plan'
+type Tab = 'today' | 'food' | 'weight' | 'thanks' | 'plan'
 const TABS: { id: Tab; label: string; icon: IconName }[] = [
   { id: 'today', label: 'Habits', icon: 'check-circle' },
   { id: 'food', label: 'Food', icon: 'apple' },
   { id: 'weight', label: 'Weight', icon: 'scale' },
   { id: 'thanks', label: 'Thank you', icon: 'heart' },
-  { id: 'history', label: 'History', icon: 'chart' },
   { id: 'plan', label: 'Settings', icon: 'sliders' },
 ]
 /** Tabs that belong to a part of the app you can turn off. */
@@ -131,7 +129,6 @@ function Shell({ store }: { store: Store }) {
             {shown === 'food' && <Food store={store} date={date} setDate={setDate} />}
             {shown === 'weight' && <WeightScreen store={store} date={date} setDate={setDate} />}
             {shown === 'thanks' && <Thanks store={store} date={date} setDate={setDate} />}
-            {shown === 'history' && <History store={store} openDay={(d) => { setDate(d); setTab('today') }} />}
             {shown === 'plan' && <Plan store={store} />}
           </>
         )}
