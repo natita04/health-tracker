@@ -4,7 +4,7 @@ import { isOn, type Store } from '../store'
 import { fmt, formatTime, parseTime, todayIso } from '../dates'
 import { MORE_WORKOUTS_URL } from '../defaults'
 import { ALL_DAYS, AREAS, areaOf, CATEGORIES, PARTS, partRank, type Category, type PartOfDay, type Task } from '../types'
-import { areaStyle, Badge, CAT_STYLE, Icon } from '../icons'
+import { areaStyle, Badge, CAT_STYLE, Icon, type IconName } from '../icons'
 
 // Display order Sun..Sat, with their days_mask bit (Monday = bit 0).
 const WEEK: [string, number][] = [['Sun', 6], ['Mon', 0], ['Tue', 1], ['Wed', 2], ['Thu', 3], ['Fri', 4], ['Sat', 5]]
@@ -35,7 +35,7 @@ export default function Plan({ store }: { store: Store }) {
       {/* Every group is the same white card: icon, title and subtitle, then grey rows. */}
       <div className="settings stack-section">
         <TrackCard store={store} />
-        {isOn(store, 'FOOD') && <FoodGoalsCard store={store} />}
+        {(isOn(store, 'WATER') || isOn(store, 'FOOD')) && <GoalsCard store={store} />}
 
         {CATEGORIES.map((c) => {
           const items = store.tasks
@@ -78,11 +78,9 @@ export default function Plan({ store }: { store: Store }) {
             <Badge name="user" />
             <div><h2>Account</h2></div>
           </div>
-          <div className="row wrap settings-actions">
-            <button className="btn btn-muted" onClick={store.restartOnboarding}>Run setup again</button>
-            <button className="btn btn-muted" onClick={() => void store.exportBackup()}>Download backup</button>
-            <button className="btn btn-muted" onClick={() => void store.signOut()}>{store.isGuest ? 'Exit guest view' : 'Sign out'}</button>
-          </div>
+          <ActionRow icon="sliders" label="Run setup again" onClick={store.restartOnboarding} />
+          <ActionRow icon="calendar" label="Download backup" onClick={() => void store.exportBackup()} />
+          <ActionRow icon="user" label={store.isGuest ? 'Exit guest view' : 'Sign out'} onClick={() => void store.signOut()} />
         </section>
       </div>
 
@@ -102,19 +100,19 @@ export default function Plan({ store }: { store: Store }) {
   )
 }
 
+/** A tappable settings row: icon, label, chevron. */
+function ActionRow({ icon, label, onClick, disabled }: { icon: IconName; label: string; onClick: () => void; disabled?: boolean }) {
+  return (
+    <button className="task-row planrow" disabled={disabled} onClick={onClick}>
+      <Icon name={icon} />
+      <span className="task-body"><span className="task-title">{label}</span></span>
+      <Icon name="chevron-right" />
+    </button>
+  )
+}
+
 /** Parts of the app you use. Off hides them everywhere; their items and history are kept for when you turn them back on. */
 function TrackCard({ store }: { store: Store }) {
-  const [water, setWater] = useState(String(store.waterGoal))
-  const litres = Number(water.replace(',', '.'))
-  const waterOk = litres >= 0.5 && litres <= 8
-
-  function saveWater() {
-    if (!waterOk) return
-    const l = Math.round(litres * 2) / 2 // the tile counts in 0.5 L glasses
-    setWater(String(l))
-    if (l !== store.waterGoal) void store.setWaterGoal(l)
-  }
-
   return (
     <section className="section">
       <div className="section-head">
@@ -135,21 +133,23 @@ function TrackCard({ store }: { store: Store }) {
           </button>
         )
       })}
-      {isOn(store, 'WATER') && (
-        <div className="notify-body">
-          <label className="time-row goal-row">Water goal, a day
-            <input inputMode="decimal" value={water} className={waterOk ? '' : 'invalid'}
-              onChange={(e) => setWater(e.target.value)} onBlur={saveWater} />
-            <span>L</span>
-          </label>
-        </div>
-      )}
     </section>
   )
 }
 
-/** Daily calorie and protein goals for the Food tab; each field saves when you leave it. */
-function FoodGoalsCard({ store }: { store: Store }) {
+/** Daily water, calorie and protein goals in one card; each field saves when you leave it. */
+function GoalsCard({ store }: { store: Store }) {
+  const [water, setWater] = useState(String(store.waterGoal))
+  const litres = Number(water.replace(',', '.'))
+  const waterOk = litres >= 0.5 && litres <= 8
+
+  function saveWater() {
+    if (!waterOk) return
+    const l = Math.round(litres * 2) / 2 // the tile counts in 0.5 L glasses
+    setWater(String(l))
+    if (l !== store.waterGoal) void store.setWaterGoal(l)
+  }
+
   const [kcal, setKcal] = useState(String(store.foodGoals.kcal))
   const [protein, setProtein] = useState(String(store.foodGoals.protein))
   const [msg, setMsg] = useState<string | null>(null)
@@ -166,12 +166,20 @@ function FoodGoalsCard({ store }: { store: Store }) {
   }
 
   return (
-    <section className={`section tone-${CAT_STYLE.FOOD.tone}`}>
+    <section className="section">
       <div className="section-head">
-        <Badge name="apple" />
-        <div><h2>Food goals</h2></div>
+        <Badge name="droplet" />
+        <div><h2>Daily goals</h2></div>
       </div>
       <div className="notify-body">
+        {isOn(store, 'WATER') && (
+          <label className="time-row goal-row">Water, a day
+            <input inputMode="decimal" value={water} className={waterOk ? '' : 'invalid'}
+              onChange={(e) => setWater(e.target.value)} onBlur={saveWater} />
+            <span>L</span>
+          </label>
+        )}
+        {isOn(store, 'FOOD') && <>
         <label className="time-row goal-row">Calories, at most
           <input inputMode="numeric" value={kcal} className={kcalOk ? '' : 'invalid'}
             onChange={(e) => setKcal(e.target.value)} onBlur={save} />
@@ -182,6 +190,7 @@ function FoodGoalsCard({ store }: { store: Store }) {
             onChange={(e) => setProtein(e.target.value)} onBlur={save} />
           <span>g</span>
         </label>
+        </>}
         {msg && <p className="empty-line" role="status">{msg}</p>}
       </div>
     </section>
@@ -218,20 +227,16 @@ function ReminderDevice({ store, empty }: { store: Store; empty: boolean }) {
         ) : (
           <>
             {status !== 'on' && <p className="empty-line">Notifications are off on this device.</p>}
-            <div className="row wrap">
-              {status === 'on' ? (
-                <>
-                  <button className="btn btn-ink" disabled={busy} onClick={() => run(sendTestPush, 'Sent! It should pop up in a few seconds.')}>Send a test</button>
-                  <button className="btn btn-white" disabled={busy}
-                    onClick={() => run(async () => { await disablePush(); setStatus('off') }, 'Turned off on this device.')}>Turn off</button>
-                </>
-              ) : (
-                <button className="btn btn-ink" disabled={busy}
-                  onClick={() => run(async () => setStatus(await enablePush(store.userId)), 'On! Reminders will show up on this device.')}>
-                  Turn on for this device
-                </button>
-              )}
-            </div>
+            {status === 'on' ? (
+              <>
+                <ActionRow icon="bell" label="Send a test" disabled={busy} onClick={() => run(sendTestPush, 'Sent! It should pop up in a few seconds.')} />
+                <ActionRow icon="x" label="Turn off on this device" disabled={busy}
+                  onClick={() => run(async () => { await disablePush(); setStatus('off') }, 'Turned off on this device.')} />
+              </>
+            ) : (
+              <ActionRow icon="bell" label="Turn on for this device" disabled={busy}
+                onClick={() => run(async () => setStatus(await enablePush(store.userId)), 'On! Reminders will show up on this device.')} />
+            )}
           </>
         )}
         {msg && <p className="empty-line" role="status">{msg}</p>}
