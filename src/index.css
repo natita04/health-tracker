@@ -701,3 +701,37 @@ button.stat { width: 100%; }
   .lp-final { padding: 64px; align-items: center; text-align: center; }
   .lp-final .lp-ctas { justify-content: center; }
 }
+
+/* ---------- celebrations ---------- */
+.cel { position: fixed; inset: 0; z-index: 30; pointer-events: none; }
+.cel-card {
+  pointer-events: auto; position: fixed; left: 50%; bottom: calc(128px + env(safe-area-inset-bottom));
+  width: min(360px, calc(100% - 32px)); display: flex; align-items: center; gap: 14px; padding: 14px 18px;
+  background: var(--tile); color: var(--tile-text); border-radius: var(--r-row); text-align: left;
+  box-shadow: 0 8px 28px var(--scrim); transform: translateX(-50%);
+  animation: cel-in 420ms cubic-bezier(.2, 1.3, .4, 1) both;
+}
+.cel-card:not(:disabled):active { transform: translateX(-50%) scale(0.98); }
+.cel-icon { width: 48px; height: 48px; border-radius: 50%; background: var(--surface); color: var(--icon); display: grid; place-items: center; flex: none; animation: pop 600ms 150ms ease-out both; }
+.cel-text { display: flex; flex-direction: column; gap: 2px; font-size: 15px; line-height: 1.3; }
+.cel-text strong { font-size: 18px; font-weight: 600; color: var(--ink); }
+@keyframes cel-in { from { opacity: 0; transform: translate(-50%, 24px) scale(.9); } to { opacity: 1; transform: translate(-50%, 0) scale(1); } }
+.cel-fx { position: fixed; inset: 0; overflow: hidden; }
+.cel-piece {
+  position: absolute; left: 50%; top: 58%; border-radius: 2px;
+  animation: confetti 1700ms var(--delay) cubic-bezier(.2, .6, .4, 1) both;
+}
+@keyframes confetti {
+  0% { transform: translate(0, 0) rotate(0); opacity: 1; }
+  35% { transform: translate(calc(var(--dx) * .7), var(--up)) rotate(calc(var(--rot) * .4)); opacity: 1; }
+  100% { transform: translate(var(--dx), var(--down)) rotate(var(--rot)); opacity: 0; }
+}
+.cel-rise { position: absolute; bottom: calc(170px + env(safe-area-inset-bottom)); color: var(--icon); opacity: 0; animation: cel-rise 2000ms var(--delay) ease-out both; }
+@keyframes cel-rise {
+  0% { transform: translate(0, 0) scale(.5); opacity: 0; }
+  15% { opacity: 1; }
+  100% { transform: translate(var(--dx), -280px) scale(1.1); opacity: 0; }
+}
+/* Ticks and the water button give a little spring. */
+@keyframes pop { 0% { transform: scale(.6); } 60% { transform: scale(1.18); } 100% { transform: scale(1); } }
+.check.on { animation: pop 280ms ease-out; }

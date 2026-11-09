@@ -13,6 +13,7 @@ import Food from './screens/Food'
 import Thanks from './screens/Thanks'
 import Onboarding from './screens/Onboarding'
 import { Icon, type IconName } from './icons'
+import { Celebrations } from './celebrate'
 import type { Area } from './types'
 
 type Tab = 'today' | 'food' | 'weight' | 'thanks' | 'plan'
@@ -149,6 +150,7 @@ function Shell({ store }: { store: Store }) {
           </button>
         ))}
       </nav>}
+      <Celebrations />
     </>
   )
 }
