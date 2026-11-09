@@ -4,6 +4,7 @@ import { addDays, fmt, todayIso } from '../dates'
 import { Badge, CAT_STYLE, Icon } from '../icons'
 import DayHeader from './DayHeader'
 import { PROMPTS } from '../thanks'
+import { celebrateThanks } from '../celebrate'
 
 /** A random prompt, never the same one twice in a row. */
 const randomPrompt = (current: string | null) => {
@@ -61,6 +62,7 @@ export default function Thanks({ store, date, setDate }: { store: Store; date: s
             const v = text.trim()
             if (!v || !store.thoughtsReady) return
             void store.addThought(date, v)
+            if (items.length === 2) celebrateThanks(date)
             setText('')
             setHint(null)
             input.current?.focus()

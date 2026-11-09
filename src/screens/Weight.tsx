@@ -4,6 +4,7 @@ import { addDays, fmt, fromIso, todayIso } from '../dates'
 import { Icon } from '../icons'
 import type { Weight } from '../types'
 import WeightDialog from './WeightDialog'
+import { celebrateWeight } from '../celebrate'
 import DayHeader from './DayHeader'
 
 type Range = '1W' | '1M' | '3M' | '1Y' | 'All'
@@ -104,7 +105,17 @@ export default function WeightScreen({ store, date, setDate }: { store: Store; d
       {dialog === 'log' && (
         <WeightDialog initial={dayEntry?.kg} title={date === today ? 'Log weight' : `Weight for ${fmt(date, { weekday: 'short', day: 'numeric', month: 'short' })}`}
           onClose={() => setDialog(null)}
-          onSave={(kg) => { if (kg != null) void store.saveWeight(date, kg); setDialog(null) }} />
+          onSave={(kg) => {
+            if (kg != null) {
+              void store.saveWeight(date, kg)
+              // Lower than the weigh-in before it: a small cheer (a bigger one for a new low).
+              const before = store.weights.filter((w) => w.date < date)
+              const prev = before[before.length - 1]
+              const lost = prev ? Math.round((prev.kg - kg) * 10) / 10 : 0
+              if (lost > 0) celebrateWeight(date, kg, lost, kg < Math.min(...before.map((w) => w.kg)))
+            }
+            setDialog(null)
+          }} />
       )}
       {dialog === 'goal' && (
         <WeightDialog title="Weight goal" label="Goal (kg)" initial={store.goal ?? undefined} allowClear onClose={() => setDialog(null)}

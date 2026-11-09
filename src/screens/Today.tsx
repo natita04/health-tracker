@@ -1,8 +1,9 @@
 import { useState, type ReactNode } from 'react'
 import { tasksFor, type Store } from '../store'
-import { formatTime } from '../dates'
+import { formatTime, todayIso } from '../dates'
 import { Badge, CAT_STYLE, Icon } from '../icons'
 import DayHeader from './DayHeader'
+import { celebrateDone, celebrateWater, useRise } from '../celebrate'
 import { PARTS, partOf, WATER_MAX, WATER_PORTION_L, type Category, type Task } from '../types'
 
 // Sections in page order (after the tiles). Walk and water are tiles of their own.
@@ -24,6 +25,10 @@ export default function Today({ store, date, setDate, onSettings }: {
   const strength = workouts.filter((t) => t !== mainWorkout)
   const walks = list.filter((t) => t.category === 'WALK')
   const waters = list.filter((t) => t.category === 'WATER')
+
+  // Everything on today's plan ticked: a perfect day.
+  const allDone = list.length > 0 && list.every((t) => done.has(t.id))
+  useRise(allDone && date <= todayIso(), date, () => celebrateDone(date))
 
   return (
     <>
@@ -50,7 +55,7 @@ export default function Today({ store, date, setDate, onSettings }: {
               <WalkTile key={t.id} task={t} done={done.has(t.id)} onToggle={() => store.toggle(date, t, !done.has(t.id))} />
             ))}
             {waters.map((t) => (
-              <WaterTile key={t.id} task={t} done={done} goal={store.waterGoal} onSet={(n) => store.setWater(date, t, n)} />
+              <WaterTile key={t.id} task={t} date={date} done={done} goal={store.waterGoal} onSet={(n) => store.setWater(date, t, n)} />
             ))}
             {mainWorkout && (
               <section className={`tile tone-${CAT_STYLE.WORKOUT.tone} small-tile solo ${done.has(mainWorkout.id) ? 'is-done' : ''}`}>
@@ -189,10 +194,13 @@ function WalkTile({ task, done, onToggle }: { task: Task; done: boolean; onToggl
 }
 
 /** Water tile: icon and -/+ (0.5 L steps) on top, then litres so far. */
-function WaterTile({ task, done, goal, onSet }: { task: Task; done: Set<string>; goal: number; onSet: (n: number) => void }) {
+function WaterTile({ task, date, done, goal, onSet }: { task: Task; date: string; done: Set<string>; goal: number; onSet: (n: number) => void }) {
   let count = 0
   while (count < WATER_MAX && done.has(`${task.id}#${count + 1}`)) count++
   const litres = (n: number) => (n * WATER_PORTION_L).toFixed(1)
+  // The cheer comes at 2 L (or at your goal, if that is lower).
+  const cheerAt = Math.min(goal, 2)
+  useRise(count * WATER_PORTION_L >= cheerAt && date <= todayIso(), `${date}:${task.id}`, () => celebrateWater(date, cheerAt))
   return (
     <section className={`tile tone-${CAT_STYLE.WATER.tone} small-tile ${count * WATER_PORTION_L >= goal ? 'is-done' : ''}`}>
       <div className="tile-top">
