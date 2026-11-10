@@ -112,7 +112,6 @@ function TrackCard({ store }: { store: Store }) {
         <Badge name="sliders" />
         <div>
           <h2>What you track</h2>
-          <div className="sub">Turned off parts are hidden, nothing is deleted.</div>
         </div>
       </div>
       {AREAS.map((a) => {
@@ -190,17 +189,16 @@ function GoalsCard({ store }: { store: Store }) {
             <span>L</span>
           </label>
         )}
-        {isOn(store, 'WALK') && walk && <>
-          <div className="segmented segmented-2" role="group" aria-label="Steps goal by">
-            <button type="button" aria-pressed={stepUnit === 'steps'} onClick={() => pickUnit('steps')}>Steps</button>
-            <button type="button" aria-pressed={stepUnit === 'min'} onClick={() => pickUnit('min')}>Minutes</button>
-          </div>
-          <label className="time-row goal-row">{stepUnit === 'steps' ? 'Steps, a day' : 'Walking, a day'}
+        {isOn(store, 'WALK') && walk && (
+          <label className="time-row goal-row steps-row">Steps, a day
             <input inputMode="numeric" value={stepGoal} className={stepOk ? '' : 'invalid'}
               onChange={(e) => setStepGoal(e.target.value.replace(/\D/g, '').slice(0, 6))} onBlur={() => saveSteps(stepUnit, stepGoal)} />
-            <span>{stepUnit === 'steps' ? 'steps' : 'min'}</span>
+            <span className="unit-toggle" role="group" aria-label="Steps goal by">
+              <button type="button" aria-pressed={stepUnit === 'steps'} onClick={() => pickUnit('steps')}>steps</button>
+              <button type="button" aria-pressed={stepUnit === 'min'} onClick={() => pickUnit('min')}>min</button>
+            </span>
           </label>
-        </>}
+        )}
         {isOn(store, 'FOOD') && <>
         <label className="time-row goal-row">Calories, at most
           <input inputMode="numeric" value={kcal} className={kcalOk ? '' : 'invalid'}
