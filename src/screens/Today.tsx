@@ -130,6 +130,7 @@ function Rows({ items, done, onToggle, onExercises }: { items: Task[]; done: Set
 
 function TaskRow({ task, done, onToggle, onExercises }: { task: Task; done: boolean; onToggle: () => void; onExercises?: (t: Task) => void }) {
   const note = task.details.trim()
+  const hasSteps = !!onExercises && !!task.steps?.length
   const row = (
     <button className={`task-row ${done ? 'is-done' : ''}`} aria-pressed={done} onClick={onToggle}>
       <span className={`check ${done ? 'on' : ''}`} aria-hidden="true">{done && <Icon name="tick" size={16} strokeWidth={3} />}</span>
@@ -142,24 +143,27 @@ function TaskRow({ task, done, onToggle, onExercises }: { task: Task; done: bool
       </span>
     </button>
   )
-  const hasSteps = !!onExercises && !!task.steps?.length
   if (!task.videos?.length && !hasSteps) return row
   return (
     <div className="row-wrap">
-      {row}
-      <div className="video-list">
+      <div className="row-line">
+        {row}
         {hasSteps && (
-          <button className="video-link press" onClick={() => onExercises?.(task)}>
-            <Icon name="dumbbell" size={16} />Exercises
+          <button className="icon-btn exercises-btn" aria-label={`Exercises: ${task.title}`} onClick={() => onExercises?.(task)}>
+            <Icon name="list" size={20} />
           </button>
         )}
-        {!!task.videos?.length && <span className="label">{task.videos.length > 1 ? 'Pick one:' : 'Video:'}</span>}
-        {task.videos?.map((v) => (
-          <a key={v.url} className="video-link press" href={v.url} target="_blank" rel="noreferrer">
-            <Icon name="play" size={16} />{v.title}
-          </a>
-        ))}
       </div>
+      {!!task.videos?.length && (
+        <div className="video-list">
+          <span className="label">{task.videos.length > 1 ? 'Pick one:' : 'Video:'}</span>
+          {task.videos.map((v) => (
+            <a key={v.url} className="video-link press" href={v.url} target="_blank" rel="noreferrer">
+              <Icon name="play" size={16} />{v.title}
+            </a>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
