@@ -30,7 +30,7 @@ export default function Thanks({ store, date, setDate }: { store: Store; date: s
 
   return (
     <>
-      <DayHeader title="Thank you" date={date} setDate={setDate} />
+      <DayHeader store={store} title="Thank you" date={date} setDate={setDate} />
 
       <section className={`section tone-${CAT_STYLE.THANKS.tone}`}>
         <div className="section-head">

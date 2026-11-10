@@ -40,7 +40,7 @@ export default function WeightScreen({ store, date, setDate }: { store: Store; d
 
   return (
     <>
-      <DayHeader title="Weight" date={date} setDate={setDate} />
+      <DayHeader store={store} title="Weight" date={date} setDate={setDate} />
 
       <section className="weight-hero">
         <span className="label">Current</span>

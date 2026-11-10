@@ -109,7 +109,7 @@ export default function Food({ store, date, setDate }: { store: Store; date: str
 
   return (
     <>
-      <DayHeader title="Food" date={date} setDate={setDate} />
+      <DayHeader store={store} title="Food" date={date} setDate={setDate} />
 
       <section className="hero food-hero" aria-label="Totals for the day">
         <Meter label="Calories" value={kcal} goal={goals.kcal} unit="kcal" tone="peach" overIsBad />
