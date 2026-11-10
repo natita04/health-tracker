@@ -7,7 +7,7 @@ import { dayStat, startDate } from '../stats'
 const WEEKDAYS = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
 const short = (d: string) => fmt(d, { day: 'numeric', month: 'short' })
 
-/** The app name, a week strip (Sunday first, always 7 days) to pick the day, then the screen's title. */
+/** The heart and the screen's name, then a week strip (Sunday first, always 7 days) to pick the day. */
 export default function DayHeader({ store, title, date, setDate, allowFuture }: {
   store: Store; title: string; date: string; setDate: (d: string) => void; allowFuture?: boolean
 }) {
@@ -17,13 +17,9 @@ export default function DayHeader({ store, title, date, setDate, allowFuture }: 
   const thisWeek = addDays(today, -fromIso(today).getDay())
   const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i))
   const nextDisabled = !allowFuture && weekStart >= thisWeek
-  const rel = date === today ? 'Today'
-    : date === addDays(today, -1) ? 'Yesterday'
-    : date === addDays(today, 1) ? 'Tomorrow'
-    : null
   return (
     <header className="app-head">
-      <Logo />
+      <Logo label={title} />
       <section className="card week-card" aria-label="Week">
         <div className="card-head month-head">
           <button className="circle-btn muted-bg" aria-label="Previous week" onClick={() => setDate(addDays(date, -7))}><Icon name="chevron-left" /></button>
@@ -49,13 +45,6 @@ export default function DayHeader({ store, title, date, setDate, allowFuture }: 
           })}
         </div>
       </section>
-      <div className="screen-title">
-        <div className="eyebrow">
-          {rel && <strong className="eyebrow-rel">{rel}</strong>}
-          {fmt(date, { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}
-        </div>
-        <h1>{title}</h1>
-      </div>
     </header>
   )
 }

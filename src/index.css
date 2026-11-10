@@ -224,7 +224,10 @@ button:not(:disabled):active, .press:active { transform: scale(0.98); }
 
 /* rows with extra content under them (videos) */
 .row-wrap { background: var(--rowbg); border-radius: var(--r-row); }
-.row-wrap > .task-row { background: transparent; }
+.row-wrap .task-row { background: transparent; }
+.row-line { display: flex; align-items: flex-start; }
+.row-line .task-row { flex: 1; min-width: 0; }
+.exercises-btn { margin: 8px 8px 0 0; background: var(--surface); color: var(--icon, var(--ink)); }
 .video-list { display: flex; flex-direction: column; gap: 6px; padding: 0 var(--pad-row) var(--pad-row) calc(var(--pad-row) + 38px); }
 .video-list .label { font-size: 13px; color: var(--tile-text); }
 .video-link {
@@ -740,7 +743,7 @@ button.stat { width: 100%; }
 /* ---------- app header: logo, week strip, title ---------- */
 .app-head { display: flex; flex-direction: column; gap: 14px; }
 .brand { display: inline-flex; align-items: center; gap: 8px; align-self: flex-start; }
-.brand-name { font-size: 26px; font-weight: 700; letter-spacing: -0.03em; line-height: 1; }
+.brand-name { font-size: 32px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.1; }
 .brand-heart { fill: var(--rose-accent); stroke: var(--rose-icon); stroke-width: 2.5; stroke-linejoin: round; }
 .brand-shine { fill: none; stroke: var(--rose-tile); stroke-width: 3.5; stroke-linecap: round; }
 .brand-beat { fill: none; stroke: var(--surface); stroke-width: 3.5; stroke-linecap: round; stroke-linejoin: round; }
@@ -750,5 +753,23 @@ button.stat { width: 100%; }
 .day-cell.is-selected .wd, .day-cell.is-selected .dc { color: var(--on-ink-muted); }
 .day-cell.is-now:not(.is-selected) { box-shadow: inset 0 0 0 2px var(--ink); }
 .day-cell:disabled { cursor: default; }
-.screen-title .eyebrow { font-size: 15px; color: var(--ink-muted); display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
-.screen-title h1 { font-size: 32px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.1; }
+
+/* ---------- loading ---------- */
+.loading { display: flex; flex-direction: column; gap: 28px; }
+.loading-top { display: flex; flex-direction: column; align-items: center; gap: 10px; padding-top: 24px; }
+.loading-sub { font-size: 15px; color: var(--ink-muted); }
+.brand-mark.beat { animation: heartbeat 1.3s ease-in-out infinite; transform-origin: center; }
+@keyframes heartbeat { 0%, 100% { transform: scale(1); } 15% { transform: scale(1.14); } 30% { transform: scale(1); } 45% { transform: scale(1.1); } 60% { transform: scale(1); } }
+.ghost { display: flex; flex-direction: column; gap: var(--gap-section); }
+.ghost-week { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+.ghost-week .shimmer { height: 72px; border-radius: 14px; }
+.ghost-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--gap-grid); }
+.ghost-grid .shimmer { height: 130px; border-radius: var(--r-tile); }
+.ghost-row { height: 64px; border-radius: var(--r-row); }
+.shimmer {
+  display: block; background: linear-gradient(100deg, var(--surface) 30%, var(--surface-muted) 50%, var(--surface) 70%);
+  background-size: 250% 100%; animation: shimmer 1.6s ease-in-out infinite;
+}
+@keyframes shimmer { from { background-position: 100% 0; } to { background-position: 0 0; } }
+
+.loading-top .brand { align-self: center; }

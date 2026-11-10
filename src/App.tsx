@@ -14,6 +14,7 @@ import Thanks from './screens/Thanks'
 import Onboarding from './screens/Onboarding'
 import { Icon, type IconName } from './icons'
 import { Celebrations } from './celebrate'
+import Loading from './Loading'
 import type { Area } from './types'
 
 type Tab = 'today' | 'food' | 'weight' | 'thanks' | 'plan'
@@ -52,7 +53,7 @@ export default function App() {
       </main>
     )
   }
-  if (!ready) return <main className="page center muted">Loading…</main>
+  if (!ready) return <main className="page"><Loading /></main>
   if (!session) {
     return auth.mode
       ? <Login key={auth.mode} mode={auth.mode} onBack={auth.close} />
@@ -121,7 +122,7 @@ function Shell({ store }: { store: Store }) {
           </div>
         )}
         {store.loading && store.tasks.length === 0 ? (
-          <p className="center muted">Loading your plan…</p>
+          <Loading />
         ) : store.needsOnboarding ? (
           <Onboarding store={store} onDone={() => setTab('today')} />
         ) : (
