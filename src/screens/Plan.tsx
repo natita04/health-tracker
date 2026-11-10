@@ -3,8 +3,9 @@ import { disablePush, enablePush, readPush, sendTestPush, syncTimeZone, type Pus
 import { isOn, type Store } from '../store'
 import { fmt, formatTime, parseTime, todayIso } from '../dates'
 import { MORE_WORKOUTS_URL } from '../defaults'
-import { ALL_DAYS, AREAS, areaOf, CATEGORIES, PARTS, partRank, type Category, type PartOfDay, type Task } from '../types'
-import { areaStyle, Badge, CAT_STYLE, Icon, type IconName } from '../icons'
+import { ALL_DAYS, AREAS, areaOf, CATEGORIES, parseStepsTitle, PARTS, partRank, stepsTitle, type Category, type PartOfDay, type StepUnit, type Task } from '../types'
+import { Logo } from '../Logo'
+import { areaStyle, Badge, CAT_STYLE, Icon } from '../icons'
 
 // Display order Sun..Sat, with their days_mask bit (Monday = bit 0).
 const WEEK: [string, number][] = [['Sun', 6], ['Mon', 0], ['Tue', 1], ['Wed', 2], ['Thu', 3], ['Fri', 4], ['Sat', 5]]
@@ -28,8 +29,8 @@ export default function Plan({ store }: { store: Store }) {
 
   return (
     <>
-      <header>
-        <h1 className="plain-title">Settings</h1>
+      <header className="app-head">
+        <Logo label="Settings" />
       </header>
 
       {/* Every group is the same white card: icon, title and subtitle, then grey rows. */}
@@ -37,7 +38,8 @@ export default function Plan({ store }: { store: Store }) {
         <TrackCard store={store} />
         {(isOn(store, 'WATER') || isOn(store, 'FOOD')) && <GoalsCard store={store} />}
 
-        {CATEGORIES.map((c) => {
+        {/* Water is set under Daily goals, so it has no list of its own. */}
+        {CATEGORIES.filter((c) => c.id !== 'WATER').map((c) => {
           const items = store.tasks
             .filter((t) => t.category === c.id)
             .sort((a, b) => partRank(a) - partRank(b) || (a.time_minutes ?? -1) - (b.time_minutes ?? -1) || a.sort_order - b.sort_order)
@@ -78,9 +80,11 @@ export default function Plan({ store }: { store: Store }) {
             <Badge name="user" />
             <div><h2>Account</h2></div>
           </div>
-          <ActionRow icon="sliders" label="Run setup again" onClick={store.restartOnboarding} />
-          <ActionRow icon="calendar" label="Download backup" onClick={() => void store.exportBackup()} />
-          <ActionRow icon="user" label={store.isGuest ? 'Exit guest view' : 'Sign out'} onClick={() => void store.signOut()} />
+          <div className="action-pills">
+            <button className="btn" onClick={store.restartOnboarding}><Icon name="sliders" size={18} />Run setup again</button>
+            <button className="btn" onClick={() => void store.exportBackup()}><Icon name="calendar" size={18} />Download backup</button>
+            <button className="btn btn-out" onClick={() => void store.signOut()}><Icon name="user" size={18} />{store.isGuest ? 'Exit guest view' : 'Sign out'}</button>
+          </div>
         </section>
       </div>
 
@@ -89,7 +93,7 @@ export default function Plan({ store }: { store: Store }) {
       {editing && (
         <EditDialog
           task={editing.task}
-          categories={CATEGORIES.filter((c) => { const a = areaOf(c.id); return !a || isOn(store, a) })}
+          categories={CATEGORIES.filter((c) => c.id !== 'WATER').filter((c) => { const a = areaOf(c.id); return !a || isOn(store, a) })}
           isNew={editing.isNew}
           onClose={() => setEditing(null)}
           onSave={(t) => { void store.saveTask(t); setEditing(null) }}
@@ -97,17 +101,6 @@ export default function Plan({ store }: { store: Store }) {
         />
       )}
     </>
-  )
-}
-
-/** A tappable settings row: icon, label, chevron. */
-function ActionRow({ icon, label, onClick, disabled }: { icon: IconName; label: string; onClick: () => void; disabled?: boolean }) {
-  return (
-    <button className="task-row planrow" disabled={disabled} onClick={onClick}>
-      <Icon name={icon} />
-      <span className="task-body"><span className="task-title">{label}</span></span>
-      <Icon name="chevron-right" />
-    </button>
   )
 }
 
@@ -226,16 +219,21 @@ function ReminderDevice({ store, empty }: { store: Store; empty: boolean }) {
           <p className="empty-line">Notifications are blocked for this site. Allow them in your browser's site settings, then come back here.</p>
         ) : (
           <>
-            {status !== 'on' && <p className="empty-line">Notifications are off on this device.</p>}
-            {status === 'on' ? (
-              <>
-                <ActionRow icon="bell" label="Send a test" disabled={busy} onClick={() => run(sendTestPush, 'Sent! It should pop up in a few seconds.')} />
-                <ActionRow icon="x" label="Turn off on this device" disabled={busy}
-                  onClick={() => run(async () => { await disablePush(); setStatus('off') }, 'Turned off on this device.')} />
-              </>
-            ) : (
-              <ActionRow icon="bell" label="Turn on for this device" disabled={busy}
-                onClick={() => run(async () => setStatus(await enablePush(store.userId)), 'On! Reminders will show up on this device.')} />
+            <button role="switch" aria-checked={status === 'on'} disabled={busy} className="task-row planrow"
+              onClick={() => status === 'on'
+                ? run(async () => { await disablePush(); setStatus('off') }, 'Turned off on this device.')
+                : run(async () => setStatus(await enablePush(store.userId)), 'On! Reminders will show up on this device.')}>
+              <Icon name="bell" />
+              <span className="task-body">
+                <span className="task-title">Notifications on this device</span>
+                <span className="task-note">{status === 'on' ? 'On' : 'Off'}</span>
+              </span>
+              <span className="switch" aria-hidden />
+            </button>
+            {status === 'on' && (
+              <div className="action-pills">
+                <button className="btn" disabled={busy} onClick={() => run(sendTestPush, 'Sent! It should pop up in a few seconds.')}><Icon name="bell" size={18} />Send a test</button>
+              </div>
             )}
           </>
         )}
@@ -287,12 +285,17 @@ function EditDialog({ task, isNew, categories, onClose, onSave, onRemove }: {
   const [start, setStart] = useState(task.start_date ?? '')
   const [end, setEnd] = useState(task.end_date ?? '')
   const [steps, setSteps] = useState((task.steps ?? []).join('\n'))
+  // Steps items are a goal in steps or minutes; the name is made from it.
+  const parsed = parseStepsTitle(task.title)
+  const [unit, setUnit] = useState<StepUnit>(parsed?.unit ?? 'steps')
+  const [goal, setGoal] = useState(String(parsed?.n ?? 10000))
+  const goalOk = Number(goal) >= 1
   const reminder = category === 'CHORE'
   // Reminders always go off at an exact time.
   const timed = reminder || when === 'time'
   const timeOk = !timed || parseTime(time) != null
   const everyOk = Number(every) >= 1 && Number(every) <= 365
-  const valid = category != null && title.trim() !== '' && timeOk && (byInterval ? everyOk : days !== 0) && (!start || !end || start <= end)
+  const valid = category != null && (category === 'WALK' ? goalOk : title.trim() !== '') && timeOk && (byInterval ? everyOk : days !== 0) && (!start || !end || start <= end)
 
   // Videos and the exercise list only belong to workouts.
   const isWorkout = category === 'WORKOUT'
@@ -305,12 +308,12 @@ function EditDialog({ task, isNew, categories, onClose, onSave, onRemove }: {
       return { title: a || `Option ${i + 1}`, url: b }
     })
     onSave({
-      ...task, title: title.trim(), details: details.trim(), category, days_mask: days,
+      ...task, title: category === 'WALK' ? stepsTitle(unit, Number(goal)) : title.trim(), details: details.trim(), category, days_mask: days,
       // Like every_days: only sent once an item has used it.
       day_part: !timed && when !== 'any' ? when : task.day_part ? null : undefined,
       // Left undefined (not sent) for weekday items that never had an interval.
       every_days: byInterval ? Number(every) : task.every_days ? null : undefined,
-      duration_min: !reminder && duration ? Number(duration) : null,
+      duration_min: !reminder && category !== 'WALK' && duration ? Number(duration) : null,
       time_minutes: timed ? parseTime(time) : null,
       videos: vids.length ? vids : null,
       // Every N days needs a day to count from: today when no start date is set.
@@ -337,10 +340,25 @@ function EditDialog({ task, isNew, categories, onClose, onSave, onRemove }: {
         {category === 'WEIGH' && <span className="muted small">The days you step on the scale. It ticks itself off when you log your weight in the Weight tab.</span>}
 
         {category && <>
-        <label>Name
-          <input value={title} onChange={(e) => setTitle(e.target.value)} required autoFocus={isNew}
-            placeholder={PLACEHOLDER[category]} />
-        </label>
+        {category === 'WALK' ? (
+          <>
+            <span className="label">Daily goal</span>
+            <div className="chips">
+              <button type="button" aria-pressed={unit === 'steps'} className={unit === 'steps' ? 'chip on' : 'chip'} onClick={() => { setUnit('steps'); if (unit !== 'steps') setGoal('10000') }}>By steps</button>
+              <button type="button" aria-pressed={unit === 'min'} className={unit === 'min' ? 'chip on' : 'chip'} onClick={() => { setUnit('min'); if (unit !== 'min') setGoal('45') }}>By time</button>
+            </div>
+            <label className="every-row">
+              <input inputMode="numeric" value={goal} className={goalOk ? '' : 'invalid'} aria-label={unit === 'steps' ? 'Steps a day' : 'Minutes a day'}
+                onChange={(e) => setGoal(e.target.value.replace(/\D/g, '').slice(0, 6))} />
+              <span>{unit === 'steps' ? 'steps' : 'minutes'}</span>
+            </label>
+          </>
+        ) : (
+          <label>Name
+            <input value={title} onChange={(e) => setTitle(e.target.value)} required autoFocus={isNew}
+              placeholder={PLACEHOLDER[category]} />
+          </label>
+        )}
 
         <label>Instructions
           <textarea rows={2} value={details} onChange={(e) => setDetails(e.target.value)}
@@ -363,7 +381,7 @@ function EditDialog({ task, isNew, categories, onClose, onSave, onRemove }: {
               <input type="time" value={time} onChange={(e) => setTime(e.target.value)} className={timeOk ? '' : 'invalid'} />
             </label>
           )}
-          {!reminder && <label className="grow">How long (min)<input inputMode="numeric" value={duration} placeholder="optional" onChange={(e) => setDuration(e.target.value.replace(/\D/g, '').slice(0, 3))} /></label>}
+          {!reminder && category !== 'WALK' && <label className="grow">How long (min)<input inputMode="numeric" value={duration} placeholder="optional" onChange={(e) => setDuration(e.target.value.replace(/\D/g, '').slice(0, 3))} /></label>}
           {!timed && <span className="grow" />}
         </div>
         {reminder && <span className="muted small">Reminders don't show in the app, they just send you a notification on these days at this time.</span>}

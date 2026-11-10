@@ -2,7 +2,7 @@ import { useState, type ReactNode } from 'react'
 import type { Onboarding as Picked, Store } from '../store'
 import { BASIC_WORKOUT } from '../defaults'
 import { todayIso } from '../dates'
-import { ALL_DAYS, AREAS, KCAL_GOAL, PROTEIN_GOAL, type Area, type Category, type Task } from '../types'
+import { ALL_DAYS, AREAS, KCAL_GOAL, PROTEIN_GOAL, stepsTitle, type Area, type Category, type Task } from '../types'
 import { areaStyle, Badge, Icon } from '../icons'
 
 // A quick setup, one part of the app per screen. Everything can be skipped; skipped parts stay hidden
@@ -30,6 +30,7 @@ const STARTERS: Record<'MEDS' | 'BEAUTY' | 'WORKOUT', Starter[]> = {
 }
 const WATER_GOALS = [2, 2.5, 3, 4]
 const STEP_GOALS = [6000, 8000, 10000]
+const MIN_GOALS = [20, 30, 45, 60]
 
 const QUESTION: Record<Area, { title: string; sub: string; skip: string }> = {
   FOOD: { title: 'Track what you eat?', sub: 'Log meals by text, photo or voice. Calories and protein are estimated for you.', skip: "I don't care about tracking food" },
@@ -37,7 +38,7 @@ const QUESTION: Record<Area, { title: string; sub: string; skip: string }> = {
   MEDS: { title: 'Meds & supplements', sub: 'Pick what you take, or add your own.', skip: "I don't take any" },
   BEAUTY: { title: 'Beauty routine', sub: 'Pick what you do, or add your own.', skip: 'Skip beauty' },
   WORKOUT: { title: 'Workouts', sub: 'Pick what you do, or add your own.', skip: 'Skip workouts' },
-  WALK: { title: 'Daily steps', sub: 'A step goal you tick off each day.', skip: "I don't track steps" },
+  WALK: { title: 'Daily steps', sub: 'A daily goal in steps or minutes, ticked off each day.', skip: "I don't track steps" },
   WEIGHT: { title: 'Track your weight?', sub: 'A weigh-in on your plan and a chart of how it goes.', skip: "I don't track weight" },
   THANKS: { title: 'Thank you thoughts?', sub: 'A few words a day about something you are grateful for.', skip: 'Skip this' },
 }
@@ -53,6 +54,9 @@ export default function Onboarding({ store, onDone }: { store: Store; onDone: ()
   const [picks, setPicks] = useState<Record<'MEDS' | 'BEAUTY' | 'WORKOUT', string[]>>({ MEDS: [], BEAUTY: [], WORKOUT: [] })
   const [own, setOwn] = useState<Record<'MEDS' | 'BEAUTY' | 'WORKOUT', string[]>>({ MEDS: [], BEAUTY: [], WORKOUT: [] })
   const [steps, setSteps] = useState(8000)
+  const [minutes, setMinutes] = useState(30)
+  // Count the day's walking in steps or in minutes.
+  const [byTime, setByTime] = useState(false)
   const [weighWeekly, setWeighWeekly] = useState(true)
   const [goalKg, setGoalKg] = useState(store.goal != null ? String(store.goal) : '')
   const [saving, setSaving] = useState(false)
@@ -88,7 +92,7 @@ export default function Onboarding({ store, onDone }: { store: Store; onDone: ()
       for (const title of picks[c]) add(c, title, STARTERS[c].find((s) => s.title === title)?.extra)
       for (const title of own[c]) add(c, title)
     }
-    if (!skip.has('WALK')) replace('WALK', `Walk ${steps.toLocaleString('en-US')} steps`)
+    if (!skip.has('WALK')) replace('WALK', byTime ? stepsTitle('min', minutes) : stepsTitle('steps', steps))
     // Weekly weigh-ins on Monday (bit 0).
     if (!skip.has('WEIGHT')) add('WEIGH', 'Weigh yourself', { days_mask: weighWeekly ? 1 : ALL_DAYS })
 
@@ -137,7 +141,14 @@ export default function Onboarding({ store, onDone }: { store: Store; onDone: ()
     MEDS: listStep('MEDS'),
     BEAUTY: listStep('BEAUTY'),
     WORKOUT: listStep('WORKOUT'),
-    WALK: <Chips options={STEP_GOALS.map((n) => ({ id: n, label: n.toLocaleString('en-US') }))} value={steps} onPick={setSteps} />,
+    WALK: (
+      <div className="stack">
+        <Chips options={[{ id: 1, label: 'By steps' }, { id: 2, label: 'By time' }]} value={byTime ? 2 : 1} onPick={(v) => setByTime(v === 2)} />
+        {byTime
+          ? <Chips options={MIN_GOALS.map((n) => ({ id: n, label: `${n} min` }))} value={minutes} onPick={setMinutes} />
+          : <Chips options={STEP_GOALS.map((n) => ({ id: n, label: n.toLocaleString('en-US') }))} value={steps} onPick={setSteps} />}
+      </div>
+    ),
     WEIGHT: (
       <div className="stack">
         <Chips options={[{ id: 1, label: 'Once a week' }, { id: 7, label: 'Every day' }]} value={weighWeekly ? 1 : 7} onPick={(v) => setWeighWeekly(v === 1)} />

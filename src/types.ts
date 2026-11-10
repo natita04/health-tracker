@@ -2,7 +2,7 @@ export type Category = 'WEIGH' | 'WALK' | 'WATER' | 'WORKOUT' | 'MEDS' | 'BEAUTY
 
 export const CATEGORIES: { id: Category; label: string; emoji: string }[] = [
   { id: 'WEIGH', label: 'Weigh-in', emoji: '⚖️' },
-  { id: 'WALK', label: 'Walk', emoji: '🚶' },
+  { id: 'WALK', label: 'Steps', emoji: '🚶' },
   { id: 'WATER', label: 'Water', emoji: '💧' },
   { id: 'WORKOUT', label: 'Workout', emoji: '🏋️' },
   { id: 'MEDS', label: 'Meds & supplements', emoji: '💊' },
@@ -157,4 +157,13 @@ export const partRank = (t: Pick<Task, 'time_minutes' | 'day_part'>) => {
 export const partOfDay = (iso: string): PartOfDay => {
   const h = new Date(iso).getHours()
   return h >= 5 && h < 12 ? 'morning' : h >= 12 && h < 17 ? 'afternoon' : 'evening'
+}
+
+/** A steps item is a daily goal in steps or in minutes: "Walk 10,000 steps" / "Walk 45 min". */
+export type StepUnit = 'steps' | 'min'
+export const stepsTitle = (unit: StepUnit, n: number) => `Walk ${n.toLocaleString('en-US')} ${unit === 'steps' ? 'steps' : 'min'}`
+export const parseStepsTitle = (title: string): { unit: StepUnit; n: number } | null => {
+  const m = /([\d,.]+)\s*(steps?|min(?:utes?)?)\b/i.exec(title)
+  const n = m ? Number(m[1].replace(/,/g, '')) : NaN
+  return m && n > 0 ? { unit: /^step/i.test(m[2]) ? 'steps' : 'min', n } : null
 }
