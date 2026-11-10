@@ -783,6 +783,20 @@ button.stat { width: 100%; }
 .exercises-btn { align-self: center; margin: 0 4px 0 0; background: transparent; }
 
 /* Steps goal on one line: label, number, steps|min toggle. */
-.goal-row.steps-row > .unit-toggle { width: auto; display: inline-flex; background: var(--surface-muted); border-radius: var(--r-pill); padding: 3px; gap: 2px; }
-.unit-toggle button { height: 38px; flex: none; padding: 0 12px; border-radius: var(--r-pill); font-size: 14px; color: var(--ink); }
-.unit-toggle button[aria-pressed='true'] { background: var(--ink); color: var(--on-ink); font-weight: 500; }
+
+/* Settings goals: label, then input and unit in two fixed columns so every box lines up. */
+.settings .goal-row { display: grid; grid-template-columns: 1fr 96px 56px; align-items: center; column-gap: 10px; }
+.settings .goal-row input { width: 96px; margin-left: 0; justify-self: end; }
+.settings .goal-row > span { width: auto; color: var(--ink-muted); }
+.unit-btn { height: 36px; width: 56px; border-radius: var(--r-pill); background: var(--surface-muted); color: var(--ink); font-size: 14px; display: inline-flex; align-items: center; justify-content: center; gap: 2px; }
+.unit-btn .icon { color: var(--ink-muted); }
+
+/* Quiet list: hairline rows, icon left, chevron right. */
+.quiet-list { display: flex; flex-direction: column; padding: 0 6px 6px; }
+.quiet-row { display: flex; align-items: center; gap: 12px; min-height: 52px; padding: 0 4px; border-top: 1px solid var(--surface-muted); font-size: 15px; text-align: left; color: var(--ink); width: 100%; }
+.quiet-row:first-child { border-top: 0; }
+.quiet-row > .icon:first-child { color: var(--ink-muted); }
+.quiet-row > .icon:last-child:not(:first-child) { margin-left: auto; color: var(--ink-muted); }
+.quiet-row:disabled { opacity: .5; }
+.quiet-danger, .quiet-danger > .icon:first-child { color: var(--danger); }
+.notify-body .quiet-row { padding: 0 12px; }

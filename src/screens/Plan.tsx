@@ -80,10 +80,10 @@ export default function Plan({ store }: { store: Store }) {
             <Badge name="user" />
             <div><h2>Account</h2></div>
           </div>
-          <div className="action-pills">
-            <button className="btn" onClick={store.restartOnboarding}><Icon name="sliders" size={18} />Run setup again</button>
-            <button className="btn" onClick={() => void store.exportBackup()}><Icon name="calendar" size={18} />Download backup</button>
-            <button className="btn btn-out" onClick={() => void store.signOut()}><Icon name="user" size={18} />{store.isGuest ? 'Exit guest view' : 'Sign out'}</button>
+          <div className="quiet-list">
+            <button className="quiet-row" onClick={store.restartOnboarding}><Icon name="sliders" size={20} />Run setup again<Icon name="chevron-right" size={16} /></button>
+            <button className="quiet-row" onClick={() => void store.exportBackup()}><Icon name="download" size={20} />Download backup<Icon name="chevron-right" size={16} /></button>
+            <button className="quiet-row quiet-danger" onClick={() => void store.signOut()}><Icon name="logout" size={20} />{store.isGuest ? 'Exit guest view' : 'Sign out'}</button>
           </div>
         </section>
       </div>
@@ -183,20 +183,18 @@ function GoalsCard({ store }: { store: Store }) {
       </div>
       <div className="notify-body">
         {isOn(store, 'WATER') && (
-          <label className="time-row goal-row">Water, a day
+          <label className="time-row goal-row">Water
             <input inputMode="decimal" value={water} className={waterOk ? '' : 'invalid'}
               onChange={(e) => setWater(e.target.value)} onBlur={saveWater} />
             <span>L</span>
           </label>
         )}
         {isOn(store, 'WALK') && walk && (
-          <label className="time-row goal-row steps-row">Steps, a day
+          <label className="time-row goal-row steps-row">Walking
             <input inputMode="numeric" value={stepGoal} className={stepOk ? '' : 'invalid'}
               onChange={(e) => setStepGoal(e.target.value.replace(/\D/g, '').slice(0, 6))} onBlur={() => saveSteps(stepUnit, stepGoal)} />
-            <span className="unit-toggle" role="group" aria-label="Steps goal by">
-              <button type="button" aria-pressed={stepUnit === 'steps'} onClick={() => pickUnit('steps')}>steps</button>
-              <button type="button" aria-pressed={stepUnit === 'min'} onClick={() => pickUnit('min')}>min</button>
-            </span>
+            <button type="button" className="unit-btn" aria-label={`Counting ${stepUnit === 'steps' ? 'steps' : 'minutes'}, tap to switch`}
+              onClick={() => pickUnit(stepUnit === 'steps' ? 'min' : 'steps')}>{stepUnit === 'steps' ? 'steps' : 'min'}<Icon name="chevron-right" size={12} /></button>
           </label>
         )}
         {isOn(store, 'FOOD') && <>
@@ -258,9 +256,7 @@ function ReminderDevice({ store, empty }: { store: Store; empty: boolean }) {
               <span className="switch" aria-hidden />
             </button>
             {status === 'on' && (
-              <div className="action-pills">
-                <button className="btn" disabled={busy} onClick={() => run(sendTestPush, 'Sent! It should pop up in a few seconds.')}><Icon name="bell" size={18} />Send a test</button>
-              </div>
+              <button className="quiet-row" disabled={busy} onClick={() => run(sendTestPush, 'Sent! It should pop up in a few seconds.')}><Icon name="send" size={20} />Send a test</button>
             )}
           </>
         )}
