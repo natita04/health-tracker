@@ -6,7 +6,7 @@ import DayHeader from './DayHeader'
 import { celebrateDone, celebrateEvening, celebrateMorning, celebrateWater, useRise } from '../celebrate'
 import { PARTS, partOf, WATER_MAX, WATER_PORTION_L, type Category, type Task } from '../types'
 
-// Sections in page order (after the tiles). Walk and water are tiles of their own.
+// Sections in page order (after the tiles). Steps and water are tiles of their own.
 const SECTIONS: { cat: Category; title: string }[] = [
   { cat: 'MEDS', title: 'Meds & supplements' },
   { cat: 'BEAUTY', title: 'Beauty' },
@@ -48,7 +48,7 @@ export default function Today({ store, date, setDate, onSettings }: {
               <Badge name="check-circle" />
               <div>
                 <h2>Nothing planned{store.tasks.length ? ' this day' : ' yet'}</h2>
-                <div className="sub">Add habits like water, supplements or a walk in Settings.</div>
+                <div className="sub">Add habits like water, supplements or steps in Settings.</div>
               </div>
             </div>
             <div className="row settings-actions">
@@ -168,7 +168,7 @@ function TaskRow({ task, done, onToggle, onExercises }: { task: Task; done: bool
   )
 }
 
-/** Walk tile: icon and check on top, then the step goal, big. */
+/** Steps tile: icon and check on top, then the goal (steps or minutes), big. */
 function WalkTile({ task, done, onToggle }: { task: Task; done: boolean; onToggle: () => void }) {
   // The goal, big: "Walk 6,500 steps" -> 6,500 steps, "Walk 30 min" -> 30 min, "Walk 3 km" -> 3 km;
   // otherwise the item's minutes; otherwise the title as is.
@@ -182,7 +182,7 @@ function WalkTile({ task, done, onToggle }: { task: Task; done: boolean; onToggl
           {done && <Icon name="tick" size={18} strokeWidth={3} />}
         </button>
       </div>
-      <h3>Walk</h3>
+      <h3>Steps</h3>
       <p className="tile-amount">{m ? <><strong>{m[1]}</strong> {m[2]}</> : task.title}</p>
     </section>
   )

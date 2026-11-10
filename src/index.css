@@ -171,7 +171,7 @@ button:not(:disabled):active, .press:active { transform: scale(0.98); }
 
 /* ---------- 2-up tiles ---------- */
 .grid2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--gap-grid); }
-.grid2 > .solo { grid-column: 1 / -1; }
+.grid2 > .solo, .grid2 > :only-child { grid-column: 1 / -1; }
 .tile {
   position: relative; background: var(--tile); color: var(--ink);
   border-radius: var(--r-tile); padding: var(--pad-tile);
@@ -755,21 +755,16 @@ button.stat { width: 100%; }
 .day-cell:disabled { cursor: default; }
 
 /* ---------- loading ---------- */
-.loading { display: flex; flex-direction: column; gap: 28px; }
-.loading-top { display: flex; flex-direction: column; align-items: center; gap: 10px; padding-top: 24px; }
+.loading { min-height: 70vh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; }
+.loading .brand { align-self: center; }
 .loading-sub { font-size: 15px; color: var(--ink-muted); }
 .brand-mark.beat { animation: heartbeat 1.3s ease-in-out infinite; transform-origin: center; }
 @keyframes heartbeat { 0%, 100% { transform: scale(1); } 15% { transform: scale(1.14); } 30% { transform: scale(1); } 45% { transform: scale(1.1); } 60% { transform: scale(1); } }
-.ghost { display: flex; flex-direction: column; gap: var(--gap-section); }
-.ghost-week { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
-.ghost-week .shimmer { height: 72px; border-radius: 14px; }
-.ghost-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--gap-grid); }
-.ghost-grid .shimmer { height: 130px; border-radius: var(--r-tile); }
-.ghost-row { height: 64px; border-radius: var(--r-row); }
-.shimmer {
-  display: block; background: linear-gradient(100deg, var(--surface) 30%, var(--surface-muted) 50%, var(--surface) 70%);
-  background-size: 250% 100%; animation: shimmer 1.6s ease-in-out infinite;
-}
-@keyframes shimmer { from { background-position: 100% 0; } to { background-position: 0 0; } }
 
-.loading-top .brand { align-self: center; }
+/* Account and reminder actions: pill buttons and a switch, not link rows. */
+.action-pills { display: flex; flex-wrap: wrap; gap: 8px; padding: 0 6px 6px; }
+.action-pills .btn { background: var(--surface-muted); }
+.action-pills .btn .icon { color: var(--ink-muted); }
+.notify-body .action-pills { padding: 0; }
+.action-pills .btn-out { color: var(--danger); }
+.action-pills .btn-out .icon { color: var(--danger); }
