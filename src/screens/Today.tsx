@@ -150,7 +150,7 @@ function TaskRow({ task, done, onToggle, onExercises }: { task: Task; done: bool
         {row}
         {hasSteps && (
           <button className="icon-btn exercises-btn" aria-label={`Exercises: ${task.title}`} onClick={() => onExercises?.(task)}>
-            <Icon name="list" size={20} />
+            <Icon name="dumbbell" size={22} />
           </button>
         )}
       </div>

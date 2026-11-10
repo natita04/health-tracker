@@ -17,6 +17,7 @@ export default function Thanks({ store, date, setDate }: { store: Store; date: s
   const [text, setText] = useState('')
   const [hint, setHint] = useState<string | null>(null)
   const [showEarlier, setShowEarlier] = useState(false)
+  const [adding, setAdding] = useState(false)
   const input = useRef<HTMLInputElement>(null)
   const items = store.thoughts[date] ?? []
   // Days before the one on screen that have thoughts, newest first.
@@ -38,9 +39,6 @@ export default function Thanks({ store, date, setDate }: { store: Store; date: s
           <div>
             <h2>Thoughts</h2>
           </div>
-          <button type="button" className="hint-chip head-chip" disabled={!store.thoughtsReady} onClick={nudge}>
-            <Icon name="sparkle" size={14} />{hint ? 'Another nudge' : 'Need a nudge?'}
-          </button>
         </div>
         {!store.thoughtsReady ? (
           <p className="empty-line">Thoughts can't be saved yet: the database needs its one-time update (the SQL from setup).</p>
@@ -53,27 +51,44 @@ export default function Thanks({ store, date, setDate }: { store: Store; date: s
             </div>
           ))
         )}
-        {/* The nudge's prompt sits right above the input it's for. */}
-        {hint && <p className="nudge-text" aria-live="polite">{hint}</p>}
-        <form
-          className="add-form"
-          onSubmit={(e) => {
-            e.preventDefault()
-            const v = text.trim()
-            if (!v || !store.thoughtsReady) return
-            void store.addThought(date, v)
-            if (items.length === 2) celebrateThanks(date)
-            setText('')
-            setHint(null)
-            input.current?.focus()
-          }}
-        >
-          <label className="sr-only" htmlFor="thought-input">Something you're thankful for</label>
-          <input id="thought-input" ref={input} dir="auto" value={text} onChange={(e) => setText(e.target.value)}
-            placeholder={date === today ? "Today I'm thankful for..." : "I'm thankful for..."} maxLength={500} disabled={!store.thoughtsReady} enterKeyHint="done" autoComplete="off" />
-          <button className="add-btn" aria-label="Add thank you thought" disabled={!store.thoughtsReady}><Icon name="plus" /></button>
-        </form>
       </section>
+
+      <button className="fab" aria-label="Add a thank you" disabled={!store.thoughtsReady} onClick={() => setAdding(true)}>
+        <Icon name="plus" size={26} />
+      </button>
+
+      {adding && (
+        <div className="overlay" onClick={() => setAdding(false)}>
+          <form className="dialog stack" role="dialog" aria-modal="true" aria-label="Add a thank you" onClick={(e) => e.stopPropagation()}
+            onSubmit={(e) => {
+              e.preventDefault()
+              const v = text.trim()
+              if (!v || !store.thoughtsReady) return
+              void store.addThought(date, v)
+              if (items.length === 2) celebrateThanks(date)
+              setText('')
+              setHint(null)
+              input.current?.focus()
+            }}
+          >
+            <div className="row">
+              <h2 className="grow">{date === today ? 'Today I\'m thankful for' : 'I\'m thankful for'}</h2>
+              <button type="button" className="hint-chip" onClick={nudge}>
+                <Icon name="sparkle" size={14} />{hint ? 'Another nudge' : 'Need a nudge?'}
+              </button>
+            </div>
+            {hint && <p className="nudge-text" aria-live="polite">{hint}</p>}
+            <label className="sr-only" htmlFor="thought-input">Something you're thankful for</label>
+            <input id="thought-input" ref={input} autoFocus dir="auto" value={text} onChange={(e) => setText(e.target.value)}
+              placeholder="Something good..." maxLength={500} enterKeyHint="done" autoComplete="off" />
+            <div className="row end">
+              <span className="grow" />
+              <button type="button" className="btn btn-muted" onClick={() => setAdding(false)}>Done</button>
+              <button className="btn btn-ink" disabled={!text.trim()}>Add</button>
+            </div>
+          </form>
+        </div>
+      )}
 
       {pastDays.length > 0 && (
         showEarlier ? (

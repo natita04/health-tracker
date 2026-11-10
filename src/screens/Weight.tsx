@@ -98,8 +98,8 @@ export default function WeightScreen({ store, date, setDate }: { store: Store; d
         )
       )}
 
-      <button className="btn-primary pinned-action" onClick={() => setDialog('log')}>
-        <Icon name="plus" />{dayEntry ? `Edit ${dayLabel} weight` : `Log ${dayLabel} weight`}
+      <button className="fab" aria-label={dayEntry ? `Edit ${dayLabel} weight` : `Log ${dayLabel} weight`} onClick={() => setDialog('log')}>
+        <Icon name={dayEntry ? 'pencil' : 'plus'} size={26} />
       </button>
 
       {dialog === 'log' && (

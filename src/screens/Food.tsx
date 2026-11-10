@@ -152,8 +152,8 @@ export default function Food({ store, date, setDate }: { store: Store; date: str
         )}
       </section>
 
-      <button className="btn-primary pinned-action" onClick={() => setAdding(true)} disabled={!store.foodReady}>
-        <Icon name="plus" />Add food
+      <button className="fab" aria-label="Add food" onClick={() => setAdding(true)} disabled={!store.foodReady}>
+        <Icon name="plus" size={26} />
       </button>
 
       {adding && <AddSheet store={store} date={date} onClose={() => setAdding(false)} />}
