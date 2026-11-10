@@ -521,7 +521,7 @@ button.stat { width: 100%; }
 .past-day + .past-day { border-top: 1px solid var(--surface-muted); }
 .past-date { font-size: 14px; font-weight: 600; color: var(--ink-muted); margin-bottom: 4px; }
 .past-day ul { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 2px; }
-.earlier-btn { align-self: center; }
+.earlier-btn { align-self: center; min-height: var(--touch); padding: 0 16px; background: transparent; color: var(--ink); font-size: 15px; font-weight: 500; text-decoration: underline; text-underline-offset: 3px; }
 .nudge-text { font-size: 15px; font-weight: 600; color: var(--tile-text); padding: 2px 6px 0; }
 .head-chip { margin-left: auto; }
 .eyebrow-rel { color: var(--ink); font-weight: 600; }

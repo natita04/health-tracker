@@ -94,7 +94,7 @@ export default function WeightScreen({ store, date, setDate }: { store: Store; d
             <button className="more" onClick={() => setShowAll(false)}>Hide previous weights</button>
           </section>
         ) : (
-          <button className="btn btn-white earlier-btn" onClick={() => setShowAll(true)}>Show previous weights</button>
+          <button className="earlier-btn" onClick={() => setShowAll(true)}>Show previous weights</button>
         )
       )}
 
