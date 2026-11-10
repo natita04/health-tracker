@@ -104,7 +104,7 @@ export default function Thanks({ store, date, setDate }: { store: Store; date: s
             <button className="more" onClick={() => setShowEarlier(false)}>Hide earlier days</button>
           </section>
         ) : (
-          <button className="btn btn-white earlier-btn" onClick={() => setShowEarlier(true)}>Show earlier days</button>
+          <button className="earlier-btn" onClick={() => setShowEarlier(true)}>Show earlier days</button>
         )
       )}
     </>
