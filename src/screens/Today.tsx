@@ -19,10 +19,10 @@ export default function Today({ store, date, setDate, onSettings }: {
   const list = tasksFor(store.tasks, date)
   const done = store.done[date] ?? new Set<string>()
 
-  // The daily workout goes in the 2-up tile; any other workouts (45 min days) get their own section.
+  // The daily workout comes first in the Workout section, with any other workouts (45 min days) after it.
   const workouts = list.filter((t) => t.category === 'WORKOUT')
   const mainWorkout = workouts.find((t) => t.steps?.length) ?? workouts[0]
-  const strength = workouts.filter((t) => t !== mainWorkout)
+  const workoutRows = mainWorkout ? [mainWorkout, ...workouts.filter((t) => t !== mainWorkout)] : []
   const walks = list.filter((t) => t.category === 'WALK')
   const waters = list.filter((t) => t.category === 'WATER')
 
@@ -39,7 +39,7 @@ export default function Today({ store, date, setDate, onSettings }: {
 
   return (
     <>
-      <DayHeader title="Habits" date={date} setDate={setDate} allowFuture />
+      <DayHeader store={store} title="Habits" date={date} setDate={setDate} allowFuture />
 
       <div key={date} className="stack-section fade">
         {list.length === 0 && (
@@ -56,7 +56,7 @@ export default function Today({ store, date, setDate, onSettings }: {
             </div>
           </section>
         )}
-        {(mainWorkout || walks.length > 0 || waters.length > 0) && (
+        {(walks.length > 0 || waters.length > 0) && (
           <div className="grid2">
             {walks.map((t) => (
               <WalkTile key={t.id} task={t} done={done.has(t.id)} onToggle={() => store.toggle(date, t, !done.has(t.id))} />
@@ -64,34 +64,12 @@ export default function Today({ store, date, setDate, onSettings }: {
             {waters.map((t) => (
               <WaterTile key={t.id} task={t} date={date} done={done} goal={store.waterGoal} onSet={(n) => store.setWater(date, t, n)} />
             ))}
-            {mainWorkout && (
-              <section className={`tile tone-${CAT_STYLE.WORKOUT.tone} small-tile solo ${done.has(mainWorkout.id) ? 'is-done' : ''}`}>
-                <div className="tile-top">
-                  <Badge name="dumbbell" />
-                  <button
-                    className={`check check-round ${done.has(mainWorkout.id) ? 'on' : ''}`}
-                    aria-pressed={done.has(mainWorkout.id)}
-                    aria-label={`${mainWorkout.title} done`}
-                    onClick={() => store.toggle(date, mainWorkout, !done.has(mainWorkout.id))}
-                  >
-                    {done.has(mainWorkout.id) && <Icon name="tick" size={18} strokeWidth={3} />}
-                  </button>
-                </div>
-                <h3>Workout</h3>
-                <p className="tile-amount">{[mainWorkout.title, mainWorkout.details].filter(Boolean).join(' · ')}</p>
-                {mainWorkout.steps?.length ? (
-                  <div className="actions">
-                    <button className="btn btn-white" onClick={() => setExercisesFor(mainWorkout)}>Exercises</button>
-                  </div>
-                ) : null}
-              </section>
-            )}
           </div>
         )}
 
-        {strength.length > 0 && (
-          <Section tone={CAT_STYLE.WORKOUT.tone} icon="dumbbell" title="Strength" counter={`${strength.filter((t) => done.has(t.id)).length}/${strength.length}`}>
-            <Rows items={strength} done={done} onToggle={(t) => store.toggle(date, t, !done.has(t.id))} />
+        {workoutRows.length > 0 && (
+          <Section tone={CAT_STYLE.WORKOUT.tone} icon="dumbbell" title="Workout" counter={`${workoutRows.filter((t) => done.has(t.id)).length}/${workoutRows.length}`}>
+            <Rows items={workoutRows} done={done} onToggle={(t) => store.toggle(date, t, !done.has(t.id))} onExercises={setExercisesFor} />
           </Section>
         )}
 
@@ -132,8 +110,8 @@ function Section({ tone, icon, title, sub, counter, children }: {
 }
 
 /** A section's items under Morning / Afternoon / Evening / Any time, once any of them has a timing. */
-function Rows({ items, done, onToggle }: { items: Task[]; done: Set<string>; onToggle: (t: Task) => void }) {
-  const row = (t: Task) => <TaskRow key={t.id} task={t} done={done.has(t.id)} onToggle={() => onToggle(t)} />
+function Rows({ items, done, onToggle, onExercises }: { items: Task[]; done: Set<string>; onToggle: (t: Task) => void; onExercises?: (t: Task) => void }) {
+  const row = (t: Task) => <TaskRow key={t.id} task={t} done={done.has(t.id)} onToggle={() => onToggle(t)} onExercises={onExercises} />
   if (items.every((t) => !partOf(t))) return <>{items.map(row)}</>
   const groups = [...PARTS, { id: null, label: 'Any time' }]
     .map((p) => ({ ...p, items: items.filter((t) => partOf(t) === p.id) }))
@@ -150,7 +128,7 @@ function Rows({ items, done, onToggle }: { items: Task[]; done: Set<string>; onT
   )
 }
 
-function TaskRow({ task, done, onToggle }: { task: Task; done: boolean; onToggle: () => void }) {
+function TaskRow({ task, done, onToggle, onExercises }: { task: Task; done: boolean; onToggle: () => void; onExercises?: (t: Task) => void }) {
   const note = task.details.trim()
   const row = (
     <button className={`task-row ${done ? 'is-done' : ''}`} aria-pressed={done} onClick={onToggle}>
@@ -164,13 +142,19 @@ function TaskRow({ task, done, onToggle }: { task: Task; done: boolean; onToggle
       </span>
     </button>
   )
-  if (!task.videos?.length) return row
+  const hasSteps = !!onExercises && !!task.steps?.length
+  if (!task.videos?.length && !hasSteps) return row
   return (
     <div className="row-wrap">
       {row}
       <div className="video-list">
-        <span className="label">{task.videos.length > 1 ? 'Pick one:' : 'Video:'}</span>
-        {task.videos.map((v) => (
+        {hasSteps && (
+          <button className="video-link press" onClick={() => onExercises?.(task)}>
+            <Icon name="dumbbell" size={16} />Exercises
+          </button>
+        )}
+        {!!task.videos?.length && <span className="label">{task.videos.length > 1 ? 'Pick one:' : 'Video:'}</span>}
+        {task.videos?.map((v) => (
           <a key={v.url} className="video-link press" href={v.url} target="_blank" rel="noreferrer">
             <Icon name="play" size={16} />{v.title}
           </a>

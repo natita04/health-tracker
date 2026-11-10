@@ -736,3 +736,19 @@ button.stat { width: 100%; }
 /* Ticks and the water button give a little spring. */
 @keyframes pop { 0% { transform: scale(.6); } 60% { transform: scale(1.18); } 100% { transform: scale(1); } }
 .check.on { animation: pop 280ms ease-out; }
+
+/* ---------- app header: logo, week strip, title ---------- */
+.app-head { display: flex; flex-direction: column; gap: 14px; }
+.brand { display: inline-flex; align-items: center; gap: 8px; align-self: flex-start; }
+.brand-name { font-size: 26px; font-weight: 700; letter-spacing: -0.03em; line-height: 1; }
+.brand-heart { fill: var(--rose-accent); stroke: var(--rose-icon); stroke-width: 2.5; stroke-linejoin: round; }
+.brand-shine { fill: none; stroke: var(--rose-tile); stroke-width: 3.5; stroke-linecap: round; }
+.brand-beat { fill: none; stroke: var(--surface); stroke-width: 3.5; stroke-linecap: round; stroke-linejoin: round; }
+.app-head .week-card { padding: 12px 12px 12px; gap: 10px; }
+.app-head .month-head .circle-btn { width: 36px; height: 36px; }
+.day-cell.is-selected { background: var(--ink); color: var(--on-ink); }
+.day-cell.is-selected .wd, .day-cell.is-selected .dc { color: var(--on-ink-muted); }
+.day-cell.is-now:not(.is-selected) { box-shadow: inset 0 0 0 2px var(--ink); }
+.day-cell:disabled { cursor: default; }
+.screen-title .eyebrow { font-size: 15px; color: var(--ink-muted); display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+.screen-title h1 { font-size: 32px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.1; }
