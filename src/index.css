@@ -781,3 +781,8 @@ button.stat { width: 100%; }
 
 /* Exercises: a hollow icon inside the row, centred on the row's first line. */
 .exercises-btn { align-self: center; margin: 0 4px 0 0; background: transparent; }
+
+/* Steps goal on one line: label, number, steps|min toggle. */
+.goal-row.steps-row > .unit-toggle { width: auto; display: inline-flex; background: var(--surface-muted); border-radius: var(--r-pill); padding: 3px; gap: 2px; }
+.unit-toggle button { height: 38px; flex: none; padding: 0 12px; border-radius: var(--r-pill); font-size: 14px; color: var(--ink); }
+.unit-toggle button[aria-pressed='true'] { background: var(--ink); color: var(--on-ink); font-weight: 500; }
