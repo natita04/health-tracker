@@ -39,7 +39,6 @@ export default function DayHeader({ store, title, date, setDate, allowFuture }: 
                 aria-label={label} aria-pressed={d === date} disabled={future && !allowFuture} onClick={() => setDate(d)}>
                 <span className="wd" aria-hidden="true">{WEEKDAYS[i]}</span>
                 <span className="dn" aria-hidden="true">{Number(d.slice(8))}</span>
-                <span className="dc" aria-hidden="true">{counted && s.total ? `${s.done}/${s.total}` : ''}</span>
               </button>
             )
           })}

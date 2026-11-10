@@ -36,10 +36,10 @@ export default function Plan({ store }: { store: Store }) {
       {/* Every group is the same white card: icon, title and subtitle, then grey rows. */}
       <div className="settings stack-section">
         <TrackCard store={store} />
-        {(isOn(store, 'WATER') || isOn(store, 'FOOD')) && <GoalsCard store={store} />}
+        {(isOn(store, 'WATER') || isOn(store, 'FOOD') || isOn(store, 'WALK')) && <GoalsCard store={store} />}
 
-        {/* Water is set under Daily goals, so it has no list of its own. */}
-        {CATEGORIES.filter((c) => c.id !== 'WATER').map((c) => {
+        {/* Water and Steps are set under Daily goals, so they have no list of their own. */}
+        {CATEGORIES.filter((c) => c.id !== 'WATER' && c.id !== 'WALK').map((c) => {
           const items = store.tasks
             .filter((t) => t.category === c.id)
             .sort((a, b) => partRank(a) - partRank(b) || (a.time_minutes ?? -1) - (b.time_minutes ?? -1) || a.sort_order - b.sort_order)
@@ -88,12 +88,12 @@ export default function Plan({ store }: { store: Store }) {
         </section>
       </div>
 
-      <button className="btn-primary pinned-action" onClick={addNew}><Icon name="plus" />Add item</button>
+      <button className="fab" aria-label="Add item" onClick={addNew}><Icon name="plus" size={26} /></button>
 
       {editing && (
         <EditDialog
           task={editing.task}
-          categories={CATEGORIES.filter((c) => c.id !== 'WATER').filter((c) => { const a = areaOf(c.id); return !a || isOn(store, a) })}
+          categories={CATEGORIES.filter((c) => c.id !== 'WATER' && c.id !== 'WALK').filter((c) => { const a = areaOf(c.id); return !a || isOn(store, a) })}
           isNew={editing.isNew}
           onClose={() => setEditing(null)}
           onSave={(t) => { void store.saveTask(t); setEditing(null) }}
@@ -143,6 +143,24 @@ function GoalsCard({ store }: { store: Store }) {
     if (l !== store.waterGoal) void store.setWaterGoal(l)
   }
 
+  const walk = store.tasks.find((t) => t.category === 'WALK' && !t.archived)
+  const walkParsed = walk ? parseStepsTitle(walk.title) : null
+  const [stepUnit, setStepUnit] = useState<StepUnit>(walkParsed?.unit ?? 'steps')
+  const [stepGoal, setStepGoal] = useState(String(walkParsed?.n ?? 10000))
+  const stepOk = Number(stepGoal) >= 1
+  function saveSteps(unit: StepUnit, text: string) {
+    const n = Math.round(Number(text))
+    if (!walk || !(n >= 1)) return
+    const title = stepsTitle(unit, n)
+    setStepGoal(String(n))
+    if (title !== walk.title) void store.saveTask({ ...walk, title })
+  }
+  function pickUnit(unit: StepUnit) {
+    if (unit === stepUnit) return
+    const n = unit === 'steps' ? '10000' : '45'
+    setStepUnit(unit); setStepGoal(n); saveSteps(unit, n)
+  }
+
   const [kcal, setKcal] = useState(String(store.foodGoals.kcal))
   const [protein, setProtein] = useState(String(store.foodGoals.protein))
   const [msg, setMsg] = useState<string | null>(null)
@@ -172,6 +190,17 @@ function GoalsCard({ store }: { store: Store }) {
             <span>L</span>
           </label>
         )}
+        {isOn(store, 'WALK') && walk && <>
+          <div className="segmented segmented-2" role="group" aria-label="Steps goal by">
+            <button type="button" aria-pressed={stepUnit === 'steps'} onClick={() => pickUnit('steps')}>Steps</button>
+            <button type="button" aria-pressed={stepUnit === 'min'} onClick={() => pickUnit('min')}>Minutes</button>
+          </div>
+          <label className="time-row goal-row">{stepUnit === 'steps' ? 'Steps, a day' : 'Walking, a day'}
+            <input inputMode="numeric" value={stepGoal} className={stepOk ? '' : 'invalid'}
+              onChange={(e) => setStepGoal(e.target.value.replace(/\D/g, '').slice(0, 6))} onBlur={() => saveSteps(stepUnit, stepGoal)} />
+            <span>{stepUnit === 'steps' ? 'steps' : 'min'}</span>
+          </label>
+        </>}
         {isOn(store, 'FOOD') && <>
         <label className="time-row goal-row">Calories, at most
           <input inputMode="numeric" value={kcal} className={kcalOk ? '' : 'invalid'}
