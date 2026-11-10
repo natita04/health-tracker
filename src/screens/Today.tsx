@@ -3,7 +3,7 @@ import { tasksFor, type Store } from '../store'
 import { formatTime, todayIso } from '../dates'
 import { Badge, CAT_STYLE, Icon } from '../icons'
 import DayHeader from './DayHeader'
-import { celebrateDone, celebrateWater, useRise } from '../celebrate'
+import { celebrateDone, celebrateEvening, celebrateMorning, celebrateWater, useRise } from '../celebrate'
 import { PARTS, partOf, WATER_MAX, WATER_PORTION_L, type Category, type Task } from '../types'
 
 // Sections in page order (after the tiles). Walk and water are tiles of their own.
@@ -29,6 +29,13 @@ export default function Today({ store, date, setDate, onSettings }: {
   // Everything on today's plan ticked: a perfect day.
   const allDone = list.length > 0 && list.every((t) => done.has(t.id))
   useRise(allDone && date <= todayIso(), date, () => celebrateDone(date))
+  // All of the morning's (or the evening's) items ticked.
+  const partDone = (p: 'morning' | 'evening') => {
+    const items = list.filter((t) => partOf(t) === p)
+    return items.length > 0 && items.every((t) => done.has(t.id))
+  }
+  useRise(partDone('morning') && date <= todayIso(), date, () => celebrateMorning(date))
+  useRise(partDone('evening') && date <= todayIso(), date, () => celebrateEvening(date))
 
   return (
     <>

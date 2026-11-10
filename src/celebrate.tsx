@@ -7,7 +7,7 @@ import { Icon, type IconName } from './icons'
  * (mounted once in the shell) shows the card and the confetti.
  */
 
-type Kind = 'water' | 'done' | 'thanks' | 'weight' | 'low'
+type Kind = 'water' | 'morning' | 'evening' | 'done' | 'thanks' | 'weight' | 'low'
 type Fx = 'confetti' | 'rise' | 'none'
 
 interface Celebration {
@@ -24,6 +24,8 @@ interface Celebration {
 
 const WATER_LINES = ['Your body says thanks.', 'Hydration hero.', 'Glowing from the inside.', 'Nicely done, sip by sip.']
 const DONE_LINES = ['Every single thing, ticked.', 'You showed up for yourself today.', 'Rest easy, you earned it.', 'That is a full day.']
+const MORNING_LINES = ['What a start to the day.', 'Morning handled. The rest is a bonus.', 'Off to a flying start.', 'Look at you, up and done.']
+const EVENING_LINES = ['Evening wrapped up. Go unwind.', 'Day closed out, beautifully.', 'Time to switch off.', 'Sleep well, you earned it.']
 const THANKS_LINES = ['Gratitude is a muscle. Look at you.', 'Three good things, noticed.', 'A little more light in the day.', 'Lovely. Keep noticing.']
 const WEIGHT_LINES = ['Small steps add up.', 'Quietly doing the work.', 'Trending the right way.']
 const LOW_LINES = ['Your lowest yet.', 'A new low, well earned.']
@@ -49,6 +51,12 @@ const litres = (n: number) => `${Number(n.toFixed(1))} L`
 
 export const celebrateWater = (date: string, goalL: number) =>
   fire(`water:${date}`, { kind: 'water', title: `${litres(goalL)} of water`, sub: pick(WATER_LINES), tone: 'sky', icon: 'droplet', fx: 'rise', rank: 1 })
+
+export const celebrateMorning = (date: string) =>
+  fire(`morning:${date}`, { kind: 'morning', title: 'Morning done', sub: pick(MORNING_LINES), tone: 'peach', icon: 'sparkle', fx: 'confetti', rank: 2 })
+
+export const celebrateEvening = (date: string) =>
+  fire(`evening:${date}`, { kind: 'evening', title: 'Evening done', sub: pick(EVENING_LINES), tone: 'lilac', icon: 'sparkle', fx: 'confetti', rank: 2 })
 
 export const celebrateDone = (date: string) =>
   fire(`done:${date}`, { kind: 'done', title: 'Perfect day', sub: pick(DONE_LINES), tone: 'butter', icon: 'check-circle', fx: 'confetti', rank: 3 })
@@ -88,12 +96,12 @@ export function Celebrations() {
       if (current.current && current.current.rank > next.rank) return
       current.current = next
       setC(next)
-      const n = next.fx === 'confetti' ? 36 : next.fx === 'rise' ? 9 : 0
+      const n = next.fx === 'confetti' ? (next.rank >= 3 ? 140 : 100) : next.fx === 'rise' ? 9 : 0
       setPieces(reduced() ? [] : Array.from({ length: n }, (_, i) => next.fx === 'confetti'
         ? {
-          '--dx': `${rand(-150, 150)}px`, '--up': `${rand(-260, -120)}px`, '--down': `${rand(120, 300)}px`,
-          '--rot': `${rand(-540, 540)}deg`, '--delay': `${rand(0, 120)}ms`,
-          background: `var(${COLORS[i % COLORS.length]})`, width: rand(6, 10), height: rand(8, 14),
+          left: `${rand(0, 100)}%`, '--dx': `${rand(-60, 60)}px`, '--rot': `${rand(-720, 720)}deg`,
+          '--delay': `${rand(0, 900)}ms`, '--dur': `${rand(1800, 3000)}ms`,
+          background: `var(${COLORS[i % COLORS.length]})`, width: rand(7, 12), height: rand(10, 18),
         } as CSSProperties
         : {
           '--dx': `${rand(-90, 90)}px`, '--delay': `${i * 90}ms`, left: `${rand(30, 70)}%`,
@@ -104,7 +112,7 @@ export function Celebrations() {
 
   useEffect(() => {
     if (!c) return
-    const t = setTimeout(() => { current.current = null; setC(null) }, c.rank >= 3 ? 5000 : 3800)
+    const t = setTimeout(() => { current.current = null; setC(null) }, c.rank >= 3 ? 5500 : 4200)
     return () => clearTimeout(t)
   }, [c])
 
