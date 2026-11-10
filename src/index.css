@@ -799,4 +799,7 @@ button.stat { width: 100%; }
 .quiet-row > .icon:last-child:not(:first-child) { margin-left: auto; color: var(--ink-muted); }
 .quiet-row:disabled { opacity: .5; }
 .quiet-danger, .quiet-danger > .icon:first-child { color: var(--danger); }
-.notify-body .quiet-row { padding: 0 12px; }
+
+.notify-body:has(.quiet-row) { gap: 0; padding: 0 6px 6px; }
+.notify-body .empty-line { padding-bottom: 8px; }
+.quiet-row[role=switch] > .icon:first-child { color: var(--ink-muted); }

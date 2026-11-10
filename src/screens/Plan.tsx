@@ -194,7 +194,7 @@ function GoalsCard({ store }: { store: Store }) {
             <input inputMode="numeric" value={stepGoal} className={stepOk ? '' : 'invalid'}
               onChange={(e) => setStepGoal(e.target.value.replace(/\D/g, '').slice(0, 6))} onBlur={() => saveSteps(stepUnit, stepGoal)} />
             <button type="button" className="unit-btn" aria-label={`Counting ${stepUnit === 'steps' ? 'steps' : 'minutes'}, tap to switch`}
-              onClick={() => pickUnit(stepUnit === 'steps' ? 'min' : 'steps')}>{stepUnit === 'steps' ? 'steps' : 'min'}<Icon name="chevron-right" size={12} /></button>
+              onClick={() => pickUnit(stepUnit === 'steps' ? 'min' : 'steps')}>{stepUnit === 'steps' ? 'steps' : 'min'}</button>
           </label>
         )}
         {isOn(store, 'FOOD') && <>
@@ -244,16 +244,12 @@ function ReminderDevice({ store, empty }: { store: Store; empty: boolean }) {
           <p className="empty-line">Notifications are blocked for this site. Allow them in your browser's site settings, then come back here.</p>
         ) : (
           <>
-            <button role="switch" aria-checked={status === 'on'} disabled={busy} className="task-row planrow"
+            <button role="switch" aria-checked={status === 'on'} disabled={busy} className="quiet-row"
               onClick={() => status === 'on'
                 ? run(async () => { await disablePush(); setStatus('off') }, 'Turned off on this device.')
                 : run(async () => setStatus(await enablePush(store.userId)), 'On! Reminders will show up on this device.')}>
-              <Icon name="bell" />
-              <span className="task-body">
-                <span className="task-title">Notifications on this device</span>
-                <span className="task-note">{status === 'on' ? 'On' : 'Off'}</span>
-              </span>
-              <span className="switch" aria-hidden />
+              <Icon name="bell" size={20} />Notifications on this device
+              <span className="switch" aria-hidden style={{ marginLeft: "auto" }} />
             </button>
             {status === 'on' && (
               <button className="quiet-row" disabled={busy} onClick={() => run(sendTestPush, 'Sent! It should pop up in a few seconds.')}><Icon name="send" size={20} />Send a test</button>
