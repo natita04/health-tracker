@@ -119,8 +119,11 @@ export interface SavedFood {
 export type FoodInput = Pick<FoodEntry, 'name' | 'kcal' | 'protein'>
 
 /** What the estimate function returns for free text. */
+/** What the estimate function returns for free text. */
 export interface FoodEstimate extends FoodInput {
-  items: FoodInput[]
+  /** What the numbers were worked out from, e.g. "2 × 40 g = 80 g" (set when there's a single item). */
+  basis?: string
+  items: (FoodInput & { basis?: string })[]
 }
 
 /** A photo for the estimate: base64 without the data: prefix. */
