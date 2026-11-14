@@ -86,7 +86,8 @@ interface Draft {
   name: string
   kcal: string
   protein: string
-  items?: FoodInput[]
+  items?: (FoodInput & { basis?: string })[]
+  basis?: string
   note?: string
 }
 
@@ -232,7 +233,7 @@ function AddSheet({ store, date, onClose }: { store: Store; date: string; onClos
     try {
       const e = await store.estimateFood(v, photo)
       if (!e.items.length && !e.kcal) throw new Error("couldn't spot any food")
-      setDraft({ name: e.name || v, kcal: String(Math.round(e.kcal)), protein: g1(e.protein), items: e.items })
+      setDraft({ name: e.name || v, kcal: String(Math.round(e.kcal)), protein: g1(e.protein), items: e.items, basis: e.basis })
     } catch (e) {
       const why = e instanceof Error && e.message ? ` (${e.message})` : ''
       setDraft({ name: v, kcal: '', protein: '', note: `Couldn't estimate this right now${why}, so fill in the numbers yourself.` })
@@ -422,7 +423,7 @@ function FoodForm({ draft, onCancel, cancelLabel = 'Cancel', onSave, onRemove }:
       <h2>{draft.saved ? 'Edit saved meal' : isNew ? (draft.note || !draft.kcal ? 'Add a meal' : 'Check the numbers') : 'Edit meal'}</h2>
       {draft.note && <p className="banner small">{draft.note}</p>}
       {draft.saved && <p className="muted small">Changes what one tap adds from now on. Meals already logged stay as they are.</p>}
-      {isNew && draft.kcal && !draft.note && <p className="muted small">An estimate, so tweak anything that looks off.</p>}
+      {isNew && draft.kcal && !draft.note && <p className="muted small">{draft.basis ? `Worked out from ${draft.basis}. ` : ''}An estimate, so tweak anything that looks off.</p>}
       <label>What you ate
         <input dir="auto" value={name} onChange={(e) => setName(e.target.value)} maxLength={200} autoFocus={!name} />
       </label>
@@ -450,18 +451,18 @@ function FoodForm({ draft, onCancel, cancelLabel = 'Cancel', onSave, onRemove }:
   )
 }
 
-interface ItemRow { key: number; name: string; kcal: string; protein: string }
+interface ItemRow { key: number; name: string; kcal: string; protein: string; basis?: string }
 
 /** A meal estimated as several foods: fix any item, then log it as one meal or item by item. */
 function ItemsForm({ name: initialName, items, onBack, onSave }: {
   name: string
-  items: FoodInput[]
+  items: (FoodInput & { basis?: string })[]
   onBack: () => void
   onSave: (list: FoodInput[], remember: boolean) => void
 }) {
   const [name, setName] = useState(initialName)
   const [rows, setRows] = useState<ItemRow[]>(() =>
-    items.map((i, n) => ({ key: n, name: i.name, kcal: String(Math.round(i.kcal)), protein: g1(i.protein) })))
+    items.map((i, n) => ({ key: n, name: i.name, kcal: String(Math.round(i.kcal)), protein: g1(i.protein), basis: i.basis })))
   const [separate, setSeparate] = useState(false)
   const [remember, setRemember] = useState(true)
 
@@ -496,6 +497,7 @@ function ItemsForm({ name: initialName, items, onBack, onSave }: {
                 <Icon name="x" />
               </button>
             </div>
+            {r.basis && <p className="muted small">{r.basis}</p>}
             <div className="item-edit-nums">
               <label className="unit-field">
                 <span className="sr-only">Calories for {r.name}</span>

@@ -21,14 +21,15 @@ const CORS = {
 const SYSTEM = `You estimate calories and protein for a food diary. The user writes what they ate, usually in Hebrew, sometimes in English, often informally.
 
 - Split the text into separate foods or drinks and estimate each one.
-- For every item give "grams" (its weight as eaten) and the nutrition PER 100 g of that food ("per100_kcal", "per100_protein"). Do NOT multiply: the server computes the item's calories and protein from these.
-- A weight the user writes is EXACT. Use it as "grams" and never swap it for a typical portion. Units: g, gr, gram, grams, גרם, גר', ג' are grams; kg / ק"ג is 1000 g; ml / מ"ל is about 1 g per ml (use the drink's real density if it is clearly different, e.g. oil, honey). "Cup", "tbsp", "tsp" and the like are not weights, so convert them to grams for that food.
+- For every item give "count" and "unit_grams", and the nutrition PER 100 g of that food ("per100_kcal", "per100_protein"). The item's weight is count x unit_grams. Do NOT multiply anything yourself: the server computes the weight, calories and protein.
+- "count" is how many units the user wrote ("2 meatballs" -> count 2, "3 eggs" -> 3, "half a pita" -> 0.5). It is EXACT: never drop it, round it or fold it into unit_grams. Use count 1 when no number is written, or when the user gave a total weight or volume (then unit_grams is that whole weight). "unit_grams" is the weight of ONE unit as eaten.
+- A weight the user writes is EXACT. Use it as the total (count 1, unit_grams = that weight) and never swap it for a typical portion. Units: g, gr, gram, grams, גרם, גר', ג' are grams; kg / ק"ג is 1000 g; ml / מ"ל is about 1 g per ml (use the drink's real density if it is clearly different, e.g. oil, honey). "Cup", "tbsp", "tsp" and the like are not weights, so convert them to grams for that food.
 - Weights are for the food as eaten: cooked or ready to eat (cooked rice, grilled chicken, boiled pasta), never raw or dry, unless the text says otherwise (e.g. "raw", "dry", "לא מבושל", "יבש", "נא", "לפני בישול"). Take per-100 g values for that same state.
-- When the amount is vague or counted (e.g. "a small potato", "2 eggs", "a slice of bread"), estimate the weight from typical Israeli sizes (a slice of bread ~30 g, a pita ~80 g, a tub of cottage ~250 g, a medium egg ~55 g, a small potato ~100 g). This is the only case where you may be approximate.
+- When the amount is vague or counted (e.g. "a small potato", "2 eggs", "a slice of bread"), estimate unit_grams (the weight of one unit) from typical Israeli sizes (a slice of bread ~30 g, a pita ~80 g, a tub of cottage ~250 g, a medium egg ~55 g, a small potato ~100 g). This is the only case where you may be approximate.
 - When no amount is given at all, assume a typical single portion as served in Israel.
 - Use typical home or cafe preparation, including the usual oil, unless the text says otherwise. Reflect it in the per-100 g values.
 - Per-100 g values must be realistic for the specific food and variant named (e.g. cottage 5% vs 3%, chicken breast vs thigh, Greek vs regular yogurt). Prefer standard published values (USDA, Israeli Ministry of Health tables, or the package label if the brand is named).
-- "name" is a short label for the whole meal in the user's own language and wording, at most 60 characters. Item names also stay in the user's language.
+- "name" is a short label for the whole meal in the user's own language and wording, at most 60 characters. Item names also stay in the user's language, and keep the quantity the user wrote (e.g. "2 כדורי בשר").
 - If the text isn't food at all, return an empty items list.
 - If there's a photo, identify the foods in it and estimate portions from what you see (plate size, utensils, packaging). Any text is extra context, like the portion eaten. With no text, write names in Hebrew.`
 
@@ -45,11 +46,12 @@ const RAW_ITEM = {
   type: 'object' as const,
   properties: {
     name: { type: 'string' },
-    grams: { type: 'number' },
+    count: { type: 'number' },
+    unit_grams: { type: 'number' },
     per100_kcal: { type: 'number' },
     per100_protein: { type: 'number' },
   },
-  required: ['name', 'grams', 'per100_kcal', 'per100_protein'],
+  required: ['name', 'count', 'unit_grams', 'per100_kcal', 'per100_protein'],
   additionalProperties: false,
 }
 
@@ -63,14 +65,20 @@ const SCHEMA = {
   additionalProperties: false,
 }
 
-type RawEstimate = { name: string; items: { name: string; grams: number; per100_kcal: number; per100_protein: number }[] }
+type RawEstimate = { name: string; items: { name: string; count: number; unit_grams: number; per100_kcal: number; per100_protein: number }[] }
 
 /** grams x per-100 g -> the { name, kcal, protein, items } shape the app expects. kcal whole, protein to 0.5. */
 function compute(raw: RawEstimate) {
   const items = raw.items.map((i) => {
-    const f = Math.max(0, Number(i.grams) || 0) / 100
+    const count = Math.max(0, Number(i.count) || 0) || 1
+    const unit = Math.max(0, Number(i.unit_grams) || 0)
+    const grams = Math.round(count * unit)
+    const f = grams / 100
+    // Shown in the app so the user can see exactly what was multiplied.
+    const basis = count === 1 ? `${grams} g` : `${count} × ${Math.round(unit)} g = ${grams} g`
     return {
       name: i.name,
+      basis,
       kcal: Math.round(f * Math.max(0, Number(i.per100_kcal) || 0)),
       protein: Math.round(f * Math.max(0, Number(i.per100_protein) || 0) * 2) / 2,
     }
@@ -79,6 +87,7 @@ function compute(raw: RawEstimate) {
     name: raw.name,
     kcal: items.reduce((s, i) => s + i.kcal, 0),
     protein: items.reduce((s, i) => s + i.protein, 0),
+    basis: items.length === 1 ? items[0].basis : undefined,
     items,
   }
 }
