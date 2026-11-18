@@ -1,4 +1,4 @@
-// food-estimate: turns "what I ate" (free text and/or a photo) into calories, protein, carbs and fat, using Claude Haiku.
+// food-estimate: turns "what I ate" (free text and/or a photo) into calories, protein, carbs and fat, using Claude Sonnet.
 // With { mode: 'ideas' } it instead suggests foods that close the day's protein gap within the calories left.
 // Called from the Food tab with the user's login, so JWT verification stays ON for this function:
 // only signed-in users can spend the API key.
@@ -160,7 +160,7 @@ Deno.serve(async (req) => {
 
   try {
     const response = await client.messages.create({
-      model: 'claude-haiku-5-5',
+      model: 'claude-sonnet-5-5',
       max_tokens: 4000,
       system,
       // Medium effort: low made per-100 g recall sloppy; high isn't needed for a lookup-style task.
