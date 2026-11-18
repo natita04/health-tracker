@@ -77,7 +77,7 @@ async function shrinkPhoto(file: File): Promise<FoodPhoto> {
 /** Protein to one decimal, without a trailing ".0". */
 const g1 = (n: number) => String(Math.round(n * 10) / 10)
 const num = (n: number) => Math.round(n).toLocaleString('en-US')
-const meta = (f: FoodInput) => `${Math.round(f.kcal)} kcal · ${g1(f.protein)} g protein`
+const meta = (f: FoodInput) => `${Math.round(f.kcal)} kcal · ${g1(f.protein)} g protein · ${g1(f.carbs)} g carbs · ${g1(f.fat)} g fat`
 
 /** What the confirm sheet is editing: a new meal (from an estimate or typed in), one already logged, or a saved meal's defaults. */
 interface Draft {
@@ -86,6 +86,8 @@ interface Draft {
   name: string
   kcal: string
   protein: string
+  carbs: string
+  fat: string
   items?: (FoodInput & { basis?: string })[]
   basis?: string
   note?: string
@@ -107,6 +109,8 @@ export default function Food({ store, date, setDate }: { store: Store; date: str
   const entries = store.food.filter((f) => f.date === date)
   const kcal = Math.round(entries.reduce((s, f) => s + f.kcal, 0))
   const protein = Math.round(entries.reduce((s, f) => s + f.protein, 0) * 10) / 10
+  const carbs = Math.round(entries.reduce((s, f) => s + f.carbs, 0) * 10) / 10
+  const fat = Math.round(entries.reduce((s, f) => s + f.fat, 0) * 10) / 10
 
   return (
     <>
@@ -117,6 +121,7 @@ export default function Food({ store, date, setDate }: { store: Store; date: str
         <Meter label="Protein" value={protein} goal={goals.protein} unit="g" tone="sage"
           // Ideas are about the rest of today, so only on today.
           onIdeas={store.foodReady && isToday && goals.protein - protein >= GAP_MIN ? () => setIdeasOpen(true) : undefined} />
+        <div className="food-macros"><span>Carbs <strong>{g1(carbs)} g</strong></span><span>Fat <strong>{g1(fat)} g</strong></span></div>
       </section>
 
       {!store.foodReady && (
@@ -165,7 +170,7 @@ export default function Food({ store, date, setDate }: { store: Store; date: str
       {editing && (
         <Sheet label="Edit meal" onClose={() => setEditing(null)}>
           <FoodForm
-            draft={{ entry: editing, name: editing.name, kcal: String(editing.kcal), protein: g1(editing.protein) }}
+            draft={{ entry: editing, name: editing.name, kcal: String(editing.kcal), protein: g1(editing.protein), carbs: g1(editing.carbs), fat: g1(editing.fat) }}
             onCancel={() => setEditing(null)}
             onRemove={() => { void store.removeFood(editing.id); setEditing(null) }}
             onSave={(f) => { void store.updateFood({ ...editing, ...f }); setEditing(null) }}
@@ -214,7 +219,7 @@ function AddSheet({ store, date, onClose }: { store: Store; date: string; onClos
     e.target.value = '' // so picking the same photo again still fires
     if (!file) return
     shrinkPhoto(file).then((p) => estimate(p), () => setDraft({
-      name: text.trim(), kcal: '', protein: '', note: "Couldn't read that photo, so fill in the numbers yourself.",
+      name: text.trim(), kcal: '', protein: '', carbs: '', fat: '', note: "Couldn't read that photo, so fill in the numbers yourself.",
     }))
   }
   const q = text.trim().toLowerCase()
@@ -233,10 +238,10 @@ function AddSheet({ store, date, onClose }: { store: Store; date: string; onClos
     try {
       const e = await store.estimateFood(v, photo)
       if (!e.items.length && !e.kcal) throw new Error("couldn't spot any food")
-      setDraft({ name: e.name || v, kcal: String(Math.round(e.kcal)), protein: g1(e.protein), items: e.items, basis: e.basis })
+      setDraft({ name: e.name || v, kcal: String(Math.round(e.kcal)), protein: g1(e.protein), carbs: g1(e.carbs), fat: g1(e.fat), items: e.items, basis: e.basis })
     } catch (e) {
       const why = e instanceof Error && e.message ? ` (${e.message})` : ''
-      setDraft({ name: v, kcal: '', protein: '', note: `Couldn't estimate this right now${why}, so fill in the numbers yourself.` })
+      setDraft({ name: v, kcal: '', protein: '', carbs: '', fat: '', note: `Couldn't estimate this right now${why}, so fill in the numbers yourself.` })
     } finally {
       setBusy(false)
     }
@@ -247,7 +252,7 @@ function AddSheet({ store, date, onClose }: { store: Store; date: string; onClos
     return (
       <Sheet label="Edit saved meal" onClose={onClose}>
         <FoodForm
-          draft={{ saved: s, name: s.name, kcal: String(s.kcal), protein: g1(s.protein) }}
+          draft={{ saved: s, name: s.name, kcal: String(s.kcal), protein: g1(s.protein), carbs: g1(s.carbs), fat: g1(s.fat) }}
           onCancel={() => setEditingSaved(null)}
           cancelLabel="Back"
           onRemove={() => { if (confirm('Remove this from My meals?')) { void store.removeSavedFood(s.id); setEditingSaved(null) } }}
@@ -295,7 +300,7 @@ function AddSheet({ store, date, onClose }: { store: Store; date: string; onClos
       </div>
       <form className="add-form food-bar" onSubmit={(e) => { e.preventDefault(); stopListening(); void estimate() }}>
         <button type="button" className="bar-icon" aria-label="Enter the numbers myself" disabled={busy}
-          onClick={() => setDraft({ name: text.trim(), kcal: '', protein: '' })}>
+          onClick={() => setDraft({ name: text.trim(), kcal: '', protein: '', carbs: '', fat: '' })}>
           <Icon name="plus" />
         </button>
         <button type="button" className="bar-icon" aria-label="Take a photo" disabled={busy}
@@ -356,7 +361,7 @@ function AddSheet({ store, date, onClose }: { store: Store; date: string; onClos
                   )}
                   <button className={`add-small ${isAdded ? 'is-added' : ''}`} aria-label={isAdded ? `${s.name} added` : `Add ${s.name}`}
                     onClick={() => {
-                      void store.addFood(date, { name: s.name, kcal: s.kcal, protein: s.protein }, true)
+                      void store.addFood(date, { name: s.name, kcal: s.kcal, protein: s.protein, carbs: s.carbs, fat: s.fat }, true)
                       setAdded((p) => new Set(p).add(s.name))
                     }}>
                     <Icon name={isAdded ? 'tick' : 'plus'} />
@@ -410,16 +415,20 @@ function FoodForm({ draft, onCancel, cancelLabel = 'Cancel', onSave, onRemove }:
   const [name, setName] = useState(draft.name)
   const [kcalText, setKcal] = useState(draft.kcal)
   const [proteinText, setProtein] = useState(draft.protein)
+  const [carbsText, setCarbs] = useState(draft.carbs)
+  const [fatText, setFat] = useState(draft.fat)
   const [remember, setRemember] = useState(true)
   const isNew = !draft.entry && !draft.saved
   const kcal = Number(kcalText.replace(',', '.'))
   const protein = Number(proteinText.replace(',', '.'))
-  const valid = name.trim() !== '' && kcalText.trim() !== '' && proteinText.trim() !== ''
-    && kcal >= 0 && kcal <= 10000 && protein >= 0 && protein <= 1000
+  const carbs = Number(carbsText.replace(',', '.'))
+  const fat = Number(fatText.replace(',', '.'))
+  const valid = name.trim() !== '' && kcalText.trim() !== '' && proteinText.trim() !== '' && carbsText.trim() !== '' && fatText.trim() !== ''
+    && kcal >= 0 && kcal <= 10000 && protein >= 0 && protein <= 1000 && carbs >= 0 && carbs <= 1000 && fat >= 0 && fat <= 1000
 
   return (
     <form className="stack"
-      onSubmit={(e) => { e.preventDefault(); if (valid) onSave({ name: name.trim(), kcal: Math.round(kcal), protein: Math.round(protein * 10) / 10 }, remember) }}>
+      onSubmit={(e) => { e.preventDefault(); if (valid) onSave({ name: name.trim(), kcal: Math.round(kcal), protein: Math.round(protein * 10) / 10, carbs: Math.round(carbs * 10) / 10, fat: Math.round(fat * 10) / 10 }, remember) }}>
       <h2>{draft.saved ? 'Edit saved meal' : isNew ? (draft.note || !draft.kcal ? 'Add a meal' : 'Check the numbers') : 'Edit meal'}</h2>
       {draft.note && <p className="banner small">{draft.note}</p>}
       {draft.saved && <p className="muted small">Changes what one tap adds from now on. Meals already logged stay as they are.</p>}
@@ -433,6 +442,12 @@ function FoodForm({ draft, onCancel, cancelLabel = 'Cancel', onSave, onRemove }:
         </label>
         <label>Protein (g)
           <input inputMode="decimal" value={proteinText} onChange={(e) => setProtein(e.target.value)} placeholder="e.g. 25" />
+        </label>
+        <label>Carbs (g)
+          <input inputMode="decimal" value={carbsText} onChange={(e) => setCarbs(e.target.value)} placeholder="e.g. 40" />
+        </label>
+        <label>Fat (g)
+          <input inputMode="decimal" value={fatText} onChange={(e) => setFat(e.target.value)} placeholder="e.g. 12" />
         </label>
       </div>
       {isNew && (
@@ -451,7 +466,7 @@ function FoodForm({ draft, onCancel, cancelLabel = 'Cancel', onSave, onRemove }:
   )
 }
 
-interface ItemRow { key: number; name: string; kcal: string; protein: string; basis?: string }
+interface ItemRow { key: number; name: string; kcal: string; protein: string; carbs: string; fat: string; basis?: string }
 
 /** A meal estimated as several foods: fix any item, then log it as one meal or item by item. */
 function ItemsForm({ name: initialName, items, onBack, onSave }: {
@@ -462,22 +477,24 @@ function ItemsForm({ name: initialName, items, onBack, onSave }: {
 }) {
   const [name, setName] = useState(initialName)
   const [rows, setRows] = useState<ItemRow[]>(() =>
-    items.map((i, n) => ({ key: n, name: i.name, kcal: String(Math.round(i.kcal)), protein: g1(i.protein), basis: i.basis })))
+    items.map((i, n) => ({ key: n, name: i.name, kcal: String(Math.round(i.kcal)), protein: g1(i.protein), carbs: g1(i.carbs), fat: g1(i.fat), basis: i.basis })))
   const [separate, setSeparate] = useState(false)
   const [remember, setRemember] = useState(true)
 
-  const parsed = rows.map((r) => ({ name: r.name.trim(), kcal: parseNum(r.kcal, 10000), protein: parseNum(r.protein, 1000) }))
-  const rowValid = parsed.map((p) => p.name !== '' && p.kcal != null && p.protein != null)
+  const parsed = rows.map((r) => ({ name: r.name.trim(), kcal: parseNum(r.kcal, 10000), protein: parseNum(r.protein, 1000), carbs: parseNum(r.carbs, 1000), fat: parseNum(r.fat, 1000) }))
+  const rowValid = parsed.map((p) => p.name !== '' && p.kcal != null && p.protein != null && p.carbs != null && p.fat != null)
   const totalKcal = Math.round(parsed.reduce((s, p) => s + (p.kcal ?? 0), 0))
   const totalProtein = Math.round(parsed.reduce((s, p) => s + (p.protein ?? 0), 0) * 10) / 10
+  const totalCarbs = Math.round(parsed.reduce((s, p) => s + (p.carbs ?? 0), 0) * 10) / 10
+  const totalFat = Math.round(parsed.reduce((s, p) => s + (p.fat ?? 0), 0) * 10) / 10
   const valid = rows.length > 0 && rowValid.every(Boolean) && (separate || name.trim() !== '')
 
   const set = (key: number, patch: Partial<ItemRow>) => setRows((p) => p.map((r) => (r.key === key ? { ...r, ...patch } : r)))
 
   function save() {
     if (!valid) return
-    const list = parsed.map((p) => ({ name: p.name, kcal: Math.round(p.kcal!), protein: Math.round(p.protein! * 10) / 10 }))
-    onSave(separate ? list : [{ name: name.trim(), kcal: totalKcal, protein: totalProtein }], remember)
+    const list = parsed.map((p) => ({ name: p.name, kcal: Math.round(p.kcal!), protein: Math.round(p.protein! * 10) / 10, carbs: Math.round(p.carbs! * 10) / 10, fat: Math.round(p.fat! * 10) / 10 }))
+    onSave(separate ? list : [{ name: name.trim(), kcal: totalKcal, protein: totalProtein, carbs: totalCarbs, fat: totalFat }], remember)
   }
 
   return (
@@ -511,17 +528,31 @@ function ItemsForm({ name: initialName, items, onBack, onSave }: {
                   onChange={(e) => set(r.key, { protein: e.target.value })} />
                 <span aria-hidden="true">g protein</span>
               </label>
+              <label className="unit-field">
+                <span className="sr-only">Carbs for {r.name}</span>
+                <input inputMode="decimal" value={r.carbs} placeholder="0" className={parsed[i].carbs == null ? 'invalid' : ''}
+                  onChange={(e) => set(r.key, { carbs: e.target.value })} />
+                <span aria-hidden="true">g carbs</span>
+              </label>
+              <label className="unit-field">
+                <span className="sr-only">Fat for {r.name}</span>
+                <input inputMode="decimal" value={r.fat} placeholder="0" className={parsed[i].fat == null ? 'invalid' : ''}
+                  onChange={(e) => set(r.key, { fat: e.target.value })} />
+                <span aria-hidden="true">g fat</span>
+              </label>
             </div>
           </div>
         ))}
         <button type="button" className="text-btn add-item-btn"
-          onClick={() => setRows((p) => [...p, { key: Math.max(-1, ...p.map((x) => x.key)) + 1, name: '', kcal: '', protein: '' }])}>
+          onClick={() => setRows((p) => [...p, { key: Math.max(-1, ...p.map((x) => x.key)) + 1, name: '', kcal: '', protein: '', carbs: '', fat: '' }])}>
           + Add an item
         </button>
         <div className="items-total" aria-live="polite">
           <span className="grow">Total</span>
           <strong>{num(totalKcal)} kcal</strong>
           <strong>{g1(totalProtein)} g protein</strong>
+          <strong>{g1(totalCarbs)} g carbs</strong>
+          <strong>{g1(totalFat)} g fat</strong>
         </div>
       </div>
 
@@ -562,7 +593,7 @@ function IdeasSheet({ store, date, kcalLeft, proteinLeft, onClose }: {
 
   const request = () => {
     // Your 40 most eaten saved meals, so ideas can come from what you actually eat.
-    const meals = rankSaved(store.savedFoods, store.food).slice(0, 40).map(({ name, kcal, protein }) => ({ name, kcal, protein }))
+    const meals = rankSaved(store.savedFoods, store.food).slice(0, 40).map(({ name, kcal, protein, carbs, fat }) => ({ name, kcal, protein, carbs, fat }))
     store.suggestFood(Math.round(kcalLeft), Math.round(proteinLeft * 10) / 10, meals)
       .then(setIdeas, (e) => setError(e instanceof Error ? e.message : String(e)))
   }
@@ -596,7 +627,7 @@ function IdeasSheet({ store, date, kcalLeft, proteinLeft, onClose }: {
               <button className={`add-small ${added.has(n) ? 'is-added' : ''}`} aria-label={added.has(n) ? `${i.name} added` : `Add ${i.name}`}
                 disabled={added.has(n)}
                 onClick={() => {
-                  void store.addFood(date, { name: i.name, kcal: i.kcal, protein: i.protein }, true)
+                  void store.addFood(date, { name: i.name, kcal: i.kcal, protein: i.protein, carbs: i.carbs, fat: i.fat }, true)
                   setAdded((p) => new Set(p).add(n))
                 }}>
                 <Icon name={added.has(n) ? 'tick' : 'plus'} />

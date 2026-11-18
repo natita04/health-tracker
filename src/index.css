@@ -396,6 +396,8 @@ input.invalid { box-shadow: inset 0 0 0 2px var(--danger); }
 .food-hero { gap: 20px; }
 .meter { display: flex; flex-direction: column; gap: 6px; }
 .meter-top { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.food-macros { display: flex; gap: 18px; font-size: 15px; color: var(--on-ink-muted); font-variant-numeric: tabular-nums; }
+.food-macros strong { color: var(--on-ink); font-weight: 600; }
 .meter-label { font-size: 15px; color: var(--on-ink-muted); }
 .meter-status { font-size: 14px; color: var(--on-ink-soft); font-variant-numeric: tabular-nums; }
 .meter-status.over { color: var(--peach-accent); font-weight: 500; }
@@ -457,11 +459,11 @@ input.invalid { box-shadow: inset 0 0 0 2px var(--danger); }
 .item-edit-top { gap: 4px; }
 .dialog .item-edit input:not([type='checkbox']) { background: var(--surface-muted); min-height: 44px; padding: 8px 12px; border-radius: 12px; }
 .item-edit-top input { flex: 1; min-width: 0; font-weight: 600; }
-.item-edit-nums { display: grid; grid-template-columns: 1fr 1.25fr; gap: 8px; padding-right: 6px; }
+.item-edit-nums { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding-right: 6px; }
 .unit-field { flex-direction: row; align-items: center; gap: 6px; color: var(--ink-muted); font-size: 13px; white-space: nowrap; }
 .unit-field input { flex: 1; min-width: 0; font-variant-numeric: tabular-nums; }
 .add-item-btn { align-self: flex-start; margin: 0 6px; font-size: 14px; }
-.items-total { display: flex; align-items: baseline; gap: 12px; padding: 10px 10px 4px; border-top: 1px solid var(--surface); font-variant-numeric: tabular-nums; }
+.items-total { display: flex; flex-wrap: wrap; align-items: baseline; gap: 12px; padding: 10px 10px 4px; border-top: 1px solid var(--surface); font-variant-numeric: tabular-nums; }
 .items-total strong { font-weight: 600; }
 .segmented.segmented-2 { grid-template-columns: repeat(2, 1fr); }
 .stack-tight { display: flex; flex-direction: column; gap: 6px; }

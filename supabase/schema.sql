@@ -84,6 +84,8 @@ create table if not exists public.food_entries (
   name       text not null check (char_length(name) between 1 and 200),
   kcal       int  not null check (kcal between 0 and 10000),
   protein    numeric(5, 1) not null check (protein between 0 and 1000),
+  carbs      numeric(5, 1) not null default 0 check (carbs between 0 and 1000),
+  fat        numeric(5, 1) not null default 0 check (fat between 0 and 1000),
   created_at timestamptz not null default now()
 );
 create index if not exists food_entries_user_date on public.food_entries (user_id, date);
@@ -94,9 +96,17 @@ create table if not exists public.saved_foods (
   name      text not null check (char_length(name) between 1 and 200),
   kcal      int  not null check (kcal between 0 and 10000),
   protein   numeric(5, 1) not null check (protein between 0 and 1000),
+  carbs     numeric(5, 1) not null default 0 check (carbs between 0 and 1000),
+  fat       numeric(5, 1) not null default 0 check (fat between 0 and 1000),
   last_used timestamptz not null default now(),
   unique (user_id, name)
 );
+
+-- Carbs and fat (grams) were added later; older rows count as 0.
+alter table public.food_entries add column if not exists carbs numeric(5, 1) not null default 0 check (carbs between 0 and 1000);
+alter table public.food_entries add column if not exists fat   numeric(5, 1) not null default 0 check (fat between 0 and 1000);
+alter table public.saved_foods  add column if not exists carbs numeric(5, 1) not null default 0 check (carbs between 0 and 1000);
+alter table public.saved_foods  add column if not exists fat   numeric(5, 1) not null default 0 check (fat between 0 and 1000);
 
 alter table public.food_entries enable row level security;
 alter table public.saved_foods  enable row level security;
