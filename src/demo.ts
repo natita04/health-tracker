@@ -63,16 +63,16 @@ function demoData(tasks: Task[]) {
     [today]: [t(today, 'A slow coffee in the sun', 1), t(today, 'A long call with an old friend', 2)],
     [addDays(today, -1)]: [t(addDays(today, -1), 'Finished the week strong', 1)],
   }
-  const meal = (name: string, kcal: number, protein: number, n: number) => ({ name, kcal, protein, n })
+  const meal = (name: string, kcal: number, protein: number, carbs: number, fat: number, n: number) => ({ name, kcal, protein, carbs, fat, n })
   const meals = [
-    meal('יוגורט חלבון עם גרנולה ותותים', 290, 24, 1),
-    meal('שקשוקה 2 ביצים + פרוסת לחם מלא', 380, 18, 2),
-    meal('חזה עוף 150 גרם עם אורז וסלט', 520, 48, 3),
-    meal('קפה הפוך עם חלב דל', 90, 6, 4),
-    meal('טוסט גבינה צהובה', 340, 19, 5),
+    meal('יוגורט חלבון עם גרנולה ותותים', 290, 24, 32, 8, 1),
+    meal('שקשוקה 2 ביצים + פרוסת לחם מלא', 380, 18, 28, 20, 2),
+    meal('חזה עוף 150 גרם עם אורז וסלט', 520, 48, 55, 12, 3),
+    meal('קפה הפוך עם חלב דל', 90, 6, 9, 3, 4),
+    meal('טוסט גבינה צהובה', 340, 19, 26, 18, 5),
   ]
   const food: FoodEntry[] = meals.slice(0, 3).map((m) => ({
-    id: `demo-food-${m.n}`, date: today, name: m.name, kcal: m.kcal, protein: m.protein,
+    id: `demo-food-${m.n}`, date: today, name: m.name, kcal: m.kcal, protein: m.protein, carbs: m.carbs, fat: m.fat,
     created_at: new Date(`${today}T${['08:10', '13:30', '19:45'][m.n - 1]}`).toISOString(), // local times
   }))
   for (let i = 1; i <= 30; i++) {
@@ -80,10 +80,10 @@ function demoData(tasks: Task[]) {
     if (pseudo(i * 7) < 0.15) continue // some days not logged
     const kcal = Math.round(1450 + pseudo(i * 13) * 650)
     const protein = Math.round(85 + pseudo(i * 17) * 50)
-    food.push({ id: `demo-day-${i}`, date: d, name: 'Logged meals', kcal, protein, created_at: `${d}T12:00:00Z` })
+    food.push({ id: `demo-day-${i}`, date: d, name: 'Logged meals', kcal, protein, carbs: Math.round(kcal * 0.4 / 4), fat: Math.round(kcal * 0.3 / 9), created_at: `${d}T12:00:00Z` })
   }
   const savedFoods: SavedFood[] = meals.map((m) => ({
-    id: `demo-saved-${m.n}`, name: m.name, kcal: m.kcal, protein: m.protein, last_used: `${today}T0${9 - m.n}:00:00Z`,
+    id: `demo-saved-${m.n}`, name: m.name, kcal: m.kcal, protein: m.protein, carbs: m.carbs, fat: m.fat, last_used: `${today}T0${9 - m.n}:00:00Z`,
   }))
   return { done, weights, thoughts, food, savedFoods }
 }
@@ -158,8 +158,8 @@ export function useDemoStore(onExit: () => void): Store {
       await new Promise((r) => setTimeout(r, 700))
       return [
         ...meals.filter((m) => m.protein >= 15).slice(0, 2).map((m) => ({ ...m, mine: true })),
-        { name: 'קוטג׳ 5% עם מלפפון', kcal: 230, protein: 27, mine: false },
-        { name: 'שייק חלבון עם מים', kcal: 120, protein: 24, mine: false },
+        { name: 'קוטג׳ 5% עם מלפפון', kcal: 230, protein: 27, carbs: 12, fat: 9, mine: false },
+        { name: 'שייק חלבון עם מים', kcal: 120, protein: 24, carbs: 3, fat: 1, mine: false },
       ]
     },
     estimateFood: async (text, photo) => {
@@ -167,8 +167,10 @@ export function useDemoStore(onExit: () => void): Store {
       if (photo && !text) text = 'סלט, חזה עוף, אורז'
       const items = text.split(/,|\+| עם | and /).map((x) => x.trim()).filter(Boolean).map((name) => ({
         name, kcal: 60 + Math.round(pseudo(name.length) * 30) * 10, protein: Math.round(pseudo(name.length + 1) * 25),
+        carbs: Math.round(pseudo(name.length + 2) * 40), fat: Math.round(pseudo(name.length + 3) * 15),
       }))
-      return { name: text, kcal: items.reduce((s, i) => s + i.kcal, 0), protein: items.reduce((s, i) => s + i.protein, 0), items }
+      return { name: text, kcal: items.reduce((s, i) => s + i.kcal, 0), protein: items.reduce((s, i) => s + i.protein, 0),
+        carbs: items.reduce((s, i) => s + i.carbs, 0), fat: items.reduce((s, i) => s + i.fat, 0), items }
     },
   }
 }

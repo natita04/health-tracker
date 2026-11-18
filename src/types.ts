@@ -104,6 +104,10 @@ export interface FoodEntry {
   kcal: number
   /** grams */
   protein: number
+  /** grams */
+  carbs: number
+  /** grams */
+  fat: number
   created_at: string
 }
 
@@ -113,10 +117,12 @@ export interface SavedFood {
   name: string
   kcal: number
   protein: number
+  carbs: number
+  fat: number
   last_used: string
 }
 
-export type FoodInput = Pick<FoodEntry, 'name' | 'kcal' | 'protein'>
+export type FoodInput = Pick<FoodEntry, 'name' | 'kcal' | 'protein' | 'carbs' | 'fat'>
 
 /** What the estimate function returns for free text. */
 /** What the estimate function returns for free text. */

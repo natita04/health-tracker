@@ -45,11 +45,11 @@ async function seedDefaults(userId: string) {
   if (up.error) throw up.error
 }
 
-const FOOD_COLS = 'id,date,name,kcal,protein,created_at'
-const SAVED_COLS = 'id,name,kcal,protein,last_used'
+const FOOD_COLS = 'id,date,name,kcal,protein,carbs,fat,created_at'
+const SAVED_COLS = 'id,name,kcal,protein,carbs,fat,last_used'
 // numeric columns can arrive as strings
-const toEntry = (r: FoodEntry): FoodEntry => ({ ...r, kcal: Number(r.kcal), protein: Number(r.protein) })
-const toSaved = (r: SavedFood): SavedFood => ({ ...r, kcal: Number(r.kcal), protein: Number(r.protein) })
+const toEntry = (r: FoodEntry): FoodEntry => ({ ...r, kcal: Number(r.kcal), protein: Number(r.protein), carbs: Number(r.carbs), fat: Number(r.fat) })
+const toSaved = (r: SavedFood): SavedFood => ({ ...r, kcal: Number(r.kcal), protein: Number(r.protein), carbs: Number(r.carbs), fat: Number(r.fat) })
 
 export interface Thought {
   id: string
@@ -261,8 +261,8 @@ export function useStore(userId: string) {
   async function updateFood(entry: FoodEntry) {
     const before = food
     setFood((p) => p.map((x) => (x.id === entry.id ? entry : x)))
-    const { name, kcal, protein } = entry
-    const { error } = await supabase.from('food_entries').update({ name, kcal, protein }).eq('id', entry.id)
+    const { name, kcal, protein, carbs, fat } = entry
+    const { error } = await supabase.from('food_entries').update({ name, kcal, protein, carbs, fat }).eq('id', entry.id)
     if (error) { setFood(before); fail(error) }
   }
 
@@ -278,8 +278,8 @@ export function useStore(userId: string) {
   async function updateSavedFood(saved: SavedFood) {
     const before = savedFoods
     setSavedFoods((p) => p.map((x) => (x.id === saved.id ? saved : x)))
-    const { name, kcal, protein } = saved
-    const { error } = await supabase.from('saved_foods').update({ name, kcal, protein }).eq('id', saved.id)
+    const { name, kcal, protein, carbs, fat } = saved
+    const { error } = await supabase.from('saved_foods').update({ name, kcal, protein, carbs, fat }).eq('id', saved.id)
     if (error) { setSavedFoods(before); fail(error) }
   }
 
