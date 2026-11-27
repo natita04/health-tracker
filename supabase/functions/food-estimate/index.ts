@@ -11,6 +11,7 @@ const client = new Anthropic({ apiKey: Deno.env.get('ANTHROPIC_API_KEY') })
 const MAX_TEXT = 300
 const MAX_PHOTO_B64 = 4_000_000 // the app sends ~1280px JPEGs, well under this
 const MAX_MEALS = 40
+const MAX_KNOWN = 300
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -32,6 +33,7 @@ const SYSTEM = `You estimate calories, protein, carbohydrates and fat for a food
 - Per-100 g values must be realistic for the specific food and variant named (e.g. cottage 5% vs 3%, chicken breast vs thigh, Greek vs regular yogurt). Prefer standard published values (USDA, Israeli Ministry of Health tables, or the package label if the brand is named).
 - "name" is a short label for the whole meal in the user's own language and wording, at most 60 characters. Item names also stay in the user's language, and keep the quantity the user wrote (e.g. "2 כדורי בשר").
 - If the text isn't food at all, return an empty items list.
+- KNOWN FOODS: the request may include "known_foods", the user's own saved meals with measured numbers (kcal, protein, carbs, fat) for the amount written in each name (no amount in the name means one portion or unit). These are MORE ACCURATE than your memory. When an item is the same food as a known food (ignore small wording differences, e.g. "חצי פחית טונה" matches "פחית טונה במים (מסוננת)"), set "saved_name" to that known food's name EXACTLY as written and "saved_multiplier" to how many of the known amount the user ate: "half" -> 0.5, "2" -> 2, and when the user wrote a weight or volume and the known name has one, the ratio (known "100 גרם קוטג'", user "150 גרם קוטג'" -> 1.5). Still fill count, unit_grams and the per-100 g values as usual (they are the fallback). Do NOT match a different food (cottage 5% vs 3%, cooked vs raw, a different brand), and when unsure leave saved_name "" and saved_multiplier 0.
 - If there's a photo, identify the foods in it and estimate portions from what you see (plate size, utensils, packaging). Any text is extra context, like the portion eaten. With no text, write names in Hebrew.`
 
 const IDEAS_SYSTEM = `You help someone close today's protein gap in their food diary. You get how much protein they still want (grams), how many calories they have left, and a list of their own saved meals (most eaten first), usually named in Hebrew.
@@ -53,8 +55,10 @@ const RAW_ITEM = {
     per100_protein: { type: 'number' },
     per100_carbs: { type: 'number' },
     per100_fat: { type: 'number' },
+    saved_name: { type: 'string' },
+    saved_multiplier: { type: 'number' },
   },
-  required: ['name', 'count', 'unit_grams', 'per100_kcal', 'per100_protein', 'per100_carbs', 'per100_fat'],
+  required: ['name', 'count', 'unit_grams', 'per100_kcal', 'per100_protein', 'per100_carbs', 'per100_fat', 'saved_name', 'saved_multiplier'],
   additionalProperties: false,
 }
 
@@ -68,11 +72,24 @@ const SCHEMA = {
   additionalProperties: false,
 }
 
-type RawEstimate = { name: string; items: { name: string; count: number; unit_grams: number; per100_kcal: number; per100_protein: number; per100_carbs: number; per100_fat: number }[] }
+type RawEstimate = { name: string; items: { name: string; count: number; unit_grams: number; per100_kcal: number; per100_protein: number; per100_carbs: number; per100_fat: number; saved_name: string; saved_multiplier: number }[] }
+type Known = { name: string; kcal: number; protein: number; carbs: number; fat: number }
 
 /** grams x per-100 g -> the { name, kcal, protein, carbs, fat, items } shape the app expects. kcal whole, grams to 0.5. */
-function compute(raw: RawEstimate) {
+function compute(raw: RawEstimate, known: Known[]) {
+  const byName = new Map(known.map((k) => [k.name, k]))
   const items = raw.items.map((i) => {
+    // A match with one of the user's saved meals: scale its measured numbers, no per-100 g guesswork.
+    const saved = byName.get(i.saved_name)
+    const mult = Number(i.saved_multiplier)
+    if (saved && mult > 0 && mult <= 50) {
+      const r = (n: number) => Math.round(n * mult * 2) / 2
+      return {
+        name: i.name,
+        basis: `${Math.round(mult * 100) / 100} × ${saved.name}`,
+        kcal: Math.round(saved.kcal * mult), protein: r(saved.protein), carbs: r(saved.carbs), fat: r(saved.fat),
+      }
+    }
     const count = Math.max(0, Number(i.count) || 0) || 1
     const unit = Math.max(0, Number(i.unit_grams) || 0)
     const grams = Math.round(count * unit)
@@ -131,6 +148,7 @@ Deno.serve(async (req) => {
   }
 
   let system = SYSTEM
+  let known: Known[] = []
   let schema: Record<string, unknown> = SCHEMA
   let content: Anthropic.ContentBlockParam[]
   if (body.mode === 'ideas') {
@@ -146,6 +164,10 @@ Deno.serve(async (req) => {
     }]
   } else {
     const text = String(body.text ?? '').trim().slice(0, MAX_TEXT)
+    known = (Array.isArray(body.known) ? body.known : []).slice(0, MAX_KNOWN).map((m) => ({
+      name: String(m?.name ?? '').slice(0, 200), kcal: Number(m?.kcal) || 0, protein: Number(m?.protein) || 0,
+      carbs: Number(m?.carbs) || 0, fat: Number(m?.fat) || 0,
+    }))
     const photo = body.photo as { data?: unknown; media_type?: unknown } | undefined
     const hasPhoto = typeof photo?.data === 'string' && photo.data.length > 0
     if (hasPhoto && (photo!.media_type !== 'image/jpeg' || (photo!.data as string).length > MAX_PHOTO_B64)) {
@@ -155,6 +177,7 @@ Deno.serve(async (req) => {
     content = [
       ...(hasPhoto ? [{ type: 'image' as const, source: { type: 'base64' as const, media_type: 'image/jpeg' as const, data: photo!.data as string } }] : []),
       { type: 'text', text: text || 'What did I eat? (photo)' },
+      ...(known.length ? [{ type: 'text' as const, text: `known_foods: ${JSON.stringify(known)}` }] : []),
     ]
   }
 
@@ -171,7 +194,7 @@ Deno.serve(async (req) => {
     const block = response.content.find((b) => b.type === 'text')
     if (!block || block.type !== 'text') return json({ error: 'No estimate came back' }, 502)
     const parsed = JSON.parse(block.text)
-    return json(body.mode === 'ideas' ? parsed : compute(parsed as RawEstimate))
+    return json(body.mode === 'ideas' ? parsed : compute(parsed as RawEstimate, known))
   } catch (e) {
     if (e instanceof Anthropic.AuthenticationError) return json({ error: 'The Anthropic API key is missing or wrong' }, 500)
     if (e instanceof Anthropic.RateLimitError) return json({ error: 'Too many requests, try again in a moment' }, 429)

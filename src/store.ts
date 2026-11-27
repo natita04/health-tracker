@@ -338,7 +338,9 @@ export function useStore(userId: string) {
   }
 
   /** Free text and/or a photo -> calories and protein. Throws if the function isn't set up. */
-  const estimateFood = (text: string, photo?: FoodPhoto) => callFood<FoodEstimate>({ text, photo })
+  // Your saved meals go along: their numbers are measured, so the estimate scales from them when a food matches.
+  const estimateFood = (text: string, photo?: FoodPhoto) =>
+    callFood<FoodEstimate>({ text, photo, known: savedFoods.map(({ name, kcal, protein, carbs, fat }) => ({ name, kcal, protein, carbs, fat })) })
 
   /** A few ideas that fit what's left of today's calories and protein. */
   const suggestFood = (kcalLeft: number, proteinLeft: number, meals: FoodInput[]) =>
